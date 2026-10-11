@@ -1,3 +1,25 @@
+# Strawberry Fields - KharonByte maintenance fork
+
+Independent maintenance of the archived [Xanadu Strawberry Fields project](https://github.com/XanaduAI/strawberryfields).
+The original authorship and Apache-2.0 license are retained.
+
+The first patch corrects bosonic heterodyne postselection: a nonzero selected
+measurement previously produced the state for half the requested amplitude.
+It includes analytic regression tests and a reproducible before/after demo.
+
+- [Short demo and reproduction commands](maintenance/README.md)
+- [Recorded before/after results](maintenance/RESULTS.md)
+- [Limited support scope](SUPPORT.md)
+
+Initial validation covers this measurement correction in one pinned Python 3.12.3
+Linux x86-64 CPU environment. See the scope before relying on this fork for other
+work. There is no KharonByte package release yet; run the demo from this checkout.
+
+## Original upstream README (historical)
+
+The material below preserves upstream context and attribution. Its installation,
+support and hardware-service descriptions do not describe this fork's commitments.
+
 <p align="center">
   <img width=80% src="https://raw.githubusercontent.com/XanaduAI/strawberryfields/master/doc/_static/strawberry-fields-text.png">
 </p>

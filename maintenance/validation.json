@@ -1,0 +1,140 @@
+{
+  "baseline_commit": "162125d8ad5fd5488322a30c520253189596adf5",
+  "validated_at_utc": "2026-10-11T22:52:35.837039+00:00",
+  "environment": {
+    "python": "3.12.3",
+    "system": "Linux",
+    "machine": "x86_64",
+    "kernel": "6.18.20.1-microsoft-standard-WSL2",
+    "packages": {
+      "numpy": "1.26.4",
+      "scipy": "1.13.1",
+      "thewalrus": "0.21.0",
+      "numba": "0.60.0",
+      "pytest": "8.3.5",
+      "pytest-mock": "3.14.0"
+    }
+  },
+  "sha256": {
+    "strawberryfields/backends/bosonicbackend/bosoniccircuit.py": "2af4f093834f4be18a176b1962dfbc8b1c07e41321ef4760aa1858a8dcdd51ce",
+    "tests/integration/test_measurement_integration.py": "81fe666dd3c4ef7979d3c0dd86c0c5d4b11954638223004ba8df08c3db1dee2f",
+    "tests/bosonic_files/test_backend_bosoniccircuit.py": "acae7a5a790497b3cf9704ff774528b82d29626a869a8cdd0293d28b98c1b7bc",
+    "maintenance/heterodyne_demo.py": "1008529fcc16f76eced5654c5114ce995646a50a6fe7c87ed447d5627e5e10cc",
+    "maintenance/check.py": "fab7d7c24cb94a5241887617176924bdf7fb065350bc5e73eee617243f9b10ea",
+    "maintenance/requirements-python312.txt": "586b4814d7d8c4a6138b08a72e8aaa733296993b514f009c99ac5e1ca582855e"
+  },
+  "demo": {
+    "before": {
+      "selected_alpha": [
+        0.25,
+        -0.15
+      ],
+      "source_sha256": "5537cbd5e820f7e11ed40cb3a5e6d8e21b6940439f236d7a664b22703b33c44b",
+      "backends": {
+        "gaussian": {
+          "expected_amplitude": [
+            0.11755321402397163,
+            0.13125691114804328
+          ],
+          "actual_amplitude": [
+            0.11755321402397163,
+            0.1312569111480433
+          ],
+          "absolute_error": 2.7755575615628914e-17,
+          "fidelity_to_expected_state": [
+            1.0,
+            0.0
+          ],
+          "measurement_value_preserved": true,
+          "passed": true
+        },
+        "bosonic": {
+          "expected_amplitude": [
+            0.11755321402397163,
+            0.13125691114804328
+          ],
+          "actual_amplitude": [
+            0.058776607011985796,
+            0.06562845557402162
+          ],
+          "absolute_error": 0.08810098587911917,
+          "fidelity_to_expected_state": [
+            0.9922682611461769,
+            0.0
+          ],
+          "measurement_value_preserved": true,
+          "passed": false
+        }
+      },
+      "passed": false
+    },
+    "after": {
+      "selected_alpha": [
+        0.25,
+        -0.15
+      ],
+      "source_sha256": "2af4f093834f4be18a176b1962dfbc8b1c07e41321ef4760aa1858a8dcdd51ce",
+      "backends": {
+        "gaussian": {
+          "expected_amplitude": [
+            0.11755321402397163,
+            0.13125691114804328
+          ],
+          "actual_amplitude": [
+            0.11755321402397163,
+            0.1312569111480433
+          ],
+          "absolute_error": 2.7755575615628914e-17,
+          "fidelity_to_expected_state": [
+            1.0,
+            0.0
+          ],
+          "measurement_value_preserved": true,
+          "passed": true
+        },
+        "bosonic": {
+          "expected_amplitude": [
+            0.11755321402397163,
+            0.13125691114804328
+          ],
+          "actual_amplitude": [
+            0.1175532140239716,
+            0.13125691114804328
+          ],
+          "absolute_error": 2.7755575615628914e-17,
+          "fidelity_to_expected_state": [
+            0.9999999999999998,
+            0.0
+          ],
+          "measurement_value_preserved": true,
+          "passed": true
+        }
+      },
+      "passed": true
+    }
+  },
+  "regressions": {
+    "before": {
+      "tests": 117,
+      "failures": 42,
+      "errors": 0,
+      "skipped": 32,
+      "passed": 43
+    },
+    "after": {
+      "tests": 117,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 32,
+      "passed": 85
+    }
+  },
+  "related_after": {
+    "tests": 1263,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 60,
+    "passed": 1203
+  },
+  "passed": true
+}

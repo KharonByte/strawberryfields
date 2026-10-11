@@ -13,6 +13,7 @@ env:
 
 jobs:
   core-tests:
+    if: github.repository == 'XanaduAI/strawberryfields'
     runs-on: ubuntu-latest
 
     env:

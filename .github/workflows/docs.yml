@@ -4,6 +4,7 @@ on:
 
 jobs:
   sphinx:
+    if: github.repository == 'XanaduAI/strawberryfields'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
