@@ -967,7 +967,7 @@ class BosonicModes:
 
         Args:
             mode (int): mode to be measured
-            alpha_val (array): measurement value to postselect
+            alpha_val (complex): coherent amplitude of the measurement outcome to postselect
 
         Raises:
             ValueError: if the mode are not in the list of active modes
@@ -976,7 +976,8 @@ class BosonicModes:
             raise ValueError("Cannot apply heterodyne measurement, mode does not exist.")
 
         covmat = self.hbar * np.identity(2) / 2
-        vals = np.array([alpha_val.real, alpha_val.imag])
+        # Convert the coherent amplitude to quadratures in the backend's hbar=2 units.
+        vals = 2 * np.array([alpha_val.real, alpha_val.imag])
         self.post_select_generaldyne(covmat, [mode], vals)
 
     def apply_u(self, U):

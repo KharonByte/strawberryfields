@@ -16,6 +16,7 @@ import pytest
 
 import numpy as np
 
+import strawberryfields as sf
 from strawberryfields import ops
 
 
@@ -94,6 +95,30 @@ class TestPostselection:
 
         eng.run(prog)
         assert np.allclose(q[0].val, alpha, atol=tol, rtol=0)
+
+    @pytest.mark.backends("gaussian", "bosonic")
+    @pytest.mark.parametrize("alpha", [0, 0.43, -0.12j, 0.25 - 0.15j])
+    @pytest.mark.parametrize("mode", [0, 1])
+    @pytest.mark.parametrize("hbar_value", [1.0, 2.0])
+    def test_heterodyne_conditional_state(self, setup_eng, monkeypatch, alpha, mode, hbar_value):
+        """Postselection on a two-mode squeezed vacuum leaves the correct coherent state."""
+        monkeypatch.setattr(sf, "hbar", hbar_value)
+        eng, prog = setup_eng(2)
+        r, phi = 0.7, 0.3
+
+        with prog.context as q:
+            ops.S2gate(r, phi) | q
+            ops.MeasureHeterodyne(select=alpha) | q[mode]
+
+        result = eng.run(prog)
+        # Projecting sum_n (exp(i*phi)*tanh(r))**n |n,n> onto <alpha|
+        # leaves |exp(i*phi)*tanh(r)*conj(alpha)> in the unmeasured mode.
+        expected = [0j, 0j]
+        expected[1 - mode] = np.exp(1j * phi) * np.tanh(r) * np.conj(alpha)
+        assert np.allclose(q[mode].val, alpha, atol=1e-12, rtol=0)
+        assert np.allclose(result.samples, [[alpha]], atol=1e-12, rtol=0)
+        # This also checks that the measured mode was reset to vacuum.
+        assert np.allclose(result.state.fidelity_coherent(expected), 1, atol=1e-10, rtol=0)
 
     @pytest.mark.backends("fock", "tf")
     def test_measure_fock(self, setup_eng, cutoff, batch_size):
