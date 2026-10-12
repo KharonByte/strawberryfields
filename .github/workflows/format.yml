@@ -4,6 +4,7 @@ on:
 
 jobs:
   black:
+    if: github.repository == 'XanaduAI/strawberryfields'
     runs-on: ubuntu-latest
 
     steps:
