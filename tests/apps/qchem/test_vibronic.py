@@ -14,6 +14,7 @@
 r"""
 Tests for strawberryfields.apps.qchem.vibronic
 """
+
 # pylint: disable=protected-access,no-self-use,unused-argument,redefined-outer-name
 from unittest import mock
 

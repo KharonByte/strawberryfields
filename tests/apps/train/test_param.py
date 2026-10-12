@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.train.param
 """
+
 # pylint: disable=no-self-use,protected-access,redefined-outer-name
 import itertools
 

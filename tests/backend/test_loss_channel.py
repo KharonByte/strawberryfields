@@ -17,7 +17,6 @@ Convention: The loss channel N(T) has the action
 N(T){|n><m|} = \sum_{l=0}^{min(m,n)} ((1-T)/T) ^ l * T^((n+m)/2) / l! * \sqrt(n!m!/((n-l)!(m-l)!))n-l><m-l|
 """
 
-
 import pytest
 
 import numpy as np

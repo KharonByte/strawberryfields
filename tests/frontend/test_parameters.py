@@ -29,7 +29,6 @@ from strawberryfields.parameters import (
 )
 from strawberryfields.program_utils import RegRef
 
-
 pytestmark = pytest.mark.frontend
 
 

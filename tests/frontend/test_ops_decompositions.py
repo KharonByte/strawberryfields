@@ -15,6 +15,7 @@
 # pylint: disable=no-self-use
 
 r"""Unit tests for the Strawberry Fields decompositions within the ops module"""
+
 import pytest
 
 import numpy as np
@@ -25,7 +26,6 @@ from strawberryfields.parameters import par_evaluate, FreeParameter
 from strawberryfields import decompositions as dec
 from strawberryfields.utils import random_interferometer, random_symplectic, random_covariance
 from strawberryfields import ops
-
 
 pytestmark = pytest.mark.frontend
 

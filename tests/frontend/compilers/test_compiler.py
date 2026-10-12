@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the CircuitSpec class"""
+
 import pytest
 import sympy
 import inspect
 
 from strawberryfields.compilers.compiler import Compiler
 from strawberryfields.program_utils import CircuitError
-
 
 pytestmark = pytest.mark.frontend
 
@@ -46,8 +46,7 @@ class TestAbstractCircuitSpec:
             primitives: set = set()
             decompositions: set = set()
 
-            circuit: str = inspect.cleandoc(
-                """
+            circuit: str = inspect.cleandoc("""
                 name test
                 version 0.0
 
@@ -56,8 +55,7 @@ class TestAbstractCircuitSpec:
                 BSgate(0.54) | 0, 1
                 MeasureFock() | 0
                 MeasureFock() | 2
-                """
-            )
+                """)
 
         dummy = DummyCompiler()
         top = dummy.graph
@@ -95,8 +93,7 @@ class TestAbstractCircuitSpec:
             primitives: set = set()
             decompositions: set = set()
 
-            circuit: str = inspect.cleandoc(
-                """
+            circuit: str = inspect.cleandoc("""
                 name test
                 version 0.0
 
@@ -105,8 +102,7 @@ class TestAbstractCircuitSpec:
                 BSgate({theta}) | 0, 1
                 MeasureFock() | 0
                 MeasureFock() | 2
-                """
-            )
+                """)
 
         dummy = DummyCompiler()
         top = dummy.graph
@@ -149,8 +145,7 @@ class TestAbstractCircuitSpec:
 
         dummy = DummyCompiler()
 
-        circuit = inspect.cleandoc(
-            """
+        circuit = inspect.cleandoc("""
             name test
             version 0.0
 
@@ -159,8 +154,7 @@ class TestAbstractCircuitSpec:
             BSgate({theta}) | 0, 1
             MeasureFock() | 0
             MeasureFock() | 2
-            """
-        )
+            """)
 
         # circuit layout is None if not set
         assert dummy.circuit is None
@@ -174,8 +168,7 @@ class TestAbstractCircuitSpec:
         assert dummy.circuit == circuit
 
         # creating a different circuit layout and attempt to initialize it should raise an error
-        circuit = inspect.cleandoc(
-            """
+        circuit = inspect.cleandoc("""
             name test
             version 0.0
 
@@ -183,8 +176,7 @@ class TestAbstractCircuitSpec:
             Dgate(-7.123) | 0
             BSgate({theta}) | 0, 1
             MeasureFock() | 1
-            """
-        )
+            """)
         with pytest.raises(CircuitError, match="Circuit already set in compiler"):
             dummy.init_circuit(circuit)
 

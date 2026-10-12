@@ -13,8 +13,8 @@
 # limitations under the License.
 
 r"""Unit tests for homodyne measurements."""
-import numpy as np
 
+import numpy as np
 
 N_MEAS = 300  # number of homodyne measurements to perform
 NUM_STDS = 10.0

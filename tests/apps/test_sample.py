@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.sample
 """
+
 # pylint: disable=no-self-use,unused-argument
 from unittest import mock
 

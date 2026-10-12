@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the Xcov compiler"""
+
 import inspect
 import logging
 import pytest
@@ -60,8 +61,7 @@ class TestTDMCompiler:
 
     target = "TDM"
     tm = 4
-    layout_template = inspect.cleandoc(
-        """
+    layout_template = inspect.cleandoc("""
         name template_tdm
         version 1.0
         target {target} (shots=1)
@@ -78,8 +78,7 @@ class TestTDMCompiler:
         BSgate({{bs}}, 0) | (1, 0)
         Rgate({{r}}) | 1
         MeasureHomodyne({{m}}) | 0
-        """
-    )
+        """)
     layout = layout_template.format(target=target, tm=tm)
 
     device_spec = {

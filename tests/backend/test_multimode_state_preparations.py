@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-r""" Tests for various multi mode state preparation operations"""
+r"""Tests for various multi mode state preparation operations"""
+
 import itertools
 
 import pytest
@@ -20,7 +21,6 @@ import numpy as np
 
 from strawberryfields import ops
 from strawberryfields.utils import random_covariance, displaced_squeezed_state
-
 
 MAG_ALPHAS = np.linspace(0, 0.8, 3)
 PHASE_ALPHAS = np.linspace(0, 2 * np.pi, 3, endpoint=False)

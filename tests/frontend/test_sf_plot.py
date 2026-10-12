@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.plot
 """
+
 import numpy as np
 from copy import deepcopy
 import plotly.io as pio

@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.subgraph
 """
+
 # pylint: disable=no-self-use,unused-argument
 # for testing private functions with pylint: disable=protected-access
 # for fixtures with pylint: disable=redefined-outer-name

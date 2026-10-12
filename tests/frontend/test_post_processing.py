@@ -14,6 +14,7 @@
 """
 Unit tests for strawberryfields.utils.post_processing
 """
+
 import numpy as np
 import pytest
 

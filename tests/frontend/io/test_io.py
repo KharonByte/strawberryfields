@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the IO module"""
+
 import pytest
 import textwrap
 
@@ -31,8 +32,7 @@ def eng(backend):
     return sf.LocalEngine(backend)
 
 
-prog_txt = textwrap.dedent(
-    """\
+prog_txt = textwrap.dedent("""\
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -47,11 +47,9 @@ prog_txt = textwrap.dedent(
         ops.MeasureFock() | q[0]
 
     results = eng.run(prog)
-"""
-)
+""")
 
-prog_txt_no_engine = textwrap.dedent(
-    """\
+prog_txt_no_engine = textwrap.dedent("""\
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -63,11 +61,9 @@ prog_txt_no_engine = textwrap.dedent(
         ops.Sgate(3*np.pi/2, 0) | q[1]
         ops.BSgate(2*np.pi, 0.62) | (q[0], q[1])
         ops.MeasureFock() | q[0]
-"""
-)
+""")
 
-prog_txt_tdm = textwrap.dedent(
-    """\
+prog_txt_tdm = textwrap.dedent("""\
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -82,8 +78,7 @@ prog_txt_tdm = textwrap.dedent(
         ops.MeasureHomodyne(p[2]) | q[2]
 
     results = eng.run(prog)
-"""
-)
+""")
 
 
 class TestGenerateCode:

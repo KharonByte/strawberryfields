@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the Blackbird IO module"""
+
 import pytest
 import textwrap
 
@@ -29,7 +30,6 @@ from strawberryfields.parameters import (
     par_is_symbolic,
     par_funcs as pf,
 )
-
 
 pytestmark = pytest.mark.frontend
 
@@ -582,8 +582,7 @@ class TestBlackbirdToSFConversion:
     def test_tdm_program(self):
         """Test converting a tdm bb_script to a TDMProgram"""
 
-        bb_script = textwrap.dedent(
-            """\
+        bb_script = textwrap.dedent("""\
         name None
         version 1.0
         type tdm (temporal_modes=3)
@@ -599,8 +598,7 @@ class TestBlackbirdToSFConversion:
         BSgate(p0, 0.0) | [0, 1]
         Rgate(p1) | 1
         MeasureHomodyne(phi=p2) | 0
-        """
-        )
+        """)
 
         bb = blackbird.loads(bb_script)
         prog = io.to_program(bb)
@@ -656,8 +654,7 @@ class TestBlackbirdToSFConversion:
     def test_gate_not_defined_tdm(self):
         """Test unknown gate raises error for tdm program"""
 
-        bb_script = textwrap.dedent(
-            """\
+        bb_script = textwrap.dedent("""\
         name test_program
         version 1.0
         type tdm (temporal_modes= 12)
@@ -666,8 +663,7 @@ class TestBlackbirdToSFConversion:
             1, 3, 5
 
         np | [0, 1]
-        """
-        )
+        """)
 
         bb = blackbird.loads(bb_script)
 
@@ -675,8 +671,7 @@ class TestBlackbirdToSFConversion:
             io.to_program(bb)
 
 
-prog_txt = textwrap.dedent(
-    """\
+prog_txt = textwrap.dedent("""\
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -691,11 +686,9 @@ prog_txt = textwrap.dedent(
         ops.MeasureFock() | q[0]
 
     results = eng.run(prog)
-"""
-)
+""")
 
-prog_txt_no_engine = textwrap.dedent(
-    """\
+prog_txt_no_engine = textwrap.dedent("""\
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -707,11 +700,9 @@ prog_txt_no_engine = textwrap.dedent(
         ops.Sgate(3*np.pi/2, 0) | q[1]
         ops.BSgate(2*np.pi, 0.62) | (q[0], q[1])
         ops.MeasureFock() | q[0]
-"""
-)
+""")
 
-prog_txt_tdm = textwrap.dedent(
-    """\
+prog_txt_tdm = textwrap.dedent("""\
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -726,8 +717,7 @@ prog_txt_tdm = textwrap.dedent(
         ops.MeasureHomodyne(p[2]) | q[2]
 
     results = eng.run(prog)
-"""
-)
+""")
 
 
 class TestSaveBlackbird:

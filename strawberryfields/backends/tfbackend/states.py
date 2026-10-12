@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """TensorFlow states module"""
+
 from string import ascii_lowercase as indices
 
 import numpy as np

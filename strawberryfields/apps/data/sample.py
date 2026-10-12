@@ -14,6 +14,7 @@
 r"""
 Submodule for sample datasets and their base classes.
 """
+
 # pylint: disable=unnecessary-pass
 from abc import ABC, abstractmethod
 

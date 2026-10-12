@@ -13,10 +13,10 @@
 # limitations under the License.
 
 r"""Unit tests for measurements in the Fock basis"""
+
 import pytest
 
 import numpy as np
-
 
 NUM_REPEATS = 50
 

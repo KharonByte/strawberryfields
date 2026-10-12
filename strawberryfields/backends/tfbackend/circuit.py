@@ -29,6 +29,7 @@ Contents
      Circuit
 
 """
+
 # pylint: disable=too-many-arguments,too-many-statements,too-many-branches,protected-access,attribute-defined-outside-init
 
 from itertools import product

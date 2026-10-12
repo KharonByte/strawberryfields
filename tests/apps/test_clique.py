@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.clique
 """
+
 # pylint: disable=no-self-use,unused-argument
 import functools
 

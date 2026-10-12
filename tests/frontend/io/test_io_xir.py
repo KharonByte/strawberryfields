@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the XIR IO module"""
+
 import pytest
 import inspect
 from decimal import Decimal
@@ -30,7 +31,6 @@ from strawberryfields.parameters import (
     par_funcs as pf,
     FreeParameter,
 )
-
 
 pytestmark = pytest.mark.frontend
 
@@ -469,8 +469,7 @@ class TestXIRtoSFConversion:
     @pytest.mark.parametrize("use_floats", [False, True])
     def test_tdm_program_script(self, use_floats):
         """Test converting a TDM XIR script to a TDMProgram"""
-        xir_script = inspect.cleandoc(
-            """
+        xir_script = inspect.cleandoc("""
             options:
                 _type_: tdm;
                 N: [2, 3];
@@ -491,8 +490,7 @@ class TestXIRtoSFConversion:
 
             MeasureHomodyne(phi: p0) | [0];
             MeasureFock | [2];
-            """
-        )
+            """)
 
         xir_prog = xir.parse_script(xir_script, eval_pi=True, use_floats=use_floats)
         print(xir_prog.options)
@@ -561,8 +559,7 @@ class TestXIRtoSFConversion:
     @pytest.mark.parametrize("use_floats", [False, True])
     def test_script_with_gate_definition(self, use_floats):
         """Test converting a XIR script with gate definitions to a Program"""
-        xir_script = inspect.cleandoc(
-            """
+        xir_script = inspect.cleandoc("""
             gate Aubergine(x, y)[w]:
                 Squeezed(x, y) | [w];
             end;
@@ -577,8 +574,7 @@ class TestXIRtoSFConversion:
 
             Vacuum | [1];
             Banana(0.5, 0.4, 0.0, 0.5, 1.0, 0.0) | [3, 0];
-            """
-        )
+            """)
 
         xir_prog = xir.parse_script(xir_script, eval_pi=True, use_floats=use_floats)
         sf_prog = io.to_program(xir_prog)
@@ -597,8 +593,7 @@ class TestXIRtoSFConversion:
         assert modes == [[1], [3], [0], [3], [3, 0], [0]]
 
 
-prog_txt = inspect.cleandoc(
-    """
+prog_txt = inspect.cleandoc("""
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -613,11 +608,9 @@ prog_txt = inspect.cleandoc(
         ops.MeasureFock() | q[0]
 
     results = eng.run(prog)
-    """
-)
+    """)
 
-prog_txt_no_engine = inspect.cleandoc(
-    """
+prog_txt_no_engine = inspect.cleandoc("""
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -629,11 +622,9 @@ prog_txt_no_engine = inspect.cleandoc(
         ops.Sgate(3*np.pi/2, 0) | q[1]
         ops.BSgate(2*np.pi, 0.62) | (q[0], q[1])
         ops.MeasureFock() | q[0]
-"""
-)
+""")
 
-prog_txt_tdm = inspect.cleandoc(
-    """
+prog_txt_tdm = inspect.cleandoc("""
     import strawberryfields as sf
     from strawberryfields import ops
 
@@ -648,8 +639,7 @@ prog_txt_tdm = inspect.cleandoc(
         ops.MeasureHomodyne(p[2]) | q[2]
 
     results = eng.run(prog)
-"""
-)
+""")
 
 
 class TestSaveXIR:

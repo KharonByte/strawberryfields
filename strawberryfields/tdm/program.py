@@ -15,6 +15,7 @@
 """
 This module implements the :class:`.TDMProgram` class which acts as a representation for time-domain quantum circuits.
 """
+
 # pylint: disable=too-many-instance-attributes,attribute-defined-outside-init
 
 import itertools

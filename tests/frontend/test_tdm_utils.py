@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for tdm/program.py"""
+
 import copy
 import pytest
 import inspect
@@ -51,8 +52,7 @@ def get_layout():
     Returns:
         str: the Borealis layout
     """
-    return inspect.cleandoc(
-        """
+    return inspect.cleandoc("""
         name template_borealis
         version 1.0
         target borealis (shots=100000)
@@ -91,8 +91,7 @@ def get_layout():
         BSgate({bs2}, 1.5707963267948966) | [0, 36]
         Rgate({loop2_phase}) | 36
         MeasureFock() | 0
-        """
-    )
+        """)
 
 
 def get_device_spec():

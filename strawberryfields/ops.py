@@ -16,6 +16,7 @@ This module defines and implements the Python-embedded quantum programming langu
 for continuous-variable (CV) quantum systems.
 The syntax is modeled after ProjectQ :cite:`projectq2016`.
 """
+
 from collections.abc import Sequence
 import copy
 import warnings

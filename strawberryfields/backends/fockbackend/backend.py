@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fock backend simulator"""
+
 # pylint: disable=protected-access,too-many-public-methods
 
 import string

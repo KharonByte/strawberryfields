@@ -18,6 +18,7 @@ Visualization requires installation of the Plotly library, which is not a depend
 Strawberry Fields. Plotly can be installed using ``pip install plotly`` or by visiting their
 `installation instructions <https://plot.ly/python/getting-started/#installation>`__.
 """
+
 # pylint: disable=import-outside-toplevel
 from typing import Optional, Tuple
 

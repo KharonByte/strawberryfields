@@ -46,6 +46,7 @@ using the functions :func:`list_to_grid`, :func:`grid_to_DAG` and :func:`DAG_to_
 
 .. currentmodule:: strawberryfields.program
 """
+
 # pylint: disable=too-many-instance-attributes,attribute-defined-outside-init
 
 import copy
@@ -65,7 +66,6 @@ from .program_utils import (
     program_equivalence,
 )
 from .parameters import FreeParameter, ParameterError
-
 
 # for automodapi, do not include the classes that should appear under the top-level strawberryfields namespace
 __all__ = []

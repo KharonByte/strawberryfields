@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the Strawberry Fields utils.py module"""
+
 import pytest
 
 pytestmark = pytest.mark.frontend
@@ -24,7 +25,6 @@ import strawberryfields as sf
 from strawberryfields.program_utils import RegRef
 from strawberryfields.ops import Sgate, BSgate, LossChannel, MeasureX, Squeezed
 import strawberryfields.utils as utils
-
 
 R_D = np.linspace(-2.00562, 1.0198, 4)
 PHI_D = np.linspace(-1.64566, 1.3734, 4)

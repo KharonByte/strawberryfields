@@ -15,6 +15,7 @@ r"""
 This module provides abstract base classes which represent the quantum state
 returned by a simulator backend via :class:`.Engine`.
 """
+
 import abc
 import string
 from itertools import chain

@@ -15,6 +15,7 @@ r"""
 This module contains various utility functions needed to perform quantum chemistry calculations with
 Strawberry Fields.
 """
+
 from typing import Tuple
 
 import numpy as np

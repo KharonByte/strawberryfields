@@ -22,8 +22,7 @@ from strawberryfields.program_utils import list_to_DAG
 
 pi = np.pi
 
-X8_layout = inspect.cleandoc(
-    """
+X8_layout = inspect.cleandoc("""
     name template_4x2_X8
     version 1.0
     target X8_01 (shots=1)
@@ -65,8 +64,7 @@ X8_layout = inspect.cleandoc(
 
     # measurement in Fock basis
     MeasureFock() | [0, 1, 2, 3, 4, 5, 6, 7]
-    """
-)
+    """)
 
 X8_spec = {
     "target": "X8_01",
@@ -104,8 +102,7 @@ X8_spec = {
 
 X8_device = Device(spec=X8_spec)
 
-borealis_layout = inspect.cleandoc(
-    """
+borealis_layout = inspect.cleandoc("""
     name template_borealis
     version 1.0
     target borealis (shots=1)
@@ -144,8 +141,7 @@ borealis_layout = inspect.cleandoc(
     BSgate({bs2}, 1.5707963267948966) | [0, 36]
     Rgate({loop2_phase}) | 36
     MeasureFock() | 0
-    """
-)
+    """)
 borealis_spec = {
     "target": "borealis",
     "layout": borealis_layout,

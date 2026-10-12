@@ -68,6 +68,7 @@ until the remainder forms a clique. This can be achieved by selecting the node w
 degree relative to the rest of subgraph and removing the node, repeating the process until a
 clique is found.
 """
+
 from typing import Union
 
 import networkx as nx

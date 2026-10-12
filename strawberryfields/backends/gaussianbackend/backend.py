@@ -13,6 +13,7 @@
 # limitations under the License.
 # pylint: disable=too-many-public-methods
 """Gaussian backend"""
+
 import warnings
 
 from numpy import empty, concatenate, array, identity, sqrt, vstack, zeros_like, allclose, ix_

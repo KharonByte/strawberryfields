@@ -59,6 +59,7 @@ In the GBS algorithm for vibronic spectra, samples are identified with transitio
 most frequently sampled energies correspond to peaks of the vibronic spectrum. The function
 :func:`energies` converts samples to energies.
 """
+
 import warnings
 from typing import Tuple, Union
 

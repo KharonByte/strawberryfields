@@ -14,10 +14,10 @@
 """
 Unit tests for top-level Strawberry Fields functions.
 """
+
 import pytest
 import re
 import strawberryfields as sf
-
 
 pytestmark = pytest.mark.frontend
 

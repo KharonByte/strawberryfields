@@ -20,7 +20,6 @@ import pytest
 
 import numpy as np
 
-
 MAG_ALPHAS = np.linspace(0, 0.8, 3)
 
 

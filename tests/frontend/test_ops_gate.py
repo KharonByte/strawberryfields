@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for Gate classes in ops.py"""
+
 import pytest
 
 pytestmark = pytest.mark.frontend
@@ -25,7 +26,6 @@ from strawberryfields import ops
 from strawberryfields.program import Program
 from strawberryfields.program_utils import MergeFailure, RegRefError
 from strawberryfields.parameters import par_evaluate
-
 
 A = np.random.random()
 B = np.random.random()

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Integration tests for frontend operations applied to the backend"""
+
 import pytest
 import numpy as np
 from thewalrus.random import random_symplectic

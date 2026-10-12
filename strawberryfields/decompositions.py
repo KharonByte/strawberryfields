@@ -41,7 +41,7 @@ def takagi(N, tol=1e-13, rounding=13):
         tuple[array, array]: (rl, U), where rl are the (rounded) singular values,
             and U is the Takagi unitary, such that :math:`N = U \diag(rl) U^T`.
     """
-    (n, m) = N.shape
+    n, m = N.shape
     if n != m:
         raise ValueError("The input matrix must be square")
     if np.linalg.norm(N - np.transpose(N)) >= tol:
@@ -129,7 +129,7 @@ def graph_embed_deprecated(A, max_mean_photon=1.0, make_traceless=False, rtol=1e
         tuple[array, array]: squeezing parameters of the input
             state to the interferometer, and the unitary matrix representing the interferometer
     """
-    (m, n) = A.shape
+    m, n = A.shape
 
     if m != n:
         raise ValueError("The matrix is not square.")
@@ -171,7 +171,7 @@ def graph_embed(A, mean_photon_per_mode=1.0, make_traceless=False, rtol=1e-05, a
         tuple[array, array]: squeezing parameters of the input
         state to the interferometer, and the unitary matrix representing the interferometer
     """
-    (m, n) = A.shape
+    m, n = A.shape
 
     if m != n:
         raise ValueError("The matrix is not square.")
@@ -210,7 +210,7 @@ def bipartite_graph_embed(A, mean_photon_per_mode=1.0, rtol=1e-05, atol=1e-08):
         tuple[array, array, array]: squeezing parameters of the input
         state to the interferometer, and the unitaries matrix representing the interferometer
     """
-    (m, n) = A.shape
+    m, n = A.shape
 
     if m != n:
         raise ValueError("The matrix is not square.")
@@ -247,7 +247,7 @@ def Ti(m, n, theta, phi, nmax):
 
 def nullTi(m, n, U):
     r"""Nullifies element m,n of U using Ti"""
-    (nmax, mmax) = U.shape
+    nmax, mmax = U.shape
 
     if nmax != mmax:
         raise ValueError("U must be a square matrix")
@@ -270,7 +270,7 @@ def nullTi(m, n, U):
 
 def nullT(n, m, U):
     r"""Nullifies element n,m of U using T"""
-    (nmax, mmax) = U.shape
+    nmax, mmax = U.shape
 
     if nmax != mmax:
         raise ValueError("U must be a square matrix")
@@ -319,7 +319,7 @@ def rectangular(V, tol=1e-11):
             * ``localV``: Diagonal unitary sitting sandwiched by Ti's and the T's
     """
     localV = V
-    (nsize, _) = localV.shape
+    nsize, _ = localV.shape
 
     if not np.allclose(V @ V.conj().T, np.identity(nsize), atol=tol, rtol=0):
         raise ValueError("The input matrix is not unitary")
@@ -438,7 +438,7 @@ def nullMZi(m, n, U):
         list: list containing ``[m, n, internal_phase, external_phase, nmax]`` of the
             mach_zehnder_inv unitaries needed
     """
-    (nmax, mmax) = U.shape
+    nmax, mmax = U.shape
 
     if nmax != mmax:
         raise ValueError("U must be a square matrix")
@@ -471,7 +471,7 @@ def nullMZ(n, m, U):
         list: list containing ``[m, n, internal_phase, external_phase, nmax]`` of the
             mach_zehnder unitaries needed
     """
-    (nmax, mmax) = U.shape
+    nmax, mmax = U.shape
 
     if nmax != mmax:
         raise ValueError("U must be a square matrix")
@@ -513,7 +513,7 @@ def rectangular_MZ(V, tol=1e-11):
         * ``localV``: Diagonal unitary sitting sandwiched by ``mach_zehnder_inv``'s and the ``mach_zehnder``'s
     """
     localV = V
-    (nsize, _) = localV.shape
+    nsize, _ = localV.shape
 
     if not np.allclose(V @ V.conj().T, np.identity(nsize), atol=tol, rtol=0):
         raise ValueError("The input matrix is not unitary")
@@ -619,7 +619,7 @@ def triangular(V, tol=1e-11):
             * ``localV``: Diagonal unitary applied at the beginning of circuit
     """
     localV = V
-    (nsize, _) = localV.shape
+    nsize, _ = localV.shape
 
     if not np.allclose(V @ V.conj().T, np.identity(nsize), atol=tol, rtol=0):
         raise ValueError("The input matrix is not unitary")
@@ -924,7 +924,7 @@ def williamson(V, tol=1e-11):
         tuple[array,array]: ``(Db, S)`` where ``Db`` is a diagonal matrix
             and ``S`` is a symplectic matrix such that :math:`V = S^T Db S`
     """
-    (n, m) = V.shape
+    n, m = V.shape
 
     if n != m:
         raise ValueError("The input matrix is not square")
@@ -1009,7 +1009,7 @@ def bloch_messiah(S, tol=1e-10, rounding=9):
             and ``st1`` is diagonal and of the form :math:`= \text{diag}(s1,\dots,s_n, 1/s_1,\dots,1/s_n)`
             such that :math:`S = ut1  st1  v1`
     """
-    (n, m) = S.shape
+    n, m = S.shape
 
     if n != m:
         raise ValueError("The input matrix is not square")
@@ -1452,7 +1452,7 @@ def covmat_to_hamil(V, tol=1e-10):  # pragma: no cover
     Returns:
         array: positive definite Hamiltonian matrix
     """
-    (n, m) = V.shape
+    n, m = V.shape
     if n != m:
         raise ValueError("Input matrix must be square")
     if np.linalg.norm(V - np.transpose(V)) >= tol:
@@ -1488,7 +1488,7 @@ def hamil_to_covmat(H, tol=1e-10):  # pragma: no cover
     Returns:
         array: Gaussian covariance matrix
     """
-    (n, m) = H.shape
+    n, m = H.shape
     if n != m:
         raise ValueError("Input matrix must be square")
     if np.linalg.norm(H - np.transpose(H)) >= tol:

@@ -100,6 +100,7 @@ with :math:`W=w_{i}\delta_{ij}` the diagonal matrix formed by the weighted nodes
 rescaled adjacency matrix can be passed to :func:`sample`, resulting in a distribution that
 increases the probability of observing a node proportionally to its weight.
 """
+
 import warnings
 from typing import Optional, Union
 

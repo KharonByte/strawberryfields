@@ -36,6 +36,7 @@ In particular, for each backend supported by Strawberry Fields the database cont
 corresponding Compiler instance with the same short name, used to validate Programs to be
 executed on that backend.
 """
+
 from .compiler import Compiler, Ranges
 from .xcov import Xcov
 from .xstrict import Xstrict

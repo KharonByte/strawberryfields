@@ -16,6 +16,7 @@ This module defines and implements several utility functions that act on
 :class:`.Program` instances, returning or extracting information from the
 quantum circuit.
 """
+
 import copy
 
 try:

@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.data
 """
+
 # pylint: disable=no-self-use
 import numpy as np
 import pytest

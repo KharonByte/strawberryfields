@@ -27,7 +27,6 @@ import strawberryfields.io as sfio
 from blackbird.utils import match_template, TemplateError
 from .parameters import MeasuredParameter, par_evaluate
 
-
 __all__ = [
     "Program_current_context",
     "RegRefError",

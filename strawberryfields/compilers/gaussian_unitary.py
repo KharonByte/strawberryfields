@@ -42,11 +42,11 @@ def _apply_symp_one_mode_gate(S_G, S, r, i):
         and the updated means vector
     """
     M = S.shape[0] // 2
-    (S[i], S[i + M]) = (
+    S[i], S[i + M] = (
         S_G[0, 0] * S[i] + S_G[0, 1] * S[i + M],
         S_G[1, 0] * S[i] + S_G[1, 1] * S[i + M],
     )
-    (r[i], r[i + M]) = (
+    r[i], r[i + M] = (
         S_G[0, 0] * r[i] + S_G[0, 1] * r[i + M],
         S_G[1, 0] * r[i] + S_G[1, 1] * r[i + M],
     )
@@ -68,13 +68,13 @@ def _apply_symp_two_mode_gate(S_G, S, r, i, j):
         and the updated means vector
     """
     M = S.shape[0] // 2
-    (S[i], S[j], S[i + M], S[j + M]) = (
+    S[i], S[j], S[i + M], S[j + M] = (
         S_G[0, 0] * S[i] + S_G[0, 1] * S[j] + S_G[0, 2] * S[i + M] + S_G[0, 3] * S[j + M],
         S_G[1, 0] * S[i] + S_G[1, 1] * S[j] + S_G[1, 2] * S[i + M] + S_G[1, 3] * S[j + M],
         S_G[2, 0] * S[i] + S_G[2, 1] * S[j] + S_G[2, 2] * S[i + M] + S_G[2, 3] * S[j + M],
         S_G[3, 0] * S[i] + S_G[3, 1] * S[j] + S_G[3, 2] * S[i + M] + S_G[3, 3] * S[j + M],
     )
-    (r[i], r[j], r[i + M], r[j + M]) = (
+    r[i], r[j], r[i + M], r[j + M] = (
         S_G[0, 0] * r[i] + S_G[0, 1] * r[j] + S_G[0, 2] * r[i + M] + S_G[0, 3] * r[j + M],
         S_G[1, 0] * r[i] + S_G[1, 1] * r[j] + S_G[1, 2] * r[i + M] + S_G[1, 3] * r[j + M],
         S_G[2, 0] * r[i] + S_G[2, 1] * r[j] + S_G[2, 2] * r[i + M] + S_G[2, 3] * r[j + M],
