@@ -388,9 +388,9 @@ class TestBosonicModes:
         assert np.allclose(example.get_mean(), mean_compare)
 
     @pytest.mark.parametrize("num_weights", NUM_WEIGHTS_VALS)
-    @pytest.mark.parametrize("r", R_VALS)
-    def test_post_select_heterodyne(self, num_weights, r):
-        r"""Checks post_select_homodyne."""
+    @pytest.mark.parametrize("alpha", list(R_VALS) + [0, -0.3j, 0.43 - 0.12j])
+    def test_post_select_heterodyne(self, num_weights, alpha):
+        r"""Checks heterodyne postselection uses coherent amplitudes, not quadratures."""
         # Create maximally entangled states from highly squeezed states
         example = circuit.BosonicModes(2, num_weights)
         example.squeeze(8, 0, 0)
@@ -398,9 +398,11 @@ class TestBosonicModes:
         example.beamsplitter(np.pi / 4, 0, 0, 1)
 
         # Post select heterodyne on one
-        example.post_select_heterodyne(0, r)
+        example.post_select_heterodyne(0, alpha)
         # Check other mode ended up in correlated state
-        mean_compare = np.tile(np.array([0, 0, -r, 0]), (num_weights**2, 1))
+        mean_compare = np.tile(
+            np.array([0, 0, -2 * alpha.real, 2 * alpha.imag]), (num_weights**2, 1)
+        )
         cov_compare = np.tile(np.eye(4), (num_weights**2, 1, 1))
         assert np.allclose(example.get_mean(), mean_compare)
         assert np.allclose(example.get_covmat(), cov_compare)
