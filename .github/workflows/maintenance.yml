@@ -62,6 +62,11 @@ jobs:
           tests/integration/test_ops_integration.py::TestChannelApplication::test_thermal_loss_does_not_heat_other_modes
           tests/integration/test_ops_integration.py::TestChannelApplication::test_thermal_loss_multimode_moments
           --junitxml=maintenance/artifacts/thermal-loss.xml
+      - name: Run the Gaussian purity regression tests
+        run: >-
+          python -m pytest -q --tb=short --disable-warnings
+          tests/backend/test_states.py::TestGaussianStatePurity
+          --junitxml=maintenance/artifacts/gaussian-purity.xml
       - name: Save the test report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

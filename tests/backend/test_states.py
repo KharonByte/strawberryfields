@@ -18,7 +18,9 @@ import pytest
 import numpy as np
 from scipy.special import factorial as fac
 
+import strawberryfields as sf
 from strawberryfields import backends
+from strawberryfields import ops
 from strawberryfields import utils
 
 a = 0.3 + 0.1j
@@ -235,6 +237,64 @@ class TestBaseFockKetDensityMatrix:
             expected = np.tile(expected, [batch_size, 1]).reshape(-1, cutoff, cutoff)
 
         assert np.allclose(rho1, expected, atol=tol, rtol=0)
+
+
+@pytest.mark.gaussian
+class TestGaussianStatePurity:
+    """Gaussian purity and Fock outputs must be independent of quadrature units."""
+
+    @pytest.mark.parametrize("hbar_value", [1.0, 1.7, 2.0, 4.0])
+    @pytest.mark.parametrize("num_modes", [1, 2, 15])
+    @pytest.mark.parametrize("nbar", [0.0, 1e-8, 0.01, 0.2])
+    def test_thermal_purity(self, monkeypatch, hbar_value, num_modes, nbar):
+        """Vacuum spectators must not hide even weak thermal mixing in one mode."""
+        monkeypatch.setattr(sf, "hbar", hbar_value)
+        prog = sf.Program(num_modes)
+        with prog.context as q:
+            ops.Thermal(nbar) | q[0]
+
+        state = sf.Engine("gaussian").run(prog).state
+        assert state.is_pure == (nbar == 0)
+
+    @pytest.mark.parametrize("hbar_value", [1.0, 1.7, 2.0, 4.0])
+    @pytest.mark.parametrize("num_modes", [1, 2, 15])
+    @pytest.mark.parametrize("squeezing", [0.3, 0.7, 1.2])
+    def test_gaussian_unitaries_preserve_purity(
+        self, monkeypatch, hbar_value, num_modes, squeezing
+    ):
+        """Rounding after squeezing, rotation and mode mixing must preserve purity."""
+        monkeypatch.setattr(sf, "hbar", hbar_value)
+        prog = sf.Program(num_modes)
+        with prog.context as q:
+            ops.Sgate(squeezing, 0.3) | q[0]
+            ops.Rgate(0.4) | q[0]
+            if num_modes > 1:
+                ops.BSgate(0.42, 0.2) | (q[0], q[-1])
+            ops.Dgate(0.12, 0.23) | q[0]
+
+        state = sf.Engine("gaussian").run(prog).state
+        assert state.is_pure
+        if num_modes <= 2:
+            assert state.ket(cutoff=3) is not None
+
+    @pytest.mark.parametrize("hbar_value", [1.0, 1.7, 2.0, 4.0])
+    @pytest.mark.parametrize("num_modes", [1, 15])
+    def test_thermal_fock_outputs(self, monkeypatch, hbar_value, num_modes):
+        """Thermal photon probabilities and reduced density matrices stay mixed."""
+        monkeypatch.setattr(sf, "hbar", hbar_value)
+        nbar = 0.01
+        prog = sf.Program(num_modes)
+        with prog.context as q:
+            ops.Thermal(nbar) | q[0]
+
+        state = sf.Engine("gaussian").run(prog).state
+        probability = state.fock_prob([1] + [0] * (num_modes - 1))
+        assert np.allclose(probability, nbar / (1 + nbar) ** 2, atol=1e-12, rtol=0)
+        assert state.ket(cutoff=1) is None
+
+        photons = np.arange(3)
+        expected = np.diag(nbar**photons / (1 + nbar) ** (photons + 1))
+        assert np.allclose(state.reduced_dm(0, cutoff=3), expected, atol=1e-12, rtol=0)
 
 
 @pytest.mark.backends("gaussian")
