@@ -103,6 +103,51 @@ class TestChannelApplication:
         assert np.allclose(mean_photon, nbar, atol=tol, rtol=0)
         assert np.allclose(var, nbar**2 + nbar, atol=tol, rtol=0)
 
+    @pytest.mark.backends("gaussian", "bosonic")
+    def test_thermal_loss_does_not_heat_other_modes(self, setup_eng):
+        """Thermal noise applied to one vacuum mode leaves the other in vacuum."""
+        eng, prog = setup_eng(2)
+        with prog.context as q:
+            ops.ThermalLossChannel(0.5, 0.2) | q[0]
+
+        state = eng.run(prog).state
+        photons = [state.mean_photon(mode)[0] for mode in range(2)]
+        assert np.allclose(photons, [0.1, 0.0], atol=1e-12, rtol=0)
+
+    @pytest.mark.backends("gaussian")
+    @pytest.mark.parametrize("mode", [0, 1, 2])
+    @pytest.mark.parametrize("T", [0.0, 0.5, 1.0])
+    @pytest.mark.parametrize("nbar", [0.0, 0.2])
+    @pytest.mark.parametrize("hbar_value", [1.0, 2.0])
+    def test_thermal_loss_multimode_moments(
+        self, setup_eng, monkeypatch, mode, T, nbar, hbar_value
+    ):
+        """Check the local Gaussian-channel law on a displaced, correlated state."""
+        monkeypatch.setattr(sf, "hbar", hbar_value)
+        eng, prog = setup_eng(3)
+        with prog.context as q:
+            ops.Sgate(0.43, 0.21) | q[0]
+            ops.Dgate(0.32, -0.4) | q[1]
+            ops.BSgate(0.37, 0.41) | (q[0], q[1])
+            ops.Thermal(0.1) | q[2]
+
+        initial = eng.run(prog).state
+        means = initial.means().copy()
+        cov = initial.cov().copy()
+        scale = np.ones(6)
+        scale[[mode, mode + 3]] = np.sqrt(T)
+        noise = np.zeros(6)
+        noise[[mode, mode + 3]] = (1 - T) * (2 * nbar + 1) * hbar_value / 2
+        # A local attenuator obeys V' = X V X.T + Y, with noise only on its mode.
+        expected_cov = np.diag(scale) @ cov @ np.diag(scale) + np.diag(noise)
+
+        channel = sf.Program(prog)
+        with channel.context as q:
+            ops.ThermalLossChannel(T, nbar) | q[mode]
+        state = eng.run(channel).state
+        assert np.allclose(state.means(), means * scale, atol=1e-12, rtol=0)
+        assert np.allclose(state.cov(), expected_cov, atol=1e-12, rtol=0)
+
     @pytest.mark.backends("gaussian")
     @pytest.mark.parametrize("M", range(1, 5))
     def test_passive_channel_vacuum(self, M, setup_eng, tol):
