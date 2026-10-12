@@ -55,6 +55,13 @@ jobs:
           tests/backend/test_threshold_measurement.py
           tests/integration/test_measurement_integration.py
           --junitxml=maintenance/artifacts/related.xml
+      - name: Run the thermal-loss regression tests
+        run: >-
+          python -m pytest -q --tb=short --disable-warnings
+          -m "bosonic or gaussian"
+          tests/integration/test_ops_integration.py::TestChannelApplication::test_thermal_loss_does_not_heat_other_modes
+          tests/integration/test_ops_integration.py::TestChannelApplication::test_thermal_loss_multimode_moments
+          --junitxml=maintenance/artifacts/thermal-loss.xml
       - name: Save the test report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
