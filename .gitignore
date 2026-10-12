@@ -19,3 +19,5 @@ doc/code/api/*
 Pipfile*
 .vscode/
 .ipynb_checkpoints/*
+.venv/
+maintenance/artifacts/

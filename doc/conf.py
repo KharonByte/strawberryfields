@@ -41,7 +41,6 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinxcontrib.bibtex",
     "edit_on_github",
-    "sphinx_autodoc_typehints",
     "sphinx.ext.intersphinx",
     "sphinx_automodapi.automodapi",
     "sphinx_copybutton",
@@ -55,8 +54,15 @@ intersphinx_mapping = {
 
 autosummary_generate = True
 autosummary_imported_members = False
+# sphinx-automodapi extends the legacy Documenter API.
+autodoc_use_legacy_class_based = True
+# Native Sphinx handles the project's forward-reference annotations.
+autodoc_typehints = "description"
+# Attribute descriptions remain fields instead of defining each object twice.
+napoleon_use_ivar = True
 automodapi_toctreedirnm = "code/api"
 automodsumm_inherited_members = True
+bibtex_bibfiles = ["references.bib"]
 
 add_module_names = False
 
@@ -93,7 +99,7 @@ version = re.match(r"^(\d+\.\d+)", release).expand(r"\1")
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:

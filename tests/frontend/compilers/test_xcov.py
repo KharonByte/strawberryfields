@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the Xcov compiler"""
+
 import textwrap
 
 import pytest
@@ -48,8 +49,7 @@ class DummyCircuit(Compiler):
     decompositions = {"Interferometer": {}}
 
 
-X8_CIRCUIT = textwrap.dedent(
-    """\
+X8_CIRCUIT = textwrap.dedent("""\
     name template_4x2_X8
     version 1.0
     target X8_01 (shots=1)
@@ -86,8 +86,7 @@ X8_CIRCUIT = textwrap.dedent(
     Rgate({final_phase_7}) | [7]
     # measurement in Fock basis
     MeasureFock() | [0, 1, 2, 3, 4, 5, 6, 7]
-    """
-)
+    """)
 
 
 class TestXCompilation:

@@ -14,6 +14,7 @@
 """
 Test fixtures and shared functions for Strawberry Fields API tests
 """
+
 import pytest
 
 import xcc

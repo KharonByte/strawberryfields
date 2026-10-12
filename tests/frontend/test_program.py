@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for program.py"""
+
 import textwrap
 import pytest
 
@@ -28,7 +29,6 @@ from strawberryfields.compilers.compiler import Compiler
 from strawberryfields.program_utils import validate_gate_parameters
 
 import blackbird as bb
-
 
 A = np.random.random()
 
@@ -714,14 +714,12 @@ class TestValidation:
     def test_validate_gate_parameters_sf_program(self):
         """Test the ``.sf.program_utils.validate_gate_parameters`` function with an ``sf.Program``"""
 
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         device_dict = {
             "target": None,
@@ -745,14 +743,12 @@ class TestValidation:
         """Test the ``.sf.program_utils.validate_gate_parameters`` function with a compiled ``sf.Program``
         when no device is passed"""
 
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         device_dict = {
             "target": None,
@@ -787,14 +783,12 @@ class TestValidation:
     def test_validate_gate_parameters_bb_program(self):
         """Test the ``.sf.program_utils.validate_gate_parameters`` function with a ``BlackbirdProgram``"""
 
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         device_dict = {
             "target": None,
@@ -815,14 +809,12 @@ class TestValidation:
         """Test the ``.sf.program_utils.validate_gate_parameters`` function with an ``sf.Program``
         when a parameter value is invalid"""
 
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         device_dict = {
             "target": None,
@@ -847,14 +839,12 @@ class TestValidation:
         """Test the ``.sf.program_utils.validate_gate_parameters`` function with a ``BlackbirdProgram``
         when a parameter value is invalid"""
 
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         device_dict = {
             "target": None,
@@ -876,14 +866,12 @@ class TestValidation:
         """Test the ``.sf.program_utils.validate_gate_parameters`` function with a ``BlackbirdProgram``
         when a parameter value is invalid"""
 
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         mock_prog = bb.loads(mock_layout.format(squeezing_amplitude_0=42))
 
@@ -1019,14 +1007,12 @@ class TestValidation:
 
     def test_validate_parameters(self):
         """Test that the parameters are validated in the compile method"""
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         device_dict = {
             "target": None,
@@ -1091,14 +1077,12 @@ class TestValidation:
     @pytest.mark.parametrize("gate_params", [None, {}])
     def test_missing_gate_parameters(self, gate_params):
         """Test that an error is raised if the device spec is missing gate parameters when compiled"""
-        mock_layout = textwrap.dedent(
-            """\
+        mock_layout = textwrap.dedent("""\
             name mock
             version 1.0
 
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
-            """
-        )
+            """)
 
         device_dict = {
             "target": None,
@@ -1322,8 +1306,7 @@ class TestValidation:
             primitives = {"Sgate", "BSgate", "Dgate", "MeasureFock"}
             decompositions = set()
 
-            circuit = textwrap.dedent(
-                """\
+            circuit = textwrap.dedent("""\
                 name test
                 version 0.0
 
@@ -1332,8 +1315,7 @@ class TestValidation:
                 BSgate({theta}) | 0, 1
                 MeasureFock() | 0
                 MeasureFock() | 2
-                """
-            )
+                """)
 
         prog = sf.Program(3)
         with prog.context as q:
@@ -1362,8 +1344,7 @@ class TestValidation:
             primitives = {"Sgate", "BSgate", "Dgate", "MeasureFock"}
             decompositions = set()
 
-            circuit = textwrap.dedent(
-                """\
+            circuit = textwrap.dedent("""\
                 name test
                 version 0.0
 
@@ -1372,8 +1353,7 @@ class TestValidation:
                 BSgate({theta}) | 0, 1
                 MeasureFock() | 0
                 MeasureFock() | 2
-                """
-            )
+                """)
 
         prog = sf.Program(3)
         with prog.context as q:

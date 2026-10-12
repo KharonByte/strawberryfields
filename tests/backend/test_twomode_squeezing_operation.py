@@ -17,12 +17,12 @@ Convention: The squeezing unitary is fixed to be
 U(z) = \exp(0.5 (z^* \hat{a}_1\hat{a}_2 - z (\hat{a^\dagger}_1\hat{a}_2)))
 where \hat{a} is the photon annihilation operator.
 """
+
 # pylint: disable=too-many-arguments
 import itertools as it
 
 import pytest
 import numpy as np
-
 
 PHASE = np.linspace(0, 2 * np.pi, 3, endpoint=False)
 MAG = np.linspace(0.0, 0.2, 5, endpoint=False)

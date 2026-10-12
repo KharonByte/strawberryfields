@@ -1,0 +1,9 @@
+# Shared test tools and plotting support; TensorFlow is a separate matrix add-on.
+-r requirements-python312.txt
+plotly==5.24.1
+tenacity==9.2.1
+coverage==7.16.2
+pytest-cov==7.1.0
+pytest-logger==1.1.1
+pytest-randomly==5.0.0
+wheel==0.48.0

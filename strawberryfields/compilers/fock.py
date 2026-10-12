@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Circuit specifications for general Fock simulator backends."""
+
 from .compiler import Compiler
 
 

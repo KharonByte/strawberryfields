@@ -16,6 +16,7 @@ A Strawberry Fields module that provides an object-oriented interface for buildi
 quantum circuit representations of continuous-variable circuits using the
 :math:`\LaTeX` `Qcircuit package <https://ctan.org/pkg/qcircuit>`_.
 """
+
 import datetime
 import os
 

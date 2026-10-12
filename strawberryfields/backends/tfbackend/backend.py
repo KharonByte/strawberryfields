@@ -17,6 +17,7 @@ TensorFlow backend interface
 ============================
 
 """
+
 # pylint: disable=too-many-public-methods
 import numpy as np
 import tensorflow as tf

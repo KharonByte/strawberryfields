@@ -22,7 +22,6 @@ import pytest
 import numpy as np
 from scipy.special import factorial
 
-
 SQZ_R = np.linspace(0.0, 0.1, 5)
 SQZ_THETA = np.linspace(0, 2 * np.pi, 3, endpoint=False)
 

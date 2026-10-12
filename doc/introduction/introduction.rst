@@ -24,7 +24,7 @@ Follow the `installation <../_static/install.html>`_ page to get Strawberry Fiel
 running, then have a look at our quickstart guides.
 
 Users interested in applications of photonic quantum computers should check
-out the :doc:`applications` pages. Those wanting to dig deeper into the design
+out the :doc:`/code/sf_apps` pages. Those wanting to dig deeper into the design
 of circuits can head to the :doc:`/introduction/circuits` page.
 
 While we are no longer accepting Pull Requests for new features at this time, fix- and

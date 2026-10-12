@@ -14,6 +14,7 @@
 """
 Unit tests for strawberryfields.device
 """
+
 import inspect
 
 import pytest
@@ -23,16 +24,14 @@ from strawberryfields.compilers import Ranges
 
 pytestmark = pytest.mark.api
 
-mock_layout = inspect.cleandoc(
-    """
+mock_layout = inspect.cleandoc("""
     name mock
     version 1.0
 
     S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
     MZgate({phase_0}, {phase_1}) | [0, 1]
     MeasureFock() | [0, 1]
-    """
-)
+    """)
 
 device_spec = {
     "target": "abc",
@@ -55,8 +54,7 @@ device_certificate = {
     "laser_wavelength_meters": 42,
 }
 
-mock_layout_tdm = inspect.cleandoc(
-    """
+mock_layout_tdm = inspect.cleandoc("""
     name template_td2
     version 1.0
     target {target} (shots=1)
@@ -75,8 +73,7 @@ mock_layout_tdm = inspect.cleandoc(
     BSgate(p1) | (1, 0)
     Rgate(p2) | 1
     MeasureHomodyne(p3) | 0
-    """
-)
+    """)
 
 device_spec_tdm = {
     "target": "abc",
@@ -151,8 +148,7 @@ class TestDevice:
 
     def test_different_targets(self):
         """Test that different targets in layout and spec raises an error."""
-        layout_different_target = inspect.cleandoc(
-            """
+        layout_different_target = inspect.cleandoc("""
             name mock
             version 1.0
             target banana
@@ -160,8 +156,7 @@ class TestDevice:
             S2gate({squeezing_amplitude_0}, 0.0) | [0, 1]
             MZgate({phase_0}, {phase_1}) | [0, 1]
             MeasureFock() | [0, 1]
-            """
-        )
+            """)
         device_dict_different_target = {
             "target": "pawpaw",
             "layout": layout_different_target,

@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      action-updates:
+        update-types: [minor, patch]
+  - package-ecosystem: pip
+    directory: /maintenance
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    groups:
+      dependency-updates:
+        update-types: [minor, patch]

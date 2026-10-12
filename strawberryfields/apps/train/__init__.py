@@ -83,7 +83,7 @@ Related tutorials
 
 .. gallery-item::
     :tooltip: Training GBS
-    :description: :doc:`apps/run_tutorial_training`
+    :description: :mod:`strawberryfields.apps.train`
     :figure: _static/circulant.png
 
 .. raw:: html

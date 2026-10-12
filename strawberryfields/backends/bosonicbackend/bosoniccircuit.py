@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Bosonic circuit operations"""
+
 # pylint: disable=duplicate-code,attribute-defined-outside-init
 import itertools as it
 import numpy as np
@@ -923,7 +924,7 @@ class BosonicModes:
         self.covs = ops.reassemble_multi(V, expind)
 
         r = self.get_mean()
-        (va, vc) = ops.chop_in_blocks_vector_multi(r, expind)
+        va, vc = ops.chop_in_blocks_vector_multi(r, expind)
         va = va + np.einsum("...ij,...j", B @ np.linalg.inv(C + covmat), (vals - vc))
         self.means = ops.reassemble_vector_multi(va, expind)
 

@@ -21,6 +21,7 @@ in the simulators, but rather in NumPy.
 These are useful for generating states for use in calculating the fidelity of
 simulations.
 """
+
 import numpy as np
 from numpy.polynomial.hermite import hermval
 from scipy.special import factorial as fac

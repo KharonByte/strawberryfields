@@ -16,6 +16,7 @@ This module contains functions for loading and saving Strawberry Fields
 :class:`~.Program` objects from/to Blackbird scripts and Strawberry Fields
 code.
 """
+
 # pylint: disable=protected-access,too-many-nested-blocks
 import numpy as np
 

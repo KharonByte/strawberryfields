@@ -119,6 +119,7 @@ vectors by default. To use Monte Carlo estimation, ``samples`` can be set to the
 desired to be used in the estimation. Similar to the :func:`~.apps.sample.sample` function, these two
 functions include a ``loss`` argument to specify the proportion of photons lost in the simulated GBS device.
 """
+
 from collections import Counter
 from typing import Generator, Union
 

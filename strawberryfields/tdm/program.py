@@ -15,6 +15,7 @@
 """
 This module implements the :class:`.TDMProgram` class which acts as a representation for time-domain quantum circuits.
 """
+
 # pylint: disable=too-many-instance-attributes,attribute-defined-outside-init
 
 import itertools
@@ -321,7 +322,7 @@ class TDMProgram(Program):
         <div class="collapse" id="tutorials">
 
     .. gallery-item::
-        :description: :doc:`demos/run_time_domain`
+        :description: :mod:`strawberryfields.tdm`
         :figure: _static/oneloop.svg
 
     .. raw:: html

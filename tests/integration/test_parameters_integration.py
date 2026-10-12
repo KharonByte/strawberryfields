@@ -24,7 +24,6 @@ import strawberryfields.program_utils as pu
 from strawberryfields import ops
 from strawberryfields.parameters import ParameterError, par_funcs as pf
 
-
 # ops.Fock requires an integer parameter
 scalar_arg_preparations = (
     ops.Coherent,

@@ -14,6 +14,7 @@
 # pylint: disable=too-many-public-methods
 
 """Bosonic backend"""
+
 import itertools as it
 from functools import reduce
 from collections.abc import Iterable

@@ -5,6 +5,7 @@ on:
 
 jobs:
   upload:
+    if: github.repository == 'XanaduAI/strawberryfields'
     runs-on: ubuntu-latest
 
     env:

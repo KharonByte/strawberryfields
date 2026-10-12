@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Gaussian circuit operations"""
+
 # pylint: disable=duplicate-code,attribute-defined-outside-init
 import numpy as np
 from thewalrus.quantum import Xmat
@@ -467,13 +468,13 @@ class GaussianModes:
 
         expind = np.concatenate((2 * np.array(indices), 2 * np.array(indices) + 1))
         mp = self.scovmat()
-        (A, B, C) = ops.chop_in_blocks(mp, expind)
+        A, B, C = ops.chop_in_blocks(mp, expind)
         V = A - np.dot(np.dot(B, np.linalg.inv(C + covmat)), np.transpose(B))
         V1 = ops.reassemble(V, expind)
         self.fromscovmat(V1)
 
         r = self.smean()
-        (va, vc) = ops.chop_in_blocks_vector(r, expind)
+        va, vc = ops.chop_in_blocks_vector(r, expind)
         vm = np.random.multivariate_normal(vc, C + covmat, size=shots)
         # The next line is a hack in that it only updates conditioned on the first samples value
         # should still work if shots = 1
@@ -498,13 +499,13 @@ class GaussianModes:
         indices = [n]
         expind = np.concatenate((2 * np.array(indices), 2 * np.array(indices) + 1))
         mp = self.scovmat()
-        (A, B, C) = ops.chop_in_blocks(mp, expind)
+        A, B, C = ops.chop_in_blocks(mp, expind)
         V = A - np.dot(np.dot(B, np.linalg.inv(C + covmat)), np.transpose(B))
         V1 = ops.reassemble(V, expind)
         self.fromscovmat(V1)
 
         r = self.smean()
-        (va, vc) = ops.chop_in_blocks_vector(r, expind)
+        va, vc = ops.chop_in_blocks_vector(r, expind)
         vm1 = np.random.normal(vc[1], np.sqrt(C[1][1]))
         vm = np.array([val, vm1])
         va = va + np.dot(np.dot(B, np.linalg.inv(C + covmat)), vm - vc)
@@ -521,13 +522,13 @@ class GaussianModes:
         indices = [n]
         expind = np.concatenate((2 * np.array(indices), 2 * np.array(indices) + 1))
         mp = self.scovmat()
-        (A, B, C) = ops.chop_in_blocks(mp, expind)
+        A, B, C = ops.chop_in_blocks(mp, expind)
         V = A - np.dot(np.dot(B, np.linalg.inv(C + covmat)), np.transpose(B))
         V1 = ops.reassemble(V, expind)
         self.fromscovmat(V1)
 
         r = self.smean()
-        (va, vc) = ops.chop_in_blocks_vector(r, expind)
+        va, vc = ops.chop_in_blocks_vector(r, expind)
         vm = 2.0 * np.array([np.real(alpha_val), np.imag(alpha_val)])
         va = va + np.dot(np.dot(B, np.linalg.inv(C + covmat)), vm - vc)
         va = ops.reassemble_vector(va, expind)

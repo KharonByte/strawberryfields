@@ -14,6 +14,7 @@
 r"""
 Tests for the various Tensorflow-specific symbolic options of the frontend/backend.
 """
+
 # pylint: disable=expression-not-assigned,too-many-public-methods,pointless-statement,no-self-use
 
 import pytest
@@ -23,7 +24,6 @@ from scipy.special import factorial
 tf = pytest.importorskip("tensorflow", minversion="2.0")
 
 from strawberryfields.ops import Dgate, Sgate, MeasureX, Thermal, BSgate, MZgate, Ket, S2gate, Fock
-
 
 # this test file is only supported by the TF backend
 pytestmark = pytest.mark.backends("tf")

@@ -16,6 +16,7 @@ This module contains functions for loading and saving Strawberry Fields
 :class:`~.Program` objects from/to XIR scripts and Strawberry Fields
 code.
 """
+
 # pylint: disable=protected-access,too-many-nested-blocks
 from decimal import Decimal
 from typing import Iterable, List, Sequence

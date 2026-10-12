@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.similarity
 """
+
 # pylint: disable=no-self-use,unused-argument,too-many-arguments
 import itertools
 from collections import Counter

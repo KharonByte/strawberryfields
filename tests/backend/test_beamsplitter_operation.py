@@ -28,7 +28,6 @@ import pytest
 import numpy as np
 from scipy.special import factorial
 
-
 T_VALUES = np.linspace(-0.2, 1.0, 3, dtype=np.float64)
 PHASE_R = np.linspace(0, 2 * np.pi, 3, endpoint=False, dtype=np.float64)
 ALPHA = 0.1

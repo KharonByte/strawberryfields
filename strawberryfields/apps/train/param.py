@@ -15,6 +15,7 @@ r"""
 Contains the :class:`~.VGBS` (variational GBS) class which provides a trainable parametrization
 of the GBS probability distribution.
 """
+
 from typing import Optional
 
 import numpy as np

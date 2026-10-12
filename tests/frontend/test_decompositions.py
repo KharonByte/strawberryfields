@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the Strawberry Fields decompositions module"""
+
 import pytest
 
 from strawberryfields.utils.random_numbers_matrices import random_interferometer

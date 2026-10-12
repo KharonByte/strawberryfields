@@ -1,15 +1,2 @@
-numpy
-scipy
-sympy
-tensorflow
-tensorboard
-networkx
-quantum-blackbird
-python-dateutil
-thewalrus>=0.22.0
-toml
-numba
-requests
-setuptools
-urllib3
-plotly
+# Complete upstream CPU test matrix, including TensorFlow and test plugins.
+-r maintenance/requirements-core.txt

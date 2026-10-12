@@ -14,6 +14,7 @@
 """
 This module contains a class that represents a device on the Xanadu Cloud.
 """
+
 import re
 from typing import Generator, Iterable, Sequence, Mapping, Any, Optional
 

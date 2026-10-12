@@ -52,6 +52,7 @@ which node to add or remove. The supported choices are:
 - Select the candidate node with the greatest node weight, settling remaining ties uniformly at
   random.
 """
+
 from typing import Tuple, Union
 
 import networkx as nx

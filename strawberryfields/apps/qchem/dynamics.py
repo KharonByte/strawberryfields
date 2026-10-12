@@ -64,6 +64,7 @@ device has the following form:
 
 This module contains functions for implementing this algorithm.
 """
+
 import warnings
 
 import numpy as np

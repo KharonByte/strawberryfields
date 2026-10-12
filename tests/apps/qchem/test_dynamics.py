@@ -14,6 +14,7 @@
 r"""
 Tests for strawberryfields.apps.qchem.dynamics
 """
+
 from unittest import mock
 
 import numpy as np

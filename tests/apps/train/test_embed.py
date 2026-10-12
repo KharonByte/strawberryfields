@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.train.embed
 """
+
 # pylint: disable=no-self-use,unused-argument
 import numpy as np
 import pytest

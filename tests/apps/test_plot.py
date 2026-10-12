@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.plot
 """
+
 # pylint: disable=no-self-use,unused-argument,too-many-arguments,protected-access
 import networkx as nx
 import numpy as np

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Miscellaneous Fock backend operations"""
+
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-locals
 

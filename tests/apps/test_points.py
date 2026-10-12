@@ -17,7 +17,6 @@ import pytest
 import numpy as np
 from strawberryfields.apps.points import rbf_kernel, sample
 
-
 pytestmark = pytest.mark.apps
 
 

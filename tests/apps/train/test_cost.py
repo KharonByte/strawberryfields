@@ -14,6 +14,7 @@
 r"""
 Unit tests for strawberryfields.apps.train.cost
 """
+
 import itertools
 
 # pylint: disable=no-self-use

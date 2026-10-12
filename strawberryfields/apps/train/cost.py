@@ -14,6 +14,7 @@
 r"""
 Submodule for computing gradients and evaluating cost functions with respect to GBS circuits
 """
+
 from typing import Callable
 
 import numpy as np

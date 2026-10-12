@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the circuit drawer"""
+
 import sys
 import os
 import datetime
@@ -31,7 +32,6 @@ from strawberryfields.circuitdrawer import (
     NotDrawableException,
     ModeMismatchException,
 )
-
 
 LINE_RETURN = "\n"
 WIRE_TERMINATOR = r"\\" + "\n"
@@ -75,9 +75,7 @@ def failure_message(result, expected):
         str: failure message.
     """
     return "Discrepancies in circuit builder tex output: \
-    {0}".format(
-        LINE_RETURN + LINE_RETURN.join(difflib.ndiff([result], [expected]))
-    )
+    {0}".format(LINE_RETURN + LINE_RETURN.join(difflib.ndiff([result], [expected])))
 
 
 class TestCircuitDrawerClass:
@@ -270,8 +268,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Fourier | (q[0])
 
-        fourier_output = dedent(
-            r"""            \documentclass{article}
+        fourier_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -280,8 +277,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == fourier_output, failure_message(result, fourier_output)
@@ -293,8 +289,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Xgate(1) | (q[0])
 
-        x_test_0_output = dedent(
-            r"""            \documentclass{article}
+        x_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -303,8 +298,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == x_test_0_output, failure_message(result, x_test_0_output)
@@ -316,8 +310,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Xgate(1) | (q[1])
 
-        x_test_1_output = dedent(
-            r"""            \documentclass{article}
+        x_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -326,8 +319,7 @@ class TestEngineIntegration:
              & \gate{X}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == x_test_1_output, failure_message(result, x_test_1_output)
@@ -340,8 +332,7 @@ class TestEngineIntegration:
             ops.Xgate(1) | (q[1])
             ops.Xgate(1) | (q[1])
 
-        xx_test_1_output = dedent(
-            r"""            \documentclass{article}
+        xx_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -350,8 +341,7 @@ class TestEngineIntegration:
              & \gate{X}  & \gate{X}  & \qw \\
              & \qw  & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == xx_test_1_output, failure_message(result, xx_test_1_output)
@@ -364,8 +354,7 @@ class TestEngineIntegration:
             ops.Xgate(1) | (q[0])
             ops.Zgate(1) | (q[0])
 
-        x_z_test_0_output = dedent(
-            r"""            \documentclass{article}
+        x_z_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -374,8 +363,7 @@ class TestEngineIntegration:
              & \qw  & \qw  & \qw \\
              & \qw  & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == x_z_test_0_output, failure_message(result, x_z_test_0_output)
@@ -388,8 +376,7 @@ class TestEngineIntegration:
             ops.Xgate(1) | (q[0])
             ops.Zgate(1) | (q[1])
 
-        x_0_z_1_test_output = dedent(
-            r"""            \documentclass{article}
+        x_0_z_1_test_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -398,8 +385,7 @@ class TestEngineIntegration:
              & \gate{Z}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == x_0_z_1_test_output, failure_message(result, x_0_z_1_test_output)
@@ -411,8 +397,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Zgate(1) | (q[0])
 
-        z_test_0_output = dedent(
-            r"""            \documentclass{article}
+        z_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -421,8 +406,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == z_test_0_output, failure_message(result, z_test_0_output)
@@ -434,8 +418,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Zgate(1) | (q[1])
 
-        z_test_1_output = dedent(
-            r"""            \documentclass{article}
+        z_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -444,8 +427,7 @@ class TestEngineIntegration:
              & \gate{Z}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == z_test_1_output, failure_message(result, z_test_1_output)
@@ -458,8 +440,7 @@ class TestEngineIntegration:
             ops.Zgate(1) | (q[1])
             ops.Zgate(1) | (q[1])
 
-        zz_test_1_output = dedent(
-            r"""            \documentclass{article}
+        zz_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -468,8 +449,7 @@ class TestEngineIntegration:
              & \gate{Z}  & \gate{Z}  & \qw \\
              & \qw  & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == zz_test_1_output, failure_message(result, zz_test_1_output)
@@ -481,8 +461,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.CXgate(1) | (q[0], q[1])
 
-        cx_test_output = dedent(
-            r"""            \documentclass{article}
+        cx_test_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -491,8 +470,7 @@ class TestEngineIntegration:
              & \targ  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == cx_test_output, failure_message(result, cx_test_output)
@@ -504,8 +482,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.CZgate(1) | (q[0], q[1])
 
-        cz_test_output = dedent(
-            r"""            \documentclass{article}
+        cz_test_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -514,8 +491,7 @@ class TestEngineIntegration:
              & \gate{Z}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == cz_test_output, failure_message(result, cz_test_output)
@@ -527,8 +503,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.BSgate(0, 1) | (q[0], q[1])
 
-        bs_test_output = dedent(
-            r"""            \documentclass{article}
+        bs_test_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -537,8 +512,7 @@ class TestEngineIntegration:
              & \ghost{BS}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == bs_test_output, failure_message(result, bs_test_output)
@@ -550,8 +524,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.S2gate(1) | (q[0], q[1])
 
-        s2_test_output = dedent(
-            r"""            \documentclass{article}
+        s2_test_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -560,8 +533,7 @@ class TestEngineIntegration:
              & \ghost{S}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == s2_test_output, failure_message(result, s2_test_output)
@@ -573,8 +545,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.CKgate(1) | (q[0], q[1])
 
-        ck_test_output = dedent(
-            r"""            \documentclass{article}
+        ck_test_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -583,8 +554,7 @@ class TestEngineIntegration:
              & \gate{K}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == ck_test_output, failure_message(result, ck_test_output)
@@ -596,8 +566,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Kgate(1) | (q[0])
 
-        k_test_0_output = dedent(
-            r"""            \documentclass{article}
+        k_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -606,8 +575,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == k_test_0_output, failure_message(result, k_test_0_output)
@@ -619,8 +587,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Kgate(1) | (q[1])
 
-        k_test_1_output = dedent(
-            r"""            \documentclass{article}
+        k_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -629,8 +596,7 @@ class TestEngineIntegration:
              & \gate{K}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == k_test_1_output, failure_message(result, k_test_1_output)
@@ -642,8 +608,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Vgate(1) | (q[0])
 
-        v_test_0_output = dedent(
-            r"""            \documentclass{article}
+        v_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -652,8 +617,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == v_test_0_output, failure_message(result, v_test_0_output)
@@ -665,8 +629,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Vgate(1) | (q[1])
 
-        v_test_1_output = dedent(
-            r"""            \documentclass{article}
+        v_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -675,8 +638,7 @@ class TestEngineIntegration:
              & \gate{V}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == v_test_1_output, failure_message(result, v_test_1_output)
@@ -688,8 +650,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Pgate(1) | (q[0])
 
-        p_test_0_output = dedent(
-            r"""            \documentclass{article}
+        p_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -698,8 +659,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == p_test_0_output, failure_message(result, p_test_0_output)
@@ -711,8 +671,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Pgate(1) | (q[1])
 
-        p_test_1_output = dedent(
-            r"""            \documentclass{article}
+        p_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -721,8 +680,7 @@ class TestEngineIntegration:
              & \gate{P}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == p_test_1_output, failure_message(result, p_test_1_output)
@@ -734,8 +692,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Rgate(1) | (q[0])
 
-        r_test_0_output = dedent(
-            r"""            \documentclass{article}
+        r_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -744,8 +701,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == r_test_0_output, failure_message(result, r_test_0_output)
@@ -757,8 +713,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Rgate(1) | (q[1])
 
-        r_test_1_output = dedent(
-            r"""            \documentclass{article}
+        r_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -767,8 +722,7 @@ class TestEngineIntegration:
              & \gate{R}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == r_test_1_output, failure_message(result, r_test_1_output)
@@ -780,8 +734,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Sgate(1) | (q[0])
 
-        s_test_0_output = dedent(
-            r"""            \documentclass{article}
+        s_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -790,8 +743,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == s_test_0_output, failure_message(result, s_test_0_output)
@@ -803,8 +755,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Sgate(1) | (q[1])
 
-        s_test_1_output = dedent(
-            r"""            \documentclass{article}
+        s_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -813,8 +764,7 @@ class TestEngineIntegration:
              & \gate{S}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == s_test_1_output, failure_message(result, s_test_1_output)
@@ -826,8 +776,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Dgate(1, 0) | (q[0])
 
-        d_test_0_output = dedent(
-            r"""            \documentclass{article}
+        d_test_0_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -836,8 +785,7 @@ class TestEngineIntegration:
              & \qw  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == d_test_0_output, failure_message(result, d_test_0_output)
@@ -849,8 +797,7 @@ class TestEngineIntegration:
         with prog.context as q:
             ops.Dgate(1, 0) | (q[1])
 
-        d_test_1_output = dedent(
-            r"""            \documentclass{article}
+        d_test_1_output = dedent(r"""            \documentclass{article}
             \pagestyle{empty}
             \usepackage{qcircuit}
             \begin{document}
@@ -859,8 +806,7 @@ class TestEngineIntegration:
              & \gate{D}  & \qw \\
              & \qw  & \qw \\
             }
-            \end{document}"""
-        )
+            \end{document}""")
 
         result = prog.draw_circuit(tex_dir=tmpdir)[1]
         assert result == d_test_1_output, failure_message(result, d_test_1_output)

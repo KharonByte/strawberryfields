@@ -49,7 +49,7 @@ def _apply_two_mode_gate(G, T, i, j):
     Returns:
         T (array): updated passive transformation
     """
-    (T[i], T[j]) = (G[0, 0] * T[i] + G[0, 1] * T[j], G[1, 0] * T[i] + G[1, 1] * T[j])
+    T[i], T[j] = (G[0, 0] * T[i] + G[0, 1] * T[j], G[1, 0] * T[i] + G[1, 1] * T[j])
     return T
 
 

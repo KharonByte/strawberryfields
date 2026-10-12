@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for MetaOperation classes in ops.py"""
+
 import pytest
 
 pytestmark = pytest.mark.frontend
@@ -23,7 +24,6 @@ from strawberryfields import ops
 from strawberryfields.program import Program
 from strawberryfields.program_utils import MergeFailure, RegRefError, CircuitError
 from strawberryfields import utils
-
 
 a = np.random.random()
 b = np.random.random()

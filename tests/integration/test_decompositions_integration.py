@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 r"""Unit tests for the Strawberry Fields decompositions within the ops module"""
+
 import pytest
 
 import numpy as np
@@ -32,7 +33,6 @@ from strawberryfields import ops
 
 from strawberryfields.utils import random_interferometer as haar_measure
 from strawberryfields.utils.program_functions import extract_unitary
-
 
 u1 = random_interferometer(3)
 u2 = random_interferometer(3)

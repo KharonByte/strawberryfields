@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Fock backend proper"""
+
 # pylint: disable=too-many-arguments,len-as-condition,attribute-defined-outside-init
 # pylint: disable=too-many-branches,too-many-locals,too-many-public-methods
 

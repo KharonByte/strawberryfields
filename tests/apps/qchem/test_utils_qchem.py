@@ -14,6 +14,7 @@
 r"""
 Tests for strawberryfields.apps.qchem.utils
 """
+
 import os
 
 import numpy as np

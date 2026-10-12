@@ -1,3 +1,24 @@
+# Strawberry Fields - KharonByte maintenance fork
+
+Independent maintenance of the archived [Xanadu Strawberry Fields project](https://github.com/XanaduAI/strawberryfields).
+The original authorship and Apache-2.0 license are retained.
+
+The initial maintenance environment covers selected bosonic and Gaussian
+measurement tests on Linux x86-64 with Python 3.12.3 and pinned dependencies.
+Individual numerical corrections are reviewed separately from repository setup.
+
+- [Test environment and CI scope](maintenance/README.md)
+- [Limited support scope](SUPPORT.md)
+
+Passing the selected tests does not certify the whole simulator. See the scope
+before relying on this fork for other work. There is no KharonByte package
+release yet; tests load the source checkout directly.
+
+## Original upstream README (historical)
+
+The material below preserves upstream context and attribution. Its installation,
+support and hardware-service descriptions do not describe this fork's commitments.
+
 <p align="center">
   <img width=80% src="https://raw.githubusercontent.com/XanaduAI/strawberryfields/master/doc/_static/strawberry-fields-text.png">
 </p>

@@ -15,6 +15,7 @@
 This module contains functions for loading and saving Strawberry Fields :class:`~.Program` objects
 and converting from/to Blackbird and XIR scripts to Strawberry Fields code.
 """
+
 import os
 
 from typing import Union, TextIO
