@@ -119,6 +119,7 @@ Strawberry Fields is **free** and **open source**, released under the Apache Lic
    introduction/ops
    introduction/states
    introduction/data
+   conventions/glossary
 
 .. toctree::
    :maxdepth: 1

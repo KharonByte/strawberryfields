@@ -321,7 +321,7 @@ class TDMProgram(Program):
         <div class="collapse" id="tutorials">
 
     .. gallery-item::
-        :description: :doc:`demos/run_time_domain`
+        :description: :mod:`strawberryfields.tdm`
         :figure: _static/oneloop.svg
 
     .. raw:: html

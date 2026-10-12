@@ -2,17 +2,32 @@ name: Scoped maintenance checks
 
 on:
   push:
-    branches: [master, 'fix/**', 'chore/**']
+    branches: [master]
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   heterodyne:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    name: ${{ matrix.check }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            check: heterodyne
+          - os: windows-2025
+            check: measurement-windows
+          - os: macos-15
+            check: measurement-macos
     env:
       OPENBLAS_NUM_THREADS: '1'
       OMP_NUM_THREADS: '1'
@@ -22,6 +37,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12.3'
@@ -43,5 +59,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: scoped-validation
+          name: scoped-validation-${{ runner.os }}
           path: maintenance/artifacts/
+          retention-days: 14

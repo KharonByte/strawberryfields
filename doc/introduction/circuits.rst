@@ -24,7 +24,7 @@ and the program can then be simulated using the various Strawberry Fields backen
 
 .. seealso::
 
-    New to photonic quantum computing? See the :doc:`conventions/glossary` for a glossary
+    New to photonic quantum computing? See the :doc:`/conventions/glossary` for a glossary
     of some of the terms used in Strawberry Fields.
 
 Creating a quantum program

@@ -24,18 +24,44 @@ OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONNOUSERSITE=1 \
 
 Tests import this source checkout directly; do not install Strawberry Fields
 from PyPI for this check. Ubuntu may require the `python3.12-venv` OS package.
-The pinned environment excludes TensorFlow and GPU support.
+The measurement test environment excludes TensorFlow and GPU support.
+The root `requirements.txt` includes this same pinned environment.
 
 ## Continuous integration
 
 The `Scoped maintenance checks` workflow runs the same test selection on
-Ubuntu 24.04 with Python 3.12.3. Its actions use immutable commit pins and the
-Node.js 24 runtime. The `heterodyne` job name is retained for the required
-branch-protection check. The `scoped-validation` artifact contains the JUnit report.
+Ubuntu 24.04 (x86-64), Windows 2025 (x86-64) and macOS 15 (arm64), with Python
+3.12.3. The Linux job retains the `heterodyne` name for branch protection.
+Each platform uploads its JUnit report as `scoped-validation-<OS>`.
 
-The inherited broad-test, formatting, documentation and publishing workflows
-are restricted to the upstream repository. This fork does not publish packages
-or claim that its limited test selection replaces the full upstream suite.
-Generated files under `maintenance/artifacts/` are ignored by Git.
+Black 24.10.0 checks every Python file under `strawberryfields/`, `tests/` and
+`maintenance/`, using the existing 100-character line length.
+
+Sphinx builds the complete documentation with warnings treated as errors:
+
+```bash
+python3.12 -m venv .venv-docs
+.venv-docs/bin/python -m pip install -r doc/requirements.txt
+.venv-docs/bin/python maintenance/build_docs.py
+```
+
+Graphviz must also be installed. This Linux-only docs environment includes CPU
+TensorFlow for API imports; it does not validate TensorFlow numerical results.
+The builder copies tracked working files into a temporary directory so generated
+API pages cannot contaminate later builds. HTML and diagnostics go under
+`maintenance/artifacts/docs/` and are uploaded as the `documentation` artifact.
+
+CodeQL scans Python and Actions workflows. Dependency review rejects newly
+introduced high/critical vulnerabilities. Dependabot proposes weekly changes to
+action pins and the dependency files in `maintenance/`; nothing auto-merges.
+Its configuration and the weekly CodeQL schedule activate from `master` after
+the setup PR is merged. Repository secret scanning, push protection and
+Dependabot security updates are configured through repository settings.
+
+All active actions use immutable Node.js 24 release pins. Jobs run on pull
+requests and pushes to `master`, with duplicate in-progress runs cancelled.
+The full historical test matrix and package publishing remain upstream-only;
+see [the reproduced full-suite blockers](UPSTREAM-CI.md). Generated files under
+`maintenance/artifacts/` are ignored by Git.
 
 See [the support scope](../SUPPORT.md) for the maintenance boundary.
