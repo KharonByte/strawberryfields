@@ -69,3 +69,6 @@ remains upstream-only. Generated files under `maintenance/artifacts/` are ignore
 by Git.
 
 See [the support scope](../SUPPORT.md) for the maintenance boundary.
+
+The [heterodyne correction and before/after demo](HETERODYNE.md) document the
+first numerical fix separately from this test environment.
