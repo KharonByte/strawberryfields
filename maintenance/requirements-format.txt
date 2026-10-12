@@ -1,2 +1,2 @@
-# Match the formatter validated against the inherited source and tests.
-black==24.10.0
+# Security-patched formatter; see GHSA-3936-cmfr-pm3m.
+black==26.3.1

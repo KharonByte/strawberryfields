@@ -34,7 +34,7 @@ Ubuntu 24.04 (x86-64), Windows 2025 (x86-64) and macOS 15 (arm64), with Python
 3.12.3. The Linux job retains the `heterodyne` name for branch protection.
 Each platform uploads its JUnit report as `scoped-validation-<OS>`.
 
-Black 24.10.0 checks every Python file under `strawberryfields/`, `tests/` and
+Black 26.3.1 checks every Python file under `strawberryfields/`, `tests/` and
 `maintenance/`, using the existing 100-character line length.
 
 Sphinx builds the complete documentation with warnings treated as errors:
