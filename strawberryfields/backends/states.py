@@ -1016,10 +1016,8 @@ class BaseGaussianState(BaseState):
         self._alpha = self._mu[: self._modes] + 1j * self._mu[self._modes :]
         self._alpha /= np.sqrt(2 * self._hbar)
 
-        self._pure = (
-            np.abs(np.linalg.det(self._cov) - (self._hbar / 2) ** (2 * self._modes))
-            < self.EQ_TOLERANCE
-        )
+        # The internal covariance uses hbar=2, so pure states have unit determinant.
+        self._pure = np.abs(np.linalg.det(self._data[1]) - 1) < self.EQ_TOLERANCE
 
         self._basis = "gaussian"
         self._str = "<GaussianState: num_modes={}, pure={}, hbar={}>".format(
