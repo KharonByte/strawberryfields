@@ -5,6 +5,13 @@ on:
       - master
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   COVERALLS_PARALLEL: true
   PURE: 1
@@ -33,11 +40,6 @@ jobs:
             - {BATCHED: 0, OPTIONS: "bosonic"}
             - {BATCHED: 0, OPTIONS: "not tf"}
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.4.1
-        with:
-          access_token: ${{ github.token }}
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
