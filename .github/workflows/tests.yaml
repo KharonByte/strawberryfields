@@ -4,6 +4,7 @@ on:
     branches:
       - master
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -13,65 +14,93 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  COVERALLS_PARALLEL: true
-  PURE: 1
-  BATCHED: 0
+  PURE: '1'
   LOGGING: info
+  OPENBLAS_NUM_THREADS: '1'
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+  TF_NUM_INTRAOP_THREADS: '1'
+  TF_NUM_INTEROP_THREADS: '1'
+  TF_CPP_MIN_LOG_LEVEL: '2'
+  CUDA_VISIBLE_DEVICES: '-1'
 
 jobs:
-  core-tests:
-    if: github.repository == 'XanaduAI/strawberryfields'
-    runs-on: ubuntu-latest
+  matrix:
+    name: upstream (${{ matrix.id }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
 
     env:
       SYMPY_USE_CACHE: "no"
       OPTIONS: ${{ matrix.options }}
       BATCHED: ${{ matrix.batched }}
-      TF_DEPENDENCIES: "tensorflow|tensorboard"
+      RESULTS: maintenance/artifacts/core/${{ matrix.id }}
 
     strategy:
+      fail-fast: false
       matrix:
         include:
-            - {BATCHED: 0, OPTIONS: "frontend or apps or api or gaussian"}
-            - {BATCHED: 0, OPTIONS: "fock"}
-            - {BATCHED: 0, OPTIONS: "tf"}
-            - {BATCHED: 1, OPTIONS: "tf and pure"}
-            - {BATCHED: 1, OPTIONS: "tf and mixed"}
-            - {BATCHED: 0, OPTIONS: "bosonic"}
-            - {BATCHED: 0, OPTIONS: "not tf"}
+          - {id: frontend-apps-api-gaussian, batched: '0', options: 'frontend or apps or api or gaussian'}
+          - {id: fock, batched: '0', options: 'fock'}
+          - {id: tensorflow, batched: '0', options: 'tf'}
+          - {id: tensorflow-batched-pure, batched: '1', options: 'tf and pure'}
+          - {id: tensorflow-batched-mixed, batched: '1', options: 'tf and mixed'}
+          - {id: bosonic, batched: '0', options: 'bosonic'}
+          - {id: non-tensorflow, batched: '0', options: 'not tf'}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 2
+          persist-credentials: false
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: 3.12
+          python-version: '3.12.3'
+          cache: pip
+          cache-dependency-path: |
+            requirements-ci.txt
+            maintenance/requirements-*.txt
 
-      - name: Install dependencies
+      - name: Install the pinned full test environment
+        run: python -m pip install -r requirements-ci.txt
+
+      - name: Install TensorFlow for the configurations that use it
+        if: matrix.id != 'non-tensorflow'
+        run: python -m pip install -r maintenance/requirements-tensorflow.txt
+
+      - name: Install and check the project
         run: |
-          [ "$OPTIONS" = "not tf" ] && gawk -i inplace '!/('$TF_DEPENDENCIES')/' requirements-ci.txt
-          python3 -m pip install --upgrade pip
-          pip install -r requirements-ci.txt
-          pip install wheel codecov pytest pytest-cov pytest-randomly pytest-mock pytest-logger --upgrade
+          python -m pip install --no-deps --no-build-isolation .
+          python -m pip check
+          python -c "import importlib.util, os; expected = os.environ['OPTIONS'] != 'not tf'; assert (importlib.util.find_spec('tensorflow') is not None) == expected, 'Wrong TensorFlow availability for matrix row'"
 
-      - name: Install Strawberry Fields
+      - name: Run the upstream test selection
         run: |
-          pip install -r requirements-ci.txt
-          python3 setup.py bdist_wheel
-          pip install dist/strawberryfields*.whl
+          mkdir -p "$RESULTS"
+          python -m pytest tests -q --tb=short -p no:warnings \
+            --randomly-seed=42 -m "$OPTIONS" \
+            --cov=strawberryfields --cov-report=term \
+            --cov-report="xml:$RESULTS/coverage.xml" \
+            --junitxml="$RESULTS/tests.xml" 2>&1 | tee "$RESULTS/pytest.log"
 
-      - name: Run tests
-        run: python3 -m pytest tests --cov=strawberryfields --cov-report=term-missing --cov-report=xml -p no:warnings --randomly-seed=42 --tb=native -m "$OPTIONS"
-
-      - name: Adjust coverage file for Codecov
-        run: bash <(sed -i 's/filename=\"/filename=\"strawberryfields\//g' coverage.xml)
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
+      - name: Save test results, coverage and failure details
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          # token: ${{ secrets.CODECOV_TOKEN }}  # we currently do not have a token for SF
-          files: ./coverage.xml
-          disable_search: true
-          fail_ci_if_error: false
+          name: upstream-${{ matrix.id }}
+          path: maintenance/artifacts/core/${{ matrix.id }}/
+          retention-days: 14
+
+  core-tests:
+    if: always()
+    needs: matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    env:
+      MATRIX_RESULT: ${{ needs.matrix.result }}
+    steps:
+      - name: Require all seven upstream configurations to pass
+        run: |
+          if [ "$MATRIX_RESULT" != success ]; then
+            echo "::error::Upstream test matrix did not pass: $MATRIX_RESULT"
+            exit 1
+          fi

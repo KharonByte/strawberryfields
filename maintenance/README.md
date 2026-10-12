@@ -60,8 +60,12 @@ Dependabot security updates are configured through repository settings.
 
 All active actions use immutable Node.js 24 release pins. Jobs run on pull
 requests and pushes to `master`, with duplicate in-progress runs cancelled.
-The full historical test matrix and package publishing remain upstream-only;
-see [the reproduced full-suite blockers](UPSTREAM-CI.md). Generated files under
-`maintenance/artifacts/` are ignored by Git.
+The `Tests` workflow also runs all seven historical upstream selections on
+Linux CPU, including three TensorFlow configurations and a separate environment
+without TensorFlow. The required `core-tests` result succeeds only when every
+selection succeeds. Each uploads its full test log, JUnit results and coverage.
+See [the matrix and its results](UPSTREAM-CI.md) for details. Package publishing
+remains upstream-only. Generated files under `maintenance/artifacts/` are ignored
+by Git.
 
 See [the support scope](../SUPPORT.md) for the maintenance boundary.

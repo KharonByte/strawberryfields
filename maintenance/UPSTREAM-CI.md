@@ -1,11 +1,44 @@
-# Full upstream CI: current limits
+# Full upstream CPU CI
 
-The historical matrix is still restricted to upstream. It uses a floating
-`requirements-ci.txt` and includes frontend, applications, API, Gaussian, Fock,
-bosonic and three TensorFlow configurations. The scoped matrix does not replace
-that coverage.
+The `Tests` workflow now runs the complete historical matrix on Ubuntu 24.04
+with Python 3.12.3. It uses pinned `requirements-ci.txt` dependencies and installs
+the separate TensorFlow CPU add-on in the six configurations that require it.
 
-## Reproduced import blocker
+| Configuration | Selection | Batched |
+| --- | --- | --- |
+| Frontend, applications, API, Gaussian | `frontend or apps or api or gaussian` | No |
+| Fock | `fock` | No |
+| TensorFlow | `tf` | No |
+| TensorFlow pure | `tf and pure` | Yes |
+| TensorFlow mixed | `tf and mixed` | Yes |
+| Bosonic | `bosonic` | No |
+| Without TensorFlow installed | `not tf` | No |
+
+All seven jobs run without fail-fast cancellation. The `core-tests` check fails
+if any configuration fails or does not complete successfully. Failures are not
+converted to successful checks. JUnit results, coverage and complete logs are
+saved in the `upstream-<configuration>` artifacts. GPU execution is not included.
+
+Run one configuration locally after installing `requirements-ci.txt` and,
+unless testing the absence of TensorFlow, `maintenance/requirements-tensorflow.txt`:
+
+```bash
+BATCHED=0 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python -m pytest tests -q --tb=short -p no:warnings --randomly-seed=42 -m "bosonic"
+```
+
+Current results are recorded in setup PR #2 and its `Tests` workflow run.
+
+## Dependency compatibility
+
+The first broader run exposed a `GraphEmbed` failure with SciPy 1.13.1:
+`sqrtm` propagated a `complex256` result to NumPy's matrix inversion, which
+does not support that dtype. The same three `TestGraphEmbed` cases pass with
+SciPy 1.17.1 and NumPy 1.26.4, without a simulator or test change. The shared
+environment now pins that compatible SciPy version. SciPy 1.18.1 requires
+NumPy 2 and is not selected for this NumPy 1.26 environment.
+
+## Earlier import blocker
 
 On 12 October 2026, a fresh Python 3.12.3 environment resolved the historical CI
 requirements to setuptools 84.0.0. The project installed, but importing the
@@ -19,7 +52,7 @@ ModuleNotFoundError: No module named 'pkg_resources'
 
 The same failure stopped test collection in Dependabot PRs #4, #5 and #6.
 It occurred before tests ran, so those failures do not establish a regression
-caused by any of the proposed dependency bumps. The scoped environment pins
+caused by any of the proposed dependency bumps. The restored environment pins
 setuptools 80.9.0, which still provides the required API. The long-term fix is
 to migrate dataset resource access and validate it in a separate code change.
 
