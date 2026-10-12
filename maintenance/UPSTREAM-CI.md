@@ -27,7 +27,23 @@ BATCHED=0 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
   python -m pytest tests -q --tb=short -p no:warnings --randomly-seed=42 -m "bosonic"
 ```
 
-Current results are recorded in setup PR #2 and its `Tests` workflow run.
+The first complete [hosted run](https://github.com/KharonByte/strawberryfields/actions/runs/38256686910)
+passed all seven configurations and the `core-tests` gate at commit `d3cd5fc`
+on 12 October 2026. Latest-commit results are recorded in setup PR #2.
+
+| Configuration | Passed | Skipped | Expected failures |
+| --- | ---: | ---: | ---: |
+| Frontend, applications, API, Gaussian | 2,967 | 1,746 | 8 |
+| Fock | 1,959 | 507 | 0 |
+| TensorFlow | 1,520 | 946 | 0 |
+| TensorFlow pure, batched | 705 | 528 | 0 |
+| TensorFlow mixed, batched | 700 | 533 | 0 |
+| Bosonic | 2,378 | 1,667 | 0 |
+| Without TensorFlow installed | 7,143 | 3,684 | 8 |
+
+Selections overlap; these counts must not be summed as unique test cases.
+The original test-level skips and expected failures are retained. No workflow
+job was skipped, and there were no unexpected test failures.
 
 ## Dependency compatibility
 
@@ -56,11 +72,13 @@ caused by any of the proposed dependency bumps. The restored environment pins
 setuptools 80.9.0, which still provides the required API. The long-term fix is
 to migrate dataset resource access and validate it in a separate code change.
 
-Reproduce in a fresh environment, from the repository root:
+Reproduce with the historical requirements in a fresh environment, from the
+repository root (the current requirements now pin the compatible environment):
 
 ```bash
+git show 24edbc9:requirements-ci.txt > /tmp/strawberryfields-legacy-requirements.txt
 python -m pip install setuptools==84.0.0 wheel
-python -m pip install --no-build-isolation -r requirements-ci.txt .
+python -m pip install --no-build-isolation -r /tmp/strawberryfields-legacy-requirements.txt .
 python -c "import strawberryfields"
 ```
 
@@ -72,15 +90,16 @@ reported as a blocker.
 The narrow test environment initially could not collect the full suite because
 Plotly was absent. With Plotly added, a bounded non-TensorFlow run passed 511
 cases and skipped 5 before being deliberately interrupted after 157 seconds.
-That is partial diagnostic evidence, not a full-suite pass. The complete
-TensorFlow, Fock, application and API matrix remains unverified.
+That was partial diagnostic evidence. The subsequent complete hosted run above
+supersedes it for TensorFlow, Fock, application and API coverage on Linux CPU.
 
 ## Legacy documentation and dependency lists
 
 The old Sphinx action ran Python 3.8 and attempted to install NumPy 1.26.4, for
 which that interpreter has no compatible distribution. The restored docs job
 uses Python 3.12.3, a separate pinned environment and the full Sphinx build with
-warnings fatal. It includes TensorFlow CPU for documentation imports only.
+warnings fatal. The docs job includes TensorFlow CPU for documentation imports;
+the separate full test matrix verifies TensorFlow numerical execution.
 
 The old root/docs requirement lists are replaced by includes of the supported
 maintenance files. These already use requests 2.34.2, urllib3 2.8.0 and, for
