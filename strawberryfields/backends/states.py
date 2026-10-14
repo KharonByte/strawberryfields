@@ -1017,12 +1017,17 @@ class BaseGaussianState(BaseState):
         self._alpha /= np.sqrt(2 * self._hbar)
 
         # The internal covariance uses hbar=2, so pure states have unit determinant.
-        self._pure = np.abs(np.linalg.det(self._data[1]) - 1) < self.EQ_TOLERANCE
+        self._pure = self._is_pure_cov(self._data[1])
 
         self._basis = "gaussian"
         self._str = "<GaussianState: num_modes={}, pure={}, hbar={}>".format(
             self.num_modes, self._pure, self._hbar
         )
+
+    @classmethod
+    def _is_pure_cov(cls, cov):
+        """Check purity using a covariance expressed in hbar=2 units."""
+        return np.abs(np.linalg.det(cov) - 1) < cls.EQ_TOLERANCE
 
     def __eq__(self, other):
         """Equality operator for BaseGaussianState.
@@ -1349,19 +1354,22 @@ class BaseGaussianState(BaseState):
             )
 
         cutoff = kwargs.get("cutoff", 10)
-        mu, cov = self.reduced_gaussian(modes)  # pylint: disable=unused-variable
+        mu, cov = self.reduced_gaussian(modes)
 
-        if self.is_pure:
+        # A subsystem of a pure entangled state can be mixed.
+        if self._is_pure_cov(cov / (self._hbar / 2)):
             psi = twq.state_vector(
                 mu,
                 cov,
                 hbar=self._hbar,
-                normalize=True,
+                normalize=False,
                 cutoff=cutoff,
                 check_purity=False,
             )
-            rho = np.outer(psi, psi.conj())
-            return rho
+            rho = np.multiply.outer(psi, psi.conj())
+            # Interleave the ket and bra axes of each retained mode.
+            sf_order = np.arange(2 * len(modes)).reshape(2, -1).T.flatten()
+            return rho.transpose(sf_order)
 
         return twq.density_matrix(mu, cov, hbar=self._hbar, normalize=True, cutoff=cutoff)
 
@@ -1776,7 +1784,11 @@ class BaseBosonicState(BaseState):
         rho = 0
         for i in range(self.num_weights):
             rho += weights[i] * twq.density_matrix(
-                mus[i], covs[i], hbar=self._hbar, normalize=False, cutoff=cutoff
+                xpxp_to_xxpp(mus[i]),
+                xpxp_to_xxpp(covs[i]),
+                hbar=self._hbar,
+                normalize=False,
+                cutoff=cutoff,
             )
         return rho
 
@@ -1897,7 +1909,11 @@ class BaseBosonicState(BaseState):
         prob = 0
         for i in range(self.num_weights):
             prob += self._weights[i] * twq.density_matrix_element(
-                self._mus[i], self._covs[i], n, n, hbar=self._hbar
+                xpxp_to_xxpp(self._mus[i]),
+                xpxp_to_xxpp(self._covs[i]),
+                n,
+                n,
+                hbar=self._hbar,
             )
         return prob.real
 

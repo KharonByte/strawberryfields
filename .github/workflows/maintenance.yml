@@ -71,6 +71,11 @@ jobs:
           python -m pytest -q --tb=short --disable-warnings
           tests/backend/test_states.py::TestGaussianStatePurity
           --junitxml=maintenance/artifacts/gaussian-purity.xml
+      - name: Run the state-reduction regression tests
+        run: >-
+          python -m pytest -q --tb=short --disable-warnings
+          -m "not tf" tests/backend/test_state_reduction.py
+          --junitxml=maintenance/artifacts/state-reduction.xml
       - name: Save the test report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
