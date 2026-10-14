@@ -1,109 +1,87 @@
 # Strawberry Fields - KharonByte maintenance fork
 
-Independent maintenance of the archived [Xanadu Strawberry Fields project](https://github.com/XanaduAI/strawberryfields).
-The original authorship and Apache-2.0 license are retained.
+Strawberry Fields is a Python library for simulating photonic quantum circuits.
+This is independent maintenance of the archived
+[Xanadu project](https://github.com/XanaduAI/strawberryfields), with the original
+authorship and Apache-2.0 license retained.
 
-The initial maintenance environment covers selected bosonic and Gaussian
-measurement tests on Linux x86-64 with Python 3.12.3 and pinned dependencies.
-Individual numerical corrections are reviewed separately from repository setup.
+## Current support
 
-- [Test environment and CI scope](maintenance/README.md)
-- [Limited support scope](SUPPORT.md)
+The package's Python compatibility range and exact CI interpreter are listed
+below. CI uses the pinned dependencies shown here.
 
-Passing the selected tests does not certify the whole simulator. See the scope
-before relying on this fork for other work. There is no KharonByte package
-release yet; tests load the source checkout directly.
+| Setting | Current value |
+| --- | --- |
+| Python requirement | `>=3.12,<3.13` |
+| CI Python | `3.12.3` |
+| Scoped CPU runners | Ubuntu 24.04 x86-64, Windows 2025 x86-64, macOS 15 arm64 |
+| Dependencies | [Pinned maintenance environment](maintenance/requirements-python312.txt) |
 
-## Original upstream README (historical)
+Maintenance covers selected Gaussian and bosonic measurement paths and reviewed
+numerical corrections. Linux CI also runs the broader upstream test suite,
+including Fock and TensorFlow CPU configurations; that regression coverage does
+not expand the [support commitment](SUPPORT.md). GPU execution and quantum
+hardware or cloud-service access are outside the scope.
 
-The material below preserves upstream context and attribution. Its installation,
-support and hardware-service descriptions do not describe this fork's commitments.
+See [the test environment and CI checks](maintenance/README.md) for commands and
+limits. Passing CI does not certify every simulator result.
 
-<p align="center">
-  <img width=80% src="https://raw.githubusercontent.com/XanaduAI/strawberryfields/master/doc/_static/strawberry-fields-text.png">
-</p>
+## Install this fork
 
-<p align="center">
-  <!-- Tests (GitHub actions) -->
-  <a href="https://github.com/XanaduAI/strawberryfields/actions?query=workflow%3ATests">
-    <img src="https://img.shields.io/github/workflow/status/XanaduAI/strawberryfields/Tests/master?logo=github&style=flat-square" />
-  </a>
-  <!-- CodeFactor -->
-  <a href="https://www.codefactor.io/repository/github/xanaduai/strawberryfields">
-    <img src="https://img.shields.io/codefactor/grade/github/XanaduAI/strawberryfields/master?style=flat-square" />
-  </a>
-  <!-- CodeCov -->
-  <a href="https://codecov.io/gh/XanaduAI/strawberryfields">
-    <img src="https://img.shields.io/codecov/c/github/xanaduai/strawberryfields/master.svg?style=popout-square" />
-  </a>
-  <!-- ReadTheDocs -->
-  <a href="https://strawberryfields.readthedocs.io">
-    <img src="https://img.shields.io/readthedocs/strawberryfields.svg?style=popout-square" />
-  </a>
-  <!-- PyPI -->
-  <a href="https://pypi.org/project/StrawberryFields">
-    <img src="https://img.shields.io/pypi/v/StrawberryFields.svg?style=popout-square" />
-  </a>
-  <!-- PyPI - Python Version -->
-  <a href="https://pypi.org/project/StrawberryFields">
-    <img src="https://img.shields.io/pypi/pyversions/StrawberryFields.svg?style=popout-square" />
-  </a>
-</p>
-
-<p align="center">
- Strawberry Fields is a full-stack Python library for
- designing, simulating, and optimizing continuous-variable quantum optical circuits.
-</p>
-
-
-## Features
-
-<img src="https://raw.githubusercontent.com/XanaduAI/strawberryfields/master/doc/_static/StateLearning.gif" width="300px" align="right">
-
-
-* Execute photonic quantum algorithms directly on Xanadu's next-generation quantum hardware.
-
-* High-level functions for **solving practical problems** including **graph and network optimization**, **machine learning**, and
-  **chemistry**.
-
-* Includes a suite of world-class simulators—based on cutting-edge algorithms—to compile and
-  simulate photonic algorithms.
-
-* Train and optimize your quantum programs with our end-to-end differentiable TensorFlow backend.
-
-
-## Installation
-
-Strawberry Fields requires Python version 3.8, 3.9, or 3.10. Installation of Strawberry Fields, as
-well as all dependencies, can be done using pip:
+There is no KharonByte package release on PyPI yet. Install this source checkout
+in a fresh virtual environment, using the CI Python version above. The package
+and import names remain `StrawberryFields` and `strawberryfields`.
 
 ```console
-pip install strawberryfields
+git clone https://github.com/KharonByte/strawberryfields.git
+cd strawberryfields
+python -m venv .venv
 ```
 
+Activate it with `.venv\Scripts\Activate.ps1` in PowerShell, or
+`source .venv/bin/activate` on Linux/macOS. Then install the pinned environment
+and this checkout:
 
-## Getting started
+```console
+python -m pip install -r maintenance/requirements-python312.txt wheel==0.48.0
+python -m pip install --no-deps --no-build-isolation .
+python -m pip check
+```
 
-To get started with writing your own Strawberry Fields code, begin with our [photonic circuit
-quickstart guides](https://strawberryfields.readthedocs.io/en/stable/introduction/introduction.html).
+## Try a local circuit
 
+This one-mode Gaussian simulation needs only a CPU. A coherent displacement of
+0.5 has a mean photon number of 0.25:
 
-## Contributing to Strawberry Fields
+```python
+import strawberryfields as sf
+from strawberryfields.ops import Dgate
 
-We are not accepting Pull Requests for new features at this time. We welcome contributions for bug fixes,
-security patches, and documentation improvements only. Thank you for your understanding.
+program = sf.Program(1)
+with program.context as q:
+    Dgate(0.5) | q[0]
 
-See our [contributions page](https://github.com/XanaduAI/strawberryfields/blob/master/.github/CONTRIBUTING.md)
-and [changelog](https://github.com/XanaduAI/strawberryfields/blob/master/.github/CHANGELOG.md)
-for more details.
+state = sf.Engine("gaussian").run(program).state
+print(state.mean_photon(0)[0])  # 0.25, up to floating-point rounding
+```
 
+The [archived upstream guides](https://strawberryfields.readthedocs.io/en/stable/introduction/introduction.html)
+remain useful API references. Their installation and hardware-service guidance
+is historical; use this fork's installation instructions and support scope.
 
-## Authors
+## Report a problem
 
-Strawberry Fields is the work of
-[many contributors](https://github.com/XanaduAI/strawberryfields/graphs/contributors)
+Use the [KharonByte issue tracker](https://github.com/KharonByte/strawberryfields/issues).
+Include a minimal circuit, an expected result or independent reference, the
+actual result, and environment versions. Check [SUPPORT.md](SUPPORT.md) before
+relying on this fork for a new environment or workload.
 
-If you are doing research using Strawberry Fields, please cite our papers:
+## Authors and citation
+
+Strawberry Fields was developed by Xanadu and
+[its contributors](https://github.com/XanaduAI/strawberryfields/graphs/contributors).
+KharonByte maintains this independent fork. Research using Strawberry Fields
+should cite the original papers:
 
 > Nathan Killoran, Josh Izaac, Nicolás Quesada, Ville Bergholm, Matthew Amy, and
 > Christian Weedbrook. "Strawberry Fields: A Software Platform for Photonic Quantum Computing",
@@ -114,19 +92,6 @@ If you are doing research using Strawberry Fields, please cite our papers:
 > "Applications of Near-Term Photonic Quantum Computers: Software and Algorithms",
 > [Quantum Sci. Technol. 5 034010](https://iopscience.iop.org/article/10.1088/2058-9565/ab8504/meta) (2020).
 
-
-## Support
-
-- **Source Code:** https://github.com/XanaduAI/strawberryfields
-- **Issue Tracker:** https://github.com/XanaduAI/strawberryfields/issues
-
-If you are having issues, please let us know by posting the issue on our Github issue tracker.
-
-We also have a [Slack channel](https://u.strawberryfields.ai/slack) and a
-[discussion forum](https://discuss.pennylane.ai/) — come join the discussion and chat with our
-Strawberry Fields team.
-
-
 ## License
 
-Strawberry Fields is **free** and **open source**, released under the Apache License, Version 2.0.
+[Apache License, Version 2.0](LICENSE).
