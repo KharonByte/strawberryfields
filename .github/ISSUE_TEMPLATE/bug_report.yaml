@@ -4,6 +4,11 @@ title: '[replace with a short descriptive title for your report]'
 labels: "bug"
 
 body:
+  - type: markdown
+    attributes:
+      value: |
+        For a potential security vulnerability, [report it privately](https://github.com/KharonByte/strawberryfields/security/advisories/new).
+        Keep credentials, private research data and security exploit details out of public issues.
   - type: checkboxes
     id: terms
     attributes:
@@ -11,16 +16,16 @@ body:
         Before posting a bug report
       description: |
         Search existing GitHub issues to make sure the issue does not already exist:
-        https://github.com/XanaduAI/strawberryfields/issues
+        https://github.com/KharonByte/strawberryfields/issues
       options:
-        - label: I have searched exisisting GitHub issues to make sure the issue does not already exist.
+        - label: I have searched existing GitHub issues to make sure the issue does not already exist.
           required: true
   - type: markdown
     id: description
     attributes:
       value: |
-          For general technical details and contribution guidelines, check out our documentation:
-          https://strawberryfields.readthedocs.io
+          Check the maintained environments and support scope:
+          https://github.com/KharonByte/strawberryfields/blob/master/SUPPORT.md
 
           # Issue description
           Description of the issue - include code snippets in the Source code section below and screenshots if relevant.

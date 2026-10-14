@@ -11,9 +11,9 @@ body:
         Before posting a feature request
       description: |
         Search existing GitHub issues to make sure the request does not already exist:
-        https://github.com/XanaduAI/strawberryfields/issues
+        https://github.com/KharonByte/strawberryfields/issues
       options:
-        - label: I have searched exisisting GitHub issues to make sure the feature request does not already exist.
+        - label: I have searched existing GitHub issues to make sure the feature request does not already exist.
           required: true
   - type: markdown
     id: description
