@@ -27,6 +27,12 @@ from PyPI for this check. Ubuntu may require the `python3.12-venv` OS package.
 The measurement test environment excludes TensorFlow and GPU support.
 The root `requirements.txt` includes this same pinned environment.
 
+The default environment excludes the cloud client and its private dependencies.
+Blackbird 0.5.0 and XIR 0.2.2 are pinned upstream packages. To run the mocked
+remote API tests, also install `maintenance/requirements-cloud.txt`; the full
+`requirements-ci.txt` and documentation environment include it. The optional
+`cloud` package extra preserves `RemoteEngine` for users who need that interface.
+
 ## Continuous integration
 
 The `Scoped maintenance checks` workflow runs the same test selection on
@@ -63,7 +69,10 @@ requests and pushes to `master`, with duplicate in-progress runs cancelled.
 The `Tests` workflow also runs all seven historical upstream selections on
 Linux CPU, including three TensorFlow configurations and a separate environment
 without TensorFlow. The required `core-tests` result succeeds only when every
-selection succeeds. Each uploads its full test log, JUnit results and coverage.
+selection succeeds. An eighth configuration runs the non-TensorFlow selection
+with no cloud client installed; only the cloud-specific test module is skipped
+there. The seven original configurations retain the remote API tests.
+Each uploads its full test log, JUnit results and coverage.
 See [the matrix and its results](UPSTREAM-CI.md) for details. Package publishing
 remains upstream-only. Generated files under `maintenance/artifacts/` are ignored
 by Git.

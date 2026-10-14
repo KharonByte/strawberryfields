@@ -100,7 +100,12 @@ def about():
     import networkx
     import thewalrus
     import blackbird
-    import xcc
+    from importlib import metadata
+
+    try:
+        xcc_version = metadata.version("xanadu-cloud-client")
+    except metadata.PackageNotFoundError:
+        xcc_version = "Not installed (optional)"
 
     # a QuTiP-style infobox
     print("\nStrawberry Fields: a Python library for continuous-variable quantum circuits.")
@@ -116,7 +121,7 @@ def about():
     print("NetworkX version:          {}".format(networkx.__version__))
     print("The Walrus version:        {}".format(thewalrus.__version__))
     print("Blackbird version:         {}".format(blackbird.__version__))
-    print("XCC version:               {}".format(xcc.__version__))
+    print("XCC version:               {}".format(xcc_version))
 
     try:
         import tensorflow

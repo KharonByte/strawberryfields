@@ -126,6 +126,66 @@ def test_installed_import_without_pkg_resources(installed_package):
     assert json.loads(result)["version"]
 
 
+def test_installed_local_simulation_without_cloud_client(installed_package):
+    """Wheel metadata and all three CPU simulators work without importing XCC."""
+    installed, unrelated = installed_package
+    probe = """
+import contextlib
+import importlib.abc
+from importlib.metadata import distribution
+import io
+import json
+from pathlib import Path
+import sys
+from packaging.requirements import Requirement
+
+attempts = []
+class NoCloudClient(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "xcc" or fullname.startswith("xcc."):
+            attempts.append(fullname)
+            raise ModuleNotFoundError("cloud client is unavailable", name=fullname)
+
+sys.meta_path.insert(0, NoCloudClient())
+installed = Path(sys.argv[1]).resolve()
+sys.path.insert(0, str(installed))
+import strawberryfields as sf
+assert Path(sf.__file__).resolve().is_relative_to(installed)
+
+requirements = [Requirement(r) for r in distribution("StrawberryFields").requires]
+base = {r.name: r for r in requirements if not r.marker or r.marker.evaluate({"extra": ""})}
+assert "xanadu-cloud-client" not in base
+assert str(base["quantum-blackbird"].specifier) == "==0.5.0"
+assert str(base["quantum-xir"].specifier) == "==0.2.2"
+cloud = {r.name: r for r in requirements if r.marker and r.marker.evaluate({"extra": "cloud"})}
+assert str(cloud["xanadu-cloud-client"].specifier) == "==0.3.2"
+
+with contextlib.redirect_stdout(io.StringIO()):
+    sf.about()
+means = {}
+for backend in ("gaussian", "fock", "bosonic"):
+    program = sf.Program(1)
+    with program.context as q:
+        sf.ops.Dgate(0.2) | q[0]
+        sf.ops.LossChannel(0.8) | q[0]
+    state = sf.Engine(backend, backend_options={"cutoff_dim": 10}).run(program).state
+    means[backend] = float(state.mean_photon(0)[0])
+    assert abs(means[backend] - 0.032) < 1e-8, means
+assert not attempts, attempts
+assert "xcc" not in sys.modules
+try:
+    sf.RemoteEngine("X8")
+except ImportError as error:
+    assert ".[cloud]" in str(error), str(error)
+else:
+    raise AssertionError("RemoteEngine must explain how to install its extra")
+assert attempts == ["xcc"], attempts
+print(json.dumps(means))
+"""
+    result = run_checked([sys.executable, "-I", "-c", probe, str(installed)], unrelated)
+    assert set(json.loads(result)) == {"gaussian", "fock", "bosonic"}
+
+
 @pytest.mark.parametrize("name,expected_items", DATASETS)
 def test_installed_dataset_without_pkg_resources(installed_package, name, expected_items):
     """Every bundled dataset remains readable from the installed wheel."""

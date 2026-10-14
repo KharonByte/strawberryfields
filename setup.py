@@ -23,15 +23,14 @@ requirements = [
     "numba",
     "numpy>=1.17.4",
     "python-dateutil>=2.8.0",
-    "quantum-blackbird>=0.4.0",
+    "quantum-blackbird==0.5.0",
     "requests>=2.22.0",
     "scipy>=1.8.0",
     "sympy>=1.5",
     "thewalrus>=0.18.0",
     "toml",
     "urllib3>=1.25.3",
-    "quantum-xir>=0.1.1",
-    "xanadu-cloud-client>=0.2.1",
+    "quantum-xir==0.2.2",
 ]
 
 info = {
@@ -50,6 +49,7 @@ info = {
     "long_description_content_type": "text/markdown",
     "provides": ["strawberryfields"],
     "install_requires": requirements,
+    "extras_require": {"cloud": ["xanadu-cloud-client==0.3.2"]},
     "command_options": {
         "build_sphinx": {"version": ("setup.py", version), "release": ("setup.py", version)}
     },

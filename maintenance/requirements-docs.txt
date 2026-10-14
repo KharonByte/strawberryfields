@@ -1,5 +1,6 @@
 # Full Sphinx build: Linux x86-64, Python 3.12.3; TensorFlow is CPU-only.
 -r requirements-python312.txt
+-r requirements-cloud.txt
 -r requirements-tensorflow.txt
 alabaster==1.0.0
 babel==2.18.0

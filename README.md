@@ -14,6 +14,17 @@ Passing the selected tests does not certify the whole simulator. See the scope
 before relying on this fork for other work. There is no KharonByte package
 release yet; tests load the source checkout directly.
 
+Local simulation does not require Xanadu's cloud client. Blackbird 0.5.0 and
+XIR 0.2.2 remain pinned upstream dependencies. For the legacy `RemoteEngine`
+API, install this checkout with its optional extra:
+
+```console
+python -m pip install -c maintenance/requirements-python312.txt -c maintenance/requirements-cloud.txt ".[cloud]"
+```
+
+This preserves the client interface; it does not establish access to a working
+cloud service or quantum hardware.
+
 ## Original upstream README (historical)
 
 The material below preserves upstream context and attribution. Its installation,
