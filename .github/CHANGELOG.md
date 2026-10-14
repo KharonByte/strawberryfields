@@ -12,6 +12,13 @@
 
 <h3>Bug fixes</h3>
 
+* Correct Gaussian reduced density matrices for entangled subsystems and use
+  interleaved ket/bra axes for multi-mode output. Pure-state reductions retain
+  the probability below the Fock cutoff instead of renormalising it to one.
+
+* Convert bosonic quadrature ordering correctly when computing density matrices
+  and photon-number probabilities.
+
 * Updates `scipy.integrate.simps` to `scipy.integrate.simpson` when using newer scipy versions, such that SF continues working. Also makes numpy usage explicit about the creation of ragged numpy arrays. This patch furthermore fixes a number of CI issues, to get most test pipelines passing again. 
 [#757](https://github.com/XanaduAI/strawberryfields/pull/757)
 
