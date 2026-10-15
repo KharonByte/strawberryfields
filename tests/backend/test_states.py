@@ -297,6 +297,94 @@ class TestGaussianStatePurity:
         assert np.allclose(state.reduced_dm(0, cutoff=3), expected, atol=1e-12, rtol=0)
 
 
+@pytest.mark.gaussian
+class TestGaussianInspection:
+    """State inspection must preserve physical moments and photon probabilities."""
+
+    @pytest.mark.parametrize("hbar_value", [0.5, 1.0, 1.7, 2.0, 4.0])
+    @pytest.mark.parametrize("num_modes", [1, 2])
+    @pytest.mark.parametrize("preparation", ["vacuum", "coherent", "squeezed", "thermal"])
+    @pytest.mark.parametrize("query", ["is_coherent", "is_squeezed", "squeezing"])
+    def test_inspection_preserves_state(
+        self, monkeypatch, hbar_value, num_modes, preparation, query
+    ):
+        """Repeated queries must not rescale a full-state or reduced covariance."""
+        monkeypatch.setattr(sf, "hbar", hbar_value)
+        expected_means = np.zeros(2 * num_modes)
+        expected_cov = np.identity(2 * num_modes) * hbar_value / 2
+        expected_photons = np.zeros(num_modes)
+        expected_squeezing = np.zeros((num_modes, 2))
+        expected_vacuum_probability = 1.0
+        prog = sf.Program(num_modes)
+        with prog.context as q:
+            for mode in range(num_modes):
+                indices = np.ix_([mode, mode + num_modes], [mode, mode + num_modes])
+                if preparation == "coherent":
+                    alpha = (mode + 1) * (0.2 + 0.1j)
+                    ops.Dgate(abs(alpha), np.angle(alpha)) | q[mode]
+                    expected_means[[mode, mode + num_modes]] = np.sqrt(2 * hbar_value) * (
+                        np.array([alpha.real, alpha.imag])
+                    )
+                    expected_photons[mode] = abs(alpha) ** 2
+                    expected_vacuum_probability *= np.exp(-abs(alpha) ** 2)
+                elif preparation == "squeezed":
+                    radius, angle = 0.3 * (mode + 1), 0.37
+                    ops.Sgate(radius, angle) | q[mode]
+                    c, s = np.cosh(2 * radius), np.sinh(2 * radius)
+                    expected_cov[indices] = (
+                        hbar_value
+                        / 2
+                        * np.array(
+                            [
+                                [c - s * np.cos(angle), -s * np.sin(angle)],
+                                [-s * np.sin(angle), c + s * np.cos(angle)],
+                            ]
+                        )
+                    )
+                    expected_photons[mode] = np.sinh(radius) ** 2
+                    expected_squeezing[mode] = [radius, angle]
+                    expected_vacuum_probability /= np.cosh(radius)
+                elif preparation == "thermal":
+                    nbar = 0.2 * (mode + 1)
+                    ops.Thermal(nbar) | q[mode]
+                    expected_cov[indices] *= 2 * nbar + 1
+                    expected_photons[mode] = nbar
+                    expected_vacuum_probability /= nbar + 1
+
+        state = sf.Engine("gaussian").run(prog).state
+        original_means, original_cov = state.means().copy(), state.cov().copy()
+        np.testing.assert_allclose(original_means, expected_means, atol=1e-12, rtol=0)
+        np.testing.assert_allclose(original_cov, expected_cov, atol=1e-12, rtol=0)
+
+        def check_observables():
+            photons = [state.mean_photon(mode)[0] for mode in range(num_modes)]
+            np.testing.assert_allclose(photons, expected_photons, atol=1e-12, rtol=0)
+            np.testing.assert_allclose(
+                state.fock_prob([0] * num_modes), expected_vacuum_probability, atol=1e-12, rtol=0
+            )
+
+        check_observables()
+        first_result = None
+        for _ in range(3):
+            if query == "squeezing":
+                result = np.asarray(state.squeezing())
+            else:
+                result = np.asarray([getattr(state, query)(mode) for mode in range(num_modes)])
+            np.testing.assert_array_equal(state.means(), original_means)
+            np.testing.assert_array_equal(state.cov(), original_cov)
+            check_observables()
+            if first_result is None:
+                first_result = result.copy()
+            np.testing.assert_allclose(result, first_result, atol=1e-12, rtol=0)
+            if preparation != "thermal":
+                expected = {
+                    "is_coherent": np.full(num_modes, preparation != "squeezed"),
+                    "is_squeezed": np.full(num_modes, preparation == "squeezed"),
+                    "squeezing": expected_squeezing,
+                }[query]
+                np.testing.assert_allclose(result, expected, atol=1e-12, rtol=0)
+
+
 @pytest.mark.backends("gaussian")
 class TestBaseGaussianMethods:
     """This tests state methods unique to the BaseGaussian
