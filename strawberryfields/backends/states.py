@@ -1812,9 +1812,11 @@ class BaseBosonicState(BaseState):
         cutoff = kwargs.get("cutoff", 10)
         weights, mus, covs = self.reduced_bosonic(modes)  # pylint: disable=unused-variable
 
-        rho = 0
+        rho = np.zeros([cutoff] * (2 * len(modes)), dtype=complex)
         order = np.arange(2 * len(modes)).reshape(2, -1).T.flatten()
         for i in range(self.num_weights):
+            if weights[i] == 0:
+                continue
             quadratic, linear, prefactor = self._fock_parameters(mus[i], covs[i])
             tensor = hermite_multidimensional(
                 -quadratic, cutoff, y=linear, C=prefactor, renorm=True, modified=True
@@ -1938,6 +1940,8 @@ class BaseBosonicState(BaseState):
 
         prob = 0
         for i in range(self.num_weights):
+            if self._weights[i] == 0:
+                continue
             quadratic, linear, prefactor = self._fock_parameters(self._mus[i], self._covs[i])
             element = hafnian_repeated(quadratic, list(n) * 2, mu=linear, loop=True)
             prob += self._weights[i] * prefactor * element / np.prod(factorial(n))

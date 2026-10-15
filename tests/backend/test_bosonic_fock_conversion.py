@@ -223,3 +223,40 @@ class TestBosonicFockConversion:
             np.testing.assert_allclose(
                 state.fock_prob(photons), expected[index].real, atol=2e-11, rtol=0
             )
+
+
+@pytest.mark.bosonic
+@pytest.mark.parametrize("hbar", [0.5, 1.0, 1.7, 2.0, 4.0])
+@pytest.mark.parametrize("kind", ["cat27", "zero_weight_vacuum"])
+def test_zero_weight_components_cannot_poison_fock_output(monkeypatch, hbar, kind):
+    """An inactive component must not contaminate probabilities or density tensors."""
+    monkeypatch.setattr(sf, "hbar", hbar)
+    program = sf.Program(1)
+    with program.context as q:
+        if kind == "cat27":
+            ops.Catstate(27.0) | q[0]
+        else:
+            ops.Bosonic(
+                weights=np.array([1.0, 0.0]),
+                means=np.array([[0.0, 0.0], [0.0, 60.0j]]),
+                covs=np.array([np.eye(2), np.eye(2)]),
+            ) | q[0]
+    state = sf.Engine("bosonic").run(program).state
+    probability = state.fock_prob([0])
+    density = state.dm(cutoff=3)
+    assert np.isfinite(probability)
+    assert np.isfinite(density).all()
+    if kind == "zero_weight_vacuum":
+        np.testing.assert_allclose(probability, 1, atol=2e-14, rtol=0)
+        expected = np.zeros((3, 3))
+        expected[0, 0] = 1
+        np.testing.assert_allclose(density, expected, atol=2e-14, rtol=0)
+
+
+@pytest.mark.bosonic
+def test_all_zero_weights_preserve_density_tensor_shape():
+    """An empty weighted sum still returns a density tensor of the requested shape."""
+    state = BaseBosonicState((np.zeros((1, 4)), np.array([np.eye(4)]), np.array([0.0])), 2, 1)
+    np.testing.assert_array_equal(state.dm(cutoff=3), np.zeros((3, 3, 3, 3)))
+    np.testing.assert_array_equal(state.reduced_dm(0, cutoff=3), np.zeros((3, 3)))
+    assert state.fock_prob([0, 0]) == 0
