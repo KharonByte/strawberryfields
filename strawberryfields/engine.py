@@ -22,10 +22,12 @@ import abc
 import collections.abc
 import time
 import warnings
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 import numpy as np
-import xcc
+
+if TYPE_CHECKING:
+    import xcc
 
 from strawberryfields.device import Device
 from strawberryfields.result import Result
@@ -44,6 +46,20 @@ __all__ = ["BaseEngine", "LocalEngine", "BosonicEngine"]
 
 class FailedJobError(Exception):
     """Raised when a job had a failure on the server side."""
+
+
+def _load_cloud_client():
+    """Load the optional client without masking errors in an installed client."""
+    try:
+        import xcc  # pylint: disable=import-outside-toplevel
+    except ModuleNotFoundError as error:
+        if error.name != "xcc":
+            raise
+        raise ImportError(
+            "RemoteEngine requires the optional cloud client. Install this distribution "
+            "with the 'cloud' extra (from a checkout: python -m pip install '.[cloud]')."
+        ) from error
+    return xcc
 
 
 class BaseEngine(abc.ABC):
@@ -577,6 +593,9 @@ class RemoteEngine:
     """A quantum program executor engine that provides a simple interface for
     running remote jobs in a blocking or non-blocking manner.
 
+    Requires the optional ``cloud`` extra. From a checkout, install it with
+    ``python -m pip install '.[cloud]'``.
+
     **Example:**
 
     The following examples instantiate an engine with the default settings, and
@@ -613,9 +632,10 @@ class RemoteEngine:
     def __init__(
         self,
         target: str,
-        connection: Optional[xcc.Connection] = None,
+        connection: Optional["xcc.Connection"] = None,
         backend_options: Optional[Dict[str, Any]] = None,
     ):
+        _load_cloud_client()
         self._target = self.DEFAULT_TARGETS.get(target, target)
         self._device = None
         self._connection = connection
@@ -632,7 +652,7 @@ class RemoteEngine:
         return self._target
 
     @property
-    def connection(self) -> xcc.Connection:
+    def connection(self) -> "xcc.Connection":
         """The connection used by the engine. A new :class:`xcc.Connection` will
         be created and returned each time this property is accessed if the
         connection supplied to :meth:`~.RemoteEngine.__init__` was ``None``.
@@ -643,6 +663,7 @@ class RemoteEngine:
         if self._connection is not None:
             return self._connection
 
+        xcc = _load_cloud_client()
         settings = xcc.Settings()
 
         return xcc.Connection(
@@ -666,6 +687,7 @@ class RemoteEngine:
                 the device specifications or the device certificate from the Xanadu Cloud
         """
         if self._device is None:
+            xcc = _load_cloud_client()
             device = xcc.Device(target=self.target, connection=self.connection)
             self._device = Device(spec=device.specification, cert=device.certificate)
         return self._device
@@ -719,6 +741,7 @@ class RemoteEngine:
                 time.sleep(self.POLLING_INTERVAL_SECONDS)
 
         except KeyboardInterrupt as e:
+            xcc = _load_cloud_client()
             xcc.Job(id_=job.id, connection=self.connection).cancel()
             raise KeyboardInterrupt("The job has been cancelled.") from e
 
@@ -750,7 +773,7 @@ class RemoteEngine:
 
     def run_async(
         self, program: Program, *, compile_options=None, recompile=False, **kwargs
-    ) -> xcc.Job:
+    ) -> "xcc.Job":
         """Runs a non-blocking remote job.
 
         In the non-blocking mode, a ``xcc.Job`` object is returned immediately, and the user can
@@ -840,6 +863,7 @@ class RemoteEngine:
 
         connection = self.connection
 
+        xcc = _load_cloud_client()
         job = xcc.Job.submit(
             connection=connection,
             name=program.name,

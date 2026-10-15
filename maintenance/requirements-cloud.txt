@@ -1,0 +1,12 @@
+# Optional legacy remote API and its private dependencies; no live hardware validation.
+-c requirements-python312.txt
+annotated-types==0.8.0
+appdirs==1.4.4
+fire==0.7.1
+pydantic==2.14.0
+pydantic-settings==2.15.0
+pydantic_core==2.50.0
+python-dotenv==1.2.4
+termcolor==3.3.0
+typing-inspection==0.4.4
+xanadu-cloud-client==0.3.2

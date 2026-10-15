@@ -19,5 +19,6 @@ protobuf==7.36.2
 pygments==2.21.0
 rich==15.0.0
 tensorflow-cpu==2.21.0
+termcolor==3.3.0
 wheel==0.48.0
 wrapt==2.5.0

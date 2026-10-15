@@ -15,11 +15,17 @@
 Unit and integration tests for :mod:`strawberryfields.engine.RemoteEngine`.
 """
 
+import importlib.util
 import logging
+import pickle
 from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
+
+if importlib.util.find_spec("xcc") is None:
+    pytest.skip("Remote API tests require the cloud extra", allow_module_level=True)
+
 import xcc
 
 import strawberryfields as sf
@@ -35,6 +41,15 @@ pytestmark = pytest.mark.api
 
 
 REQUESTS_BEFORE_COMPLETED = 3
+
+
+def test_remote_engine_pickle():
+    """Loading the optional client preserves serialization of engine settings."""
+    engine = RemoteEngine("X8", backend_options={"cutoff_dim": 10})
+    restored = pickle.loads(pickle.dumps(engine))
+    assert restored.target == engine.target
+    assert restored._backend_options == engine._backend_options
+    assert restored._connection is None
 
 
 @pytest.fixture
@@ -76,8 +91,8 @@ def device(connection, monkeypatch):
     }
     device.certificate = {}
 
-    monkeypatch.setattr(sf.engine.xcc, "Connection", MagicMock())
-    monkeypatch.setattr(sf.engine.xcc, "Device", mock_return(device))
+    monkeypatch.setattr(xcc, "Connection", MagicMock())
+    monkeypatch.setattr(xcc, "Device", mock_return(device))
     return device
 
 

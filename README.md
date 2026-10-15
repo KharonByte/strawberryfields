@@ -48,6 +48,19 @@ python -m pip install --no-deps --no-build-isolation .
 python -m pip check
 ```
 
+### Optional cloud client
+
+Local simulation does not require Xanadu's cloud client. Blackbird 0.5.0 and
+XIR 0.2.2 remain pinned upstream dependencies. For the legacy `RemoteEngine`
+API, install this checkout with its optional extra:
+
+```console
+python -m pip install -c maintenance/requirements-python312.txt -c maintenance/requirements-cloud.txt ".[cloud]"
+```
+
+This preserves the client interface; it does not establish access to a working
+cloud service or quantum hardware.
+
 ## Try a local circuit
 
 This one-mode Gaussian simulation needs only a CPU. A coherent displacement of
