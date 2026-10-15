@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability privately
+    url: https://github.com/KharonByte/strawberryfields/security/advisories/new
+    about: Share suspected vulnerabilities privately with the maintainers.
+  - name: Supported environments and maintenance scope
+    url: https://github.com/KharonByte/strawberryfields/blob/master/SUPPORT.md
+    about: Check the maintained backends, environments and support limits.
