@@ -4,13 +4,24 @@
 # You may obtain a copy at http://www.apache.org/licenses/LICENSE-2.0
 """Regression tests for dataset resources in an installed distribution."""
 
+from copy import deepcopy
+from email.parser import Parser
 import json
+import os
 from pathlib import Path
+import re
+import runpy
 import shutil
 import subprocess
 import sys
+import sysconfig
 
 import pytest
+
+# The maintenance script is not part of the installed distribution.
+check_metadata = runpy.run_path(
+    str(Path(__file__).resolve().parents[2] / "maintenance" / "check_metadata.py")
+)["check_metadata"]
 
 pytestmark = pytest.mark.apps
 
@@ -67,9 +78,9 @@ print(json.dumps(result))
 """
 
 
-def run_checked(command, cwd):
+def run_checked(command, cwd, env=None):
     """Include subprocess diagnostics in a failed assertion."""
-    result = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=120)
+    result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
     return result.stdout
 
@@ -124,6 +135,114 @@ def test_installed_import_without_pkg_resources(installed_package):
     installed, unrelated = installed_package
     result = run_checked([sys.executable, "-I", "-c", INSTALLED_PROBE, str(installed)], unrelated)
     assert json.loads(result)["version"]
+
+
+@pytest.mark.parametrize("launcher", ["console", "module"])
+def test_pytest_launchers_collect_installed_package_tests(installed_package, launcher):
+    """Both launchers collect tests without adding the checkout to PYTHONPATH."""
+    installed, _ = installed_package
+    root = Path(__file__).resolve().parents[2]
+    if launcher == "console":
+        executable = "pytest.exe" if sys.platform == "win32" else "pytest"
+        command = [str(Path(sysconfig.get_path("scripts")) / executable)]
+    else:
+        command = [sys.executable, "-m", "pytest"]
+    # Provide the installed wheel, not the source root, to the console launcher.
+    env = dict(os.environ, PYTHONPATH=str(installed))
+    output = run_checked(
+        command + ["--collect-only", "-q", "-p", "no:cacheprovider", str(Path(__file__).resolve())],
+        root,
+        env=env,
+    )
+    assert "test_installed_metadata_matches_documentation" in output
+
+
+def installed_metadata(installed):
+    """Read wheel metadata after the source distribution has been built and installed."""
+    paths = list(installed.glob("*.dist-info/METADATA"))
+    assert len(paths) == 1
+    return Parser().parsestr(paths[0].read_text(encoding="utf-8"))
+
+
+def test_installed_metadata_matches_documentation(installed_package):
+    """Installation constraints, attribution and documentation agree with the CI pins."""
+    installed, unrelated = installed_package
+    root = Path(__file__).resolve().parents[2]
+    problems = check_metadata(root, installed_metadata(installed))
+    assert not problems, "\n".join(problems)
+    metadata_path = next(installed.glob("*.dist-info/METADATA"))
+    run_checked(
+        [sys.executable, str(root / "maintenance/check_metadata.py"), str(metadata_path)], unrelated
+    )
+
+
+@pytest.mark.parametrize(
+    "field,value,diagnostic",
+    [
+        ("Requires-Python", None, "Requires-Python"),
+        ("Requires-Python", ">=3.8", "Requires-Python"),
+        ("Classifier", "Programming Language :: Python :: 3.10", "classifiers"),
+        ("Maintainer", "Xanadu Inc.", "Maintainer"),
+        ("Home-page", "https://github.com/XanaduAI/strawberryfields", "Home-page"),
+        ("Project-URL", "Source, https://github.com/XanaduAI/strawberryfields", "Project-URL"),
+    ],
+)
+def test_metadata_guard_rejects_stale_wheel_metadata(installed_package, field, value, diagnostic):
+    """Reintroducing the old wheel declarations must fail the guard."""
+    metadata = deepcopy(installed_metadata(installed_package[0]))
+    del metadata[field]
+    if value is not None:
+        metadata[field] = value
+    problems = check_metadata(Path(__file__).resolve().parents[2], metadata)
+    assert any(diagnostic in problem for problem in problems), problems
+
+
+@pytest.mark.parametrize(
+    "path,before,after,diagnostic",
+    [
+        ("README.md", ">=3.12,<3.13", ">=3.8,<3.11", "README Python requirement"),
+        ("README.md", "`3.12.3`", "`3.10.8`", "CI Python"),
+        (
+            "README.md",
+            "python -m pip install --no-deps --no-build-isolation .",
+            "pip install strawberryfields",
+            "upstream PyPI",
+        ),
+        ("SUPPORT.md", "Python 3.12.3", "Python 3.10.8", "SUPPORT.md"),
+        (".github/workflows/tests.yaml", "'3.12.3'", "'3.13.0'", "tests.yaml: CI Python"),
+    ],
+)
+def test_metadata_guard_rejects_documentation_drift(
+    installed_package, tmp_path, path, before, after, diagnostic
+):
+    """Changing documentation or a CI pin independently must be caught."""
+    root = Path(__file__).resolve().parents[2]
+    for name in ("README.md", "SUPPORT.md"):
+        shutil.copy2(root / name, tmp_path / name)
+    shutil.copytree(root / ".github/workflows", tmp_path / ".github/workflows")
+    target = tmp_path / path
+    original = target.read_text(encoding="utf-8")
+    assert before in original
+    target.write_text(original.replace(before, after), encoding="utf-8")
+    problems = check_metadata(tmp_path, installed_metadata(installed_package[0]))
+    assert any(diagnostic in problem for problem in problems), problems
+
+
+def test_readme_example_from_installed_wheel(installed_package):
+    """Run the published example outside the checkout against the installed artifact."""
+    installed, unrelated = installed_package
+    root = Path(__file__).resolve().parents[2]
+    readme = (root / "README.md").read_text(encoding="utf-8")
+    examples = re.findall(r"```python\n(.*?)\n```", readme, re.DOTALL)
+    assert len(examples) == 1
+    script = (
+        "import sys\nfrom pathlib import Path\n"
+        "installed = Path(sys.argv[1]).resolve()\nsys.path.insert(0, str(installed))\n"
+        + examples[0]
+        + "\nassert Path(sf.__file__).resolve().is_relative_to(installed)\n"
+    )
+    result = run_checked([sys.executable, "-I", "-c", script, str(installed)], unrelated)
+    assert float(result.strip()) == pytest.approx(0.25)
 
 
 @pytest.mark.parametrize("name,expected_items", DATASETS)

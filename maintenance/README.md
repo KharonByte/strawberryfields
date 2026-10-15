@@ -34,6 +34,19 @@ Ubuntu 24.04 (x86-64), Windows 2025 (x86-64) and macOS 15 (arm64), with Python
 3.12.3. The Linux job retains the `heterodyne` name for branch protection.
 Each platform uploads its JUnit report as `scoped-validation-<OS>`.
 
+The installed-package checks build an sdist, build its wheel and install it
+outside the source tree. They compare the wheel's Python requirement,
+classifiers, fork attribution and links with the root README, support scope and
+active CI interpreter pins, then run the README circuit from the installed
+package. Regressions deliberately restore stale metadata and documentation to
+check that drift fails CI. The inherited, upstream-only release job is excluded.
+Run these checks with:
+
+```bash
+python -m pip install wheel==0.48.0
+python -m pytest -q tests/apps/test_installed_data.py
+```
+
 Black 26.3.1 checks every Python file under `strawberryfields/`, `tests/` and
 `maintenance/`, using the existing 100-character line length.
 
