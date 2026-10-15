@@ -27,6 +27,7 @@ from scipy.stats import multivariate_normal
 from scipy.special import factorial
 import scipy.integrate
 
+from thewalrus import hafnian_repeated, hermite_multidimensional
 from thewalrus.symplectic import rotation as _R
 from thewalrus.symplectic import xpxp_to_xxpp
 
@@ -1748,6 +1749,36 @@ class BaseBosonicState(BaseState):
     def ket(self, **kwargs):
         raise NotImplementedError("The ket method is not implemented for bosonic states.")
 
+    def _fock_parameters(self, mu, cov):
+        r"""Return the quadratic, linear and constant Fock generating coefficients.
+
+        A bosonic Gaussian component can have complex quadrature moments and need
+        not be Hermitian. Work directly with its Husimi Gaussian instead of
+        reconstructing half the moments by complex conjugation.
+
+        For dimensionless quadratures and ``Q = cov + I/2``, the generating
+        function is ``exp(z.T @ X @ z / 2)`` times the Husimi Gaussian evaluated
+        at ``transform.T @ z``. Its derivatives give the Fock matrix elements.
+        All transposes here are ordinary transposes, including for complex data.
+        """
+        mu = xpxp_to_xxpp(mu) / np.sqrt(self._hbar)
+        cov = xpxp_to_xxpp(cov) / self._hbar
+        modes = len(mu) // 2
+        identity = np.eye(modes)
+        transform = np.block([[identity, 1j * identity], [identity, -1j * identity]]) / np.sqrt(2)
+        husimi = cov + np.eye(2 * modes) / 2
+        solved = np.linalg.solve(husimi, np.column_stack((transform.T, mu)))
+        exchange = np.block(
+            [[np.zeros_like(identity), identity], [identity, np.zeros_like(identity)]]
+        )
+        quadratic = exchange - transform @ solved[:, :-1]
+        linear = transform @ solved[:, -1]
+        # Continue each eigenvalue's square root from positive real covariances;
+        # sqrt(det(Q)) can choose the wrong sign for several complex modes.
+        log_det = np.sum(np.log(np.linalg.eigvals(husimi)))
+        prefactor = np.exp(-0.5 * (mu @ solved[:, -1] + log_det))
+        return quadratic, linear, prefactor
+
     def dm(self, **kwargs):
         cutoff = kwargs.get("cutoff", 10)
         return self.reduced_dm(list(range(self._modes)), cutoff=cutoff)
@@ -1782,14 +1813,13 @@ class BaseBosonicState(BaseState):
         weights, mus, covs = self.reduced_bosonic(modes)  # pylint: disable=unused-variable
 
         rho = 0
+        order = np.arange(2 * len(modes)).reshape(2, -1).T.flatten()
         for i in range(self.num_weights):
-            rho += weights[i] * twq.density_matrix(
-                xpxp_to_xxpp(mus[i]),
-                xpxp_to_xxpp(covs[i]),
-                hbar=self._hbar,
-                normalize=False,
-                cutoff=cutoff,
+            quadratic, linear, prefactor = self._fock_parameters(mus[i], covs[i])
+            tensor = hermite_multidimensional(
+                -quadratic, cutoff, y=linear, C=prefactor, renorm=True, modified=True
             )
+            rho += weights[i] * tensor.transpose(order)
         return rho
 
     def mean_photon(self, mode, **kwargs):
@@ -1908,13 +1938,9 @@ class BaseBosonicState(BaseState):
 
         prob = 0
         for i in range(self.num_weights):
-            prob += self._weights[i] * twq.density_matrix_element(
-                xpxp_to_xxpp(self._mus[i]),
-                xpxp_to_xxpp(self._covs[i]),
-                n,
-                n,
-                hbar=self._hbar,
-            )
+            quadratic, linear, prefactor = self._fock_parameters(self._mus[i], self._covs[i])
+            element = hafnian_repeated(quadratic, list(n) * 2, mu=linear, loop=True)
+            prob += self._weights[i] * prefactor * element / np.prod(factorial(n))
         return prob.real
 
     def all_fock_probs(self, **kwargs):
