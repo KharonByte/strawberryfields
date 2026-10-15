@@ -17,8 +17,6 @@ Test fixtures and shared functions for Strawberry Fields API tests
 
 import pytest
 
-import xcc
-
 from strawberryfields import Program, ops
 
 # pylint: disable=expression-not-assigned
@@ -36,8 +34,10 @@ def prog():
 
 
 @pytest.fixture
-def connection() -> xcc.Connection:
+def connection():
     """A mock connection."""
+    import xcc  # pylint: disable=import-outside-toplevel
+
     return xcc.Connection(refresh_token="j.w.t", host="cloud.xanadu.ai", port=443, tls=True)
 
 

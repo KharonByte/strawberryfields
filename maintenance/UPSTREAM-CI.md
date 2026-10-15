@@ -3,6 +3,9 @@
 The `Tests` workflow now runs the complete historical matrix on Ubuntu 24.04
 with Python 3.12.3. It uses pinned `requirements-ci.txt` dependencies and installs
 the separate TensorFlow CPU add-on in the six configurations that require it.
+An additional configuration runs the non-TensorFlow selection without the cloud
+extra, using `maintenance/requirements-core.txt`. CI verifies the expected
+presence or absence of both TensorFlow and XCC before collecting tests.
 
 | Configuration | Selection | Batched |
 | --- | --- | --- |
@@ -13,8 +16,9 @@ the separate TensorFlow CPU add-on in the six configurations that require it.
 | TensorFlow mixed | `tf and mixed` | Yes |
 | Bosonic | `bosonic` | No |
 | Without TensorFlow installed | `not tf` | No |
+| Without TensorFlow or the cloud client installed | `not tf` | No |
 
-All seven jobs run without fail-fast cancellation. The `core-tests` check fails
+All eight jobs run without fail-fast cancellation. The `core-tests` check fails
 if any configuration fails or does not complete successfully. Failures are not
 converted to successful checks. JUnit results, coverage and complete logs are
 saved in the `upstream-<configuration>` artifacts. GPU execution is not included.

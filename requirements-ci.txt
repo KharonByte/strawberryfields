@@ -1,2 +1,3 @@
 # Complete upstream CPU test matrix, including TensorFlow and test plugins.
 -r maintenance/requirements-core.txt
+-r maintenance/requirements-cloud.txt
