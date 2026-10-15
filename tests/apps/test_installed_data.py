@@ -7,15 +7,21 @@
 from copy import deepcopy
 from email.parser import Parser
 import json
+import os
 from pathlib import Path
 import re
+import runpy
 import shutil
 import subprocess
 import sys
+import sysconfig
 
 import pytest
 
-from maintenance.check_metadata import check_metadata
+# The maintenance script is not part of the installed distribution.
+check_metadata = runpy.run_path(
+    str(Path(__file__).resolve().parents[2] / "maintenance" / "check_metadata.py")
+)["check_metadata"]
 
 pytestmark = pytest.mark.apps
 
@@ -72,9 +78,9 @@ print(json.dumps(result))
 """
 
 
-def run_checked(command, cwd):
+def run_checked(command, cwd, env=None):
     """Include subprocess diagnostics in a failed assertion."""
-    result = subprocess.run(command, cwd=cwd, capture_output=True, text=True, timeout=120)
+    result = subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, timeout=120)
     assert result.returncode == 0, result.stdout + result.stderr
     return result.stdout
 
@@ -129,6 +135,26 @@ def test_installed_import_without_pkg_resources(installed_package):
     installed, unrelated = installed_package
     result = run_checked([sys.executable, "-I", "-c", INSTALLED_PROBE, str(installed)], unrelated)
     assert json.loads(result)["version"]
+
+
+@pytest.mark.parametrize("launcher", ["console", "module"])
+def test_pytest_launchers_collect_installed_package_tests(installed_package, launcher):
+    """Both launchers collect tests without adding the checkout to PYTHONPATH."""
+    installed, _ = installed_package
+    root = Path(__file__).resolve().parents[2]
+    if launcher == "console":
+        executable = "pytest.exe" if sys.platform == "win32" else "pytest"
+        command = [str(Path(sysconfig.get_path("scripts")) / executable)]
+    else:
+        command = [sys.executable, "-m", "pytest"]
+    # Provide the installed wheel, not the source root, to the console launcher.
+    env = dict(os.environ, PYTHONPATH=str(installed))
+    output = run_checked(
+        command + ["--collect-only", "-q", "-p", "no:cacheprovider", str(Path(__file__).resolve())],
+        root,
+        env=env,
+    )
+    assert "test_installed_metadata_matches_documentation" in output
 
 
 def installed_metadata(installed):
