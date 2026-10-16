@@ -59,6 +59,7 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("r", SQZ_R)
     @pytest.mark.parametrize("theta", SQZ_THETA)
+    @pytest.mark.backends("fock", "tf", "gaussian")
     def test_no_odd_fock(self, setup_backend, r, theta, batch_size):
         """Tests if a range of squeezed vacuum states have
         only nonzero entries for even Fock states."""

@@ -26,6 +26,12 @@ two-mode squeezing, heterodyne reset, measurement exception, Mach-Zehnder,
 mean-photon, quadrature and Gaussian initial-state checks. The cutoff fixture
 now honours explicit indirect parameters, covered by its own regression test.
 
+The guard also requires all 148 restored unbatched cases: TensorFlow polynomial
+quadratures, direct two-mode squeezing and dark counts; Gaussian squeezed-state
+parity; and Gaussian/Bosonic state observables. It checks parameter counts as
+well as pass status. The newly enabled TensorFlow cases remain excluded from
+batch runs because their API or assertions require unbatched execution.
+
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
 and TensorFlow Wigner evaluation does not support batching. Existing numerical

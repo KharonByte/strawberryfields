@@ -125,6 +125,13 @@ def batch_size():
 
 
 @pytest.fixture
+def skip_tf_batch(request, batch_size):
+    """Keep tests with unbatched TensorFlow contracts out of batch configurations."""
+    if batch_size is not None and request.node.get_closest_marker("tf") is not None:
+        pytest.skip("This test only supports unbatched TensorFlow execution")
+
+
+@pytest.fixture
 def backend(monkeypatch):
     """Create a mocked out backend fixture for front-end only tests"""
     dummy_backend = BaseBackend()

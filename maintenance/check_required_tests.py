@@ -47,6 +47,63 @@ REQUIRED.update(
         )
     }
 )
+# Expected parameter counts per pure/mixed state for the newly enabled checks.
+# Their TensorFlow assertions and APIs are verified only in unbatched mode.
+UNBATCHED_REQUIRED = {
+    ("backend.test_squeeze_operation.TestFockRepresentation", "test_no_odd_fock"): {"gaussian": 15},
+    ("backend.test_squeezed_state_preparation.TestFockRepresentation", "test_no_odd_fock"): {
+        "gaussian": 15
+    },
+    ("backend.test_states.TestBaseFockKetDensityMatrix", "test_rdm"): {"bosonic": 1},
+    ("backend.test_states.TestBaseFockKetDensityMatrix", "test_density_matrix_thermal_state"): {
+        "bosonic": 1
+    },
+    ("backend.test_states.TestFidelities", "test_vacuum"): {"bosonic": 1},
+    ("backend.test_states.TestNumberExpectation", "test_number_expectation_four_modes"): {
+        "gaussian": 1
+    },
+    ("backend.test_states.TestParityExpectation", "test_thermal"): {"gaussian": 1, "bosonic": 1},
+    (
+        "backend.test_states_polyquad.TestMultiModePolyQuadratureExpectations",
+        "test_three_mode_arbitrary",
+    ): {"tf": 1},
+    (
+        "backend.test_twomode_squeezing_operation.TestTwomodeSqueezing",
+        "test_two_mode_squeezing",
+    ): {"tf": 15},
+    (
+        "integration.test_measurement_integration.TestDarkCounts",
+        "test_fock_darkcounts_single_mode",
+    ): {"tf": 4},
+    (
+        "integration.test_measurement_integration.TestDarkCounts",
+        "test_fock_darkcounts_two_modes",
+    ): {"tf": 3},
+}
+UNBATCHED_REQUIRED.update(
+    {
+        ("backend.test_states_polyquad.TestSingleModePolyQuadratureExpectations", function): {
+            "tf": 1
+        }
+        for function in (
+            "test_no_expectation",
+            "test_constant",
+            "test_linear_vacuum",
+            "test_x_squeezed",
+            "test_x_displaced",
+            "test_x_displaced_squeezed",
+            "test_p_displaced_squeezed",
+            "test_linear_combination",
+            "test_n_thermal",
+            "test_n_squeeze",
+            "test_x_squared",
+            "test_p_squared",
+            "test_xp_vacuum",
+            "test_xp_displaced_squeezed",
+            "test_arbitrary_quadratic",
+        )
+    }
+)
 REQUIRED.update(
     {
         ("backend.test_states.TestBaseStateMeanPhotonNumber", function): BACKENDS
@@ -101,13 +158,17 @@ def verify(report, configuration):
     """Require every selected supported backend/state combination to execute."""
     selected = MATRIX[configuration]
     batched = configuration.startswith("tensorflow-batched-")
+    required = dict(REQUIRED)
+    if not batched:
+        for key, counts in UNBATCHED_REQUIRED.items():
+            required[key] = required.get(key, set()) | counts.keys()
     states = {"True", "False"}
     if batched:
         states = {"True" if configuration.endswith("pure") else "False"}
     cases = list(ET.parse(report).getroot().iter("testcase"))
     errors = []
     checked = 0
-    for (classname, function), supported in REQUIRED.items():
+    for (classname, function), supported in required.items():
         if batched and function in UNBATCHED_ONLY:
             continue
         found = {}
@@ -125,6 +186,9 @@ def verify(report, configuration):
                 label = f"{function}/{backend}/pure={pure}"
                 if not matching:
                     errors.append(f"Missing: {label}")
+                expected = UNBATCHED_REQUIRED.get((classname, function), {}).get(backend)
+                if not batched and expected is not None and len(matching) != expected:
+                    errors.append(f"Expected {expected} cases for {label}, found {len(matching)}")
                 for case in matching:
                     if any(case.find(tag) is not None for tag in ("skipped", "failure", "error")):
                         errors.append(f"Did not pass: {label}: {case.get('name')}")

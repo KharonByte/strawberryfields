@@ -18,6 +18,12 @@ verify = module.verify
 pytestmark = pytest.mark.frontend
 
 
+@pytest.fixture(autouse=True)
+def isolate_unbatched_contracts(monkeypatch):
+    """Each synthetic report declares the additional contracts it exercises."""
+    monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
+
+
 @pytest.fixture
 def report(tmp_path, monkeypatch):
     """A bosonic job includes both shared beam-splitter and heterodyne checks."""
@@ -113,3 +119,62 @@ def test_batched_profile_requires_only_its_state(tmp_path, monkeypatch, configur
     ET.ElementTree(root).write(path)
     with pytest.raises(ValueError, match="Missing:"):
         verify(path, f"tensorflow-batched-{configuration}")
+
+
+@pytest.fixture
+def unbatched_report(tmp_path, monkeypatch):
+    """Multiple parameters must run for both TensorFlow storage modes."""
+    classname = "backend.test_twomode_squeezing_operation.TestTwomodeSqueezing"
+    function = "test_two_mode_squeezing"
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {(classname, function): {"tf": 2}})
+    root = ET.Element("testsuite")
+    for pure in ("True", "False"):
+        for parameter in (0, 1):
+            ET.SubElement(
+                root,
+                "testcase",
+                classname=classname,
+                name=f"{function}[TFBackend-{pure}-{parameter}]",
+            )
+
+    def save():
+        path = tmp_path / "tests.xml"
+        ET.ElementTree(root).write(path)
+        return path
+
+    return root, save
+
+
+def test_all_unbatched_parameters_required(unbatched_report):
+    _, save = unbatched_report
+    assert verify(save(), "all-backends") == 4
+
+
+def test_missing_unbatched_parameter_fails(unbatched_report):
+    root, save = unbatched_report
+    root.remove(root[0])
+    with pytest.raises(ValueError, match="Expected 2 cases.*found 1"):
+        verify(save(), "all-backends")
+
+
+@pytest.mark.parametrize("outcome", ["skipped", "failure", "error"])
+def test_nonpassing_unbatched_parameter_fails(unbatched_report, outcome):
+    root, save = unbatched_report
+    ET.SubElement(root[0], outcome)
+    with pytest.raises(ValueError, match="Did not pass:"):
+        verify(save(), "all-backends")
+
+
+@pytest.mark.parametrize("configuration", ["tensorflow-batched-pure", "tensorflow-batched-mixed"])
+def test_unbatched_contracts_allow_batch_exclusions(unbatched_report, configuration):
+    root, save = unbatched_report
+    for case in root:
+        ET.SubElement(case, "skipped")
+    assert verify(save(), configuration) == 0
+
+
+def test_unbatched_contracts_respect_optional_backend(unbatched_report):
+    root, save = unbatched_report
+    root.clear()
+    assert verify(save(), "non-tensorflow") == 0
