@@ -71,6 +71,11 @@ jobs:
           python -m pytest -q --tb=short --disable-warnings
           tests/backend/test_states.py::TestGaussianStatePurity
           --junitxml=maintenance/artifacts/gaussian-purity.xml
+      - name: Run the Gaussian inspection regression tests
+        run: >-
+          python -m pytest -q --tb=short --disable-warnings
+          tests/backend/test_states.py::TestGaussianInspection
+          --junitxml=maintenance/artifacts/gaussian-inspection.xml
       - name: Run the state-reduction regression tests
         run: >-
           python -m pytest -q --tb=short --disable-warnings
