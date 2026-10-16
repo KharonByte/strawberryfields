@@ -1139,7 +1139,8 @@ class BaseGaussianState(BaseState):
             bool: True if and only if the state is a coherent state.
         """
         mu, cov = self.reduced_gaussian([mode])  # pylint: disable=unused-variable
-        cov /= self._hbar / 2
+        # A full-state reduction may share the state's covariance.
+        cov = cov / (self._hbar / 2)
         return np.allclose(cov, np.identity(2), atol=tol, rtol=0)
 
     def displacement(self, modes=None):
@@ -1170,7 +1171,7 @@ class BaseGaussianState(BaseState):
            bool: True if and only if the state is a squeezed state.
         """
         mu, cov = self.reduced_gaussian([mode])  # pylint: disable=unused-variable
-        cov /= self._hbar / 2
+        cov = cov / (self._hbar / 2)
         return np.any(np.abs(cov - np.identity(2)) > tol)
 
     def squeezing(self, modes=None):
@@ -1191,7 +1192,7 @@ class BaseGaussianState(BaseState):
         res = []
         for i in modes:
             mu, cov = self.reduced_gaussian([i])  # pylint: disable=unused-variable
-            cov /= self._hbar / 2
+            cov = cov / (self._hbar / 2)
             tr = np.trace(cov)
 
             r = np.arccosh(tr / 2) / 2
