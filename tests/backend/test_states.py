@@ -89,21 +89,20 @@ class TestBaseStateMeanPhotonNumber:
 
     def test_mean_photon_coherent(self, setup_backend, tol, batch_size):
         """Test that E(n) = |a|^2 and var(n) = |a|^2 for a coherent state"""
-        if batch_size is not None:
-            pytest.skip("Does not support batch mode")
         backend = setup_backend(1)
 
         backend.displacement(np.abs(a), np.angle(a), 0)
         state = backend.state()
         mean_photon, var = state.mean_photon(0)
 
+        expected_shape = () if batch_size is None else (batch_size,)
+        assert np.shape(mean_photon) == np.shape(var) == expected_shape
+
         assert np.allclose(mean_photon, np.abs(a) ** 2, atol=tol, rtol=0)
         assert np.allclose(var, np.abs(a) ** 2, atol=tol, rtol=0)
 
     def test_mean_photon_squeezed(self, setup_backend, tol, batch_size):
         """Test that E(n)=sinh^2(r) and var(n)=2(sinh^2(r)+sinh^4(r)) for a squeezed state"""
-        if batch_size is not None:
-            pytest.skip("Does not support batch mode")
         backend = setup_backend(1)
 
         r = 0.1
@@ -113,13 +112,14 @@ class TestBaseStateMeanPhotonNumber:
         state = backend.state()
         mean_photon, var = state.mean_photon(0)
 
+        expected_shape = () if batch_size is None else (batch_size,)
+        assert np.shape(mean_photon) == np.shape(var) == expected_shape
+
         assert np.allclose(mean_photon, np.sinh(r) ** 2, atol=tol, rtol=0)
         assert np.allclose(var, 2 * (np.sinh(r) ** 2 + np.sinh(r) ** 4), atol=tol, rtol=0)
 
     def test_mean_photon_displaced_squeezed(self, setup_backend, tol, batch_size):
         """Test that E(n) = sinh^2(r)+|a|^2 for a displaced squeezed state"""
-        if batch_size is not None:
-            pytest.skip("Does not support batch mode")
         backend = setup_backend(1)
 
         nbar = 0.123
@@ -130,6 +130,9 @@ class TestBaseStateMeanPhotonNumber:
         backend.displacement(np.abs(a), np.angle(a), 0)
         state = backend.state()
         mean_photon, var = state.mean_photon(0)
+
+        expected_shape = () if batch_size is None else (batch_size,)
+        assert np.shape(mean_photon) == np.shape(var) == expected_shape
 
         mag_a = np.abs(a)
         phi_a = np.angle(a)
@@ -153,8 +156,6 @@ class TestBaseStateMeanPhotonNumber:
 
     def test_mean_photon_displaced_thermal(self, setup_backend, tol, batch_size):
         """Test that E(n)=|a|^2+nbar and var(n)=var_th+|a|^2(1+2nbar)"""
-        if batch_size is not None:
-            pytest.skip("Does not support batch mode")
         backend = setup_backend(1)
 
         nbar = 0.123
@@ -163,6 +164,9 @@ class TestBaseStateMeanPhotonNumber:
         backend.displacement(np.abs(a), np.angle(a), 0)
         state = backend.state()
         mean_photon, var = state.mean_photon(0)
+
+        expected_shape = () if batch_size is None else (batch_size,)
+        assert np.shape(mean_photon) == np.shape(var) == expected_shape
 
         mean_ex = np.abs(a) ** 2 + nbar
         var_ex = nbar**2 + nbar + np.abs(a) ** 2 * (1 + 2 * nbar)

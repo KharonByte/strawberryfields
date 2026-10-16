@@ -14,12 +14,12 @@ below. CI uses the pinned dependencies shown here.
 | --- | --- |
 | Python requirement | `>=3.12,<3.13` |
 | CI Python | `3.12.3` |
-| Scoped CPU runners | Ubuntu 24.04 x86-64, Windows 2025 x86-64, macOS 15 arm64 |
+| CPU CI runners | Ubuntu 24.04 x86-64, Windows 2025 x86-64, macOS 15 arm64 |
 | Dependencies | [Pinned maintenance environment](maintenance/requirements-python312.txt) |
 
 Maintenance covers selected Gaussian and bosonic measurement paths and reviewed
-numerical corrections. Linux CI also runs the broader upstream test suite,
-including Fock and TensorFlow CPU configurations; that regression coverage does
+numerical corrections. All three CI platforms also run the full upstream test
+suite, including Fock and TensorFlow CPU configurations; that regression coverage does
 not expand the [support commitment](SUPPORT.md). GPU execution and quantum
 hardware or cloud-service access are outside the scope.
 

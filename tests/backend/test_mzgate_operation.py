@@ -49,9 +49,6 @@ class TestFockRepresentation:
     def test_mzgate_two_photon_input(self, setup_backend, phi_in, phi_ex, batch_size, tol):
         """Tests if a range of MZ gate outputs states are equal to the gate decomposition."""
 
-        if batch_size is not None:
-            pytest.skip("Does not support batch mode")
-
         cutoff = 6
         photon_11 = np.zeros((cutoff, cutoff), dtype=np.complex64)
         photon_11[1, 1] = 1.0 + 0.0j
@@ -64,9 +61,11 @@ class TestFockRepresentation:
         backend.rotation(phi_in, 0)
         backend.beamsplitter(np.pi / 4, np.pi / 2, 0, 1)
         state = backend.state()
-        amp_11 = state.all_fock_probs()[1, 1]
-        amp_02 = state.all_fock_probs()[0, 2]
+        amp_11 = state.all_fock_probs()[..., 1, 1]
+        amp_02 = state.all_fock_probs()[..., 0, 2]
 
+        expected_shape = () if batch_size is None else (batch_size,)
+        assert np.shape(amp_11) == np.shape(amp_02) == expected_shape
         assert np.allclose(amp_11, np.cos(phi_in) ** 2, atol=tol, rtol=0)
         assert np.allclose(amp_02, (0.5) * np.sin(phi_in) ** 2, atol=tol, rtol=0)
 
@@ -76,9 +75,6 @@ class TestFockRepresentation:
         self, setup_backend, phi_in, phi_ex, batch_size, tol
     ):
         """Tests if a range of MZ gate outputs states are equal to the gate decomposition."""
-
-        if batch_size is not None:
-            pytest.skip("Does not support batch mode")
 
         cutoff = 6
         photon_11 = np.zeros((cutoff, cutoff), dtype=np.complex64)
@@ -92,16 +88,19 @@ class TestFockRepresentation:
         backend1.rotation(phi_in, 0)
         backend1.beamsplitter(np.pi / 4, np.pi / 2, 0, 1)
         state1 = backend1.state()
-        amp_11_decomp = state1.all_fock_probs()[1, 1]
-        amp_02_decomp = state1.all_fock_probs()[0, 2]
+        amp_11_decomp = state1.all_fock_probs()[..., 1, 1]
+        amp_02_decomp = state1.all_fock_probs()[..., 0, 2]
 
         # gate
         backend2 = setup_backend(2)
         backend2.prepare_ket_state(photon_11, [0, 1])
         backend2.mzgate(phi_in, phi_ex, 0, 1)
         state2 = backend2.state()
-        amp_11_gate = state2.all_fock_probs()[1, 1]
-        amp_02_gate = state2.all_fock_probs()[0, 2]
+        amp_11_gate = state2.all_fock_probs()[..., 1, 1]
+        amp_02_gate = state2.all_fock_probs()[..., 0, 2]
 
+        expected_shape = () if batch_size is None else (batch_size,)
+        assert np.shape(amp_11_gate) == np.shape(amp_11_decomp) == expected_shape
+        assert np.shape(amp_02_gate) == np.shape(amp_02_decomp) == expected_shape
         assert np.allclose(amp_11_gate, amp_11_decomp, atol=tol, rtol=0)
         assert np.allclose(amp_02_gate, amp_02_decomp, atol=tol, rtol=0)

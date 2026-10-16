@@ -352,8 +352,10 @@ class TestProperExecution:
 
     # TODO: when ``shots`` is incorporated into other backends, delete this test
     @pytest.mark.backends("tf", "fock")
-    @pytest.mark.skipif("BATCHED" in os.environ, reason="Test only runs for non-batched backends")
-    def test_measurefock_shots_exception(self, setup_eng):
+    def test_measurefock_shots_exception(self, setup_eng, batch_size):
+        if batch_size is not None:
+            pytest.skip("Test only runs for non-batched backends")
+
         shots = 5
         eng, p1 = setup_eng(3)
         with p1.context as q:
