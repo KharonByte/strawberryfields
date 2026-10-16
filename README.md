@@ -1,9 +1,32 @@
 # Strawberry Fields - KharonByte maintenance fork
 
-Strawberry Fields is a Python library for simulating photonic quantum circuits.
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="doc/_static/Strawberry-fields_white.png">
+    <source media="(prefers-color-scheme: light)" srcset="doc/_static/strawberry_fields.png">
+    <img width="80%" src="doc/_static/strawberry_fields.png" alt="Strawberry Fields">
+  </picture>
+</p>
+
+Strawberry Fields is a full-stack Python library for designing, simulating, and
+optimizing continuous-variable quantum optical circuits.
 This is independent maintenance of the archived
 [Xanadu project](https://github.com/XanaduAI/strawberryfields), with the original
 authorship and Apache-2.0 license retained.
+
+## Features
+
+<img src="doc/_static/StateLearning.gif" width="300px" align="right" alt="Quantum state learning animation">
+
+* High-level functions for **solving practical problems** including **graph and network optimization**, **machine learning**, and
+  **chemistry**.
+
+* Includes a suite of world-class simulators—based on cutting-edge algorithms—to compile and
+  simulate photonic algorithms.
+
+* Train and optimize your quantum programs with our end-to-end differentiable TensorFlow backend.
+
+<br clear="all">
 
 ## Current support
 
@@ -81,6 +104,11 @@ print(state.mean_photon(0)[0])  # 0.25, up to floating-point rounding
 The [archived upstream guides](https://strawberryfields.readthedocs.io/en/stable/introduction/introduction.html)
 remain useful API references. Their installation and hardware-service guidance
 is historical; use this fork's installation instructions and support scope.
+
+## Contributing
+
+See the [contribution guidance](.github/CONTRIBUTING.md) and
+[changelog](.github/CHANGELOG.md).
 
 ## Report a problem
 
