@@ -155,16 +155,19 @@ class TestRepresentationIndependent:
             backend.reset(pure=pure)
 
             r = 0.25
-            # Circuit to prepare two mode squeezed vacuum
-            backend.squeeze(-r, 0, 0)
-            backend.squeeze(r, 0, 1)
-            backend.beamsplitter(np.pi / 4, np.pi, 0, 1)
-            meas_modes = [0, 1]
-            meas_results = backend.measure_fock(meas_modes)
-            if batch_size is not None:
-                assert np.all(meas_results[0][0][0] == meas_results[0][0][1])
+            if backend.short_name == "gaussian":
+                backend.squeeze(-r, 0, 0)
+                backend.squeeze(r, 0, 1)
+                backend.beamsplitter(np.pi / 4, np.pi, 0, 1)
             else:
-                assert np.all(meas_results[0][0] == meas_results[0][1])
+                # Separate truncated squeezers leak probability into unequal counts.
+                # Direct two-mode squeezing preserves photon-pair correlations.
+                backend.two_mode_squeeze(r, 0, 0, 1)
+            meas_modes = [0, 1]
+            meas_results = np.asarray(backend.measure_fock(meas_modes))
+            expected_shape = ((batch_size,) if batch_size is not None else ()) + (1, 2)
+            assert meas_results.shape == expected_shape
+            assert np.all(meas_results[..., 0] == meas_results[..., 1])
 
     def test_vacuum_measurements(self, setup_backend, pure):
         """Tests Fock measurement on the vacuum state."""

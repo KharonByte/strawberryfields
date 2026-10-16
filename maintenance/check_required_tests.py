@@ -33,6 +33,10 @@ REQUIRED = {
         "integration.test_engine_integration.TestProperExecution",
         "test_measurefock_shots_exception",
     ): {"fock", "tf"},
+    (
+        "backend.test_fock_measurement.TestRepresentationIndependent",
+        "test_two_mode_squeezed_measurements",
+    ): {"fock", "tf", "gaussian"},
 }
 REQUIRED.update(
     {
