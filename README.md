@@ -1,7 +1,11 @@
 # Strawberry Fields - KharonByte maintenance fork
 
 <p align="center">
-  <img width="80%" src="doc/_static/strawberry-fields-text.png" alt="Strawberry Fields">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="doc/_static/Strawberry-fields_white.png">
+    <source media="(prefers-color-scheme: light)" srcset="doc/_static/strawberry_fields.png">
+    <img width="80%" src="doc/_static/strawberry_fields.png" alt="Strawberry Fields">
+  </picture>
 </p>
 
 Strawberry Fields is a full-stack Python library for designing, simulating, and
