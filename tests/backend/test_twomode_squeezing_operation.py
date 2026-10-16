@@ -52,6 +52,8 @@ class TestTwomodeSqueezing:
 
     @pytest.mark.parametrize("r", MAG)
     @pytest.mark.parametrize("p", PHASE)
+    @pytest.mark.backends("fock", "tf")
+    @pytest.mark.usefixtures("skip_tf_batch")
     def test_two_mode_squeezing(self, setup_backend, r, p, cutoff, pure, tol):
         r"""Test two-mode squeezing on vacuum-state for both pure states and
         mixed states with the amplitude given by

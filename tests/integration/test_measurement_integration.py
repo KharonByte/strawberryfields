@@ -178,7 +178,8 @@ class TestPostselection:
 
 
 class TestDarkCounts:
-    @pytest.mark.backends("fock")
+    @pytest.mark.backends("fock", "tf")
+    @pytest.mark.usefixtures("skip_tf_batch")
     @pytest.mark.parametrize("dark_counts", [[4, 2], [3, 0], [0, 6]])
     def test_fock_darkcounts_two_modes(self, dark_counts, setup_eng, monkeypatch):
         """Test Fock measurements return expected results with dark counts on all detectors"""
@@ -198,7 +199,8 @@ class TestDarkCounts:
             assert q[0].val == n[0] + dark_counts[0]
             assert q[1].val == n[1] + dark_counts[1]
 
-    @pytest.mark.backends("fock")
+    @pytest.mark.backends("fock", "tf")
+    @pytest.mark.usefixtures("skip_tf_batch")
     @pytest.mark.parametrize("dark_counts", [[4], 6, 0, [0]])
     def test_fock_darkcounts_single_mode(self, dark_counts, setup_eng, monkeypatch):
         """Test Fock measurements return expected results with dark counts on one detector"""
