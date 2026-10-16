@@ -78,9 +78,9 @@ def tol():
 
 
 @pytest.fixture(scope="session")
-def cutoff():
-    """Fock state cutoff"""
-    return int(os.environ.get("CUTOFF", CUTOFF))
+def cutoff(request):
+    """Fock cutoff: explicit test parameters override the environment/default."""
+    return int(getattr(request, "param", os.environ.get("CUTOFF", CUTOFF)))
 
 
 @pytest.fixture(scope="session")

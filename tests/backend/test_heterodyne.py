@@ -37,7 +37,7 @@ class TestHeterodyne:
         backend = setup_backend(1)
         backend.squeeze(squeeze_val, 0, 0)
         backend.displacement(mag_alphas[-1], 0, 0)
-        backend.measure_homodyne(0, 0)
+        backend.measure_heterodyne(0)
         assert np.all(backend.is_vacuum(tol))
 
     def test_mean_vacuum(self, setup_backend, pure, tol):

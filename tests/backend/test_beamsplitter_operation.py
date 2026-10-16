@@ -135,16 +135,15 @@ class TestFockRepresentation:
         assert np.allclose(numer_state, ref_state, atol=tol, rtol=0)
 
 
-@pytest.mark.backends("fock")
 class TestModeSubsets:
-    """Tests on mode subsets using the Fock basis representation."""
+    """Test shared mode-subset behavior through each backend's density matrix."""
 
     @pytest.mark.parametrize("t", T_VALUES)
     @pytest.mark.parametrize("mag_alpha", MAG_ALPHAS[1:])
     @pytest.mark.parametrize("r_phi", PHASE_R)
     @pytest.mark.parametrize("modes", MODES)
     def test_beamsplitter_on_mode_subset(
-        self, setup_backend, mag_alpha, t, r_phi, modes, cutoff, tol
+        self, setup_backend, mag_alpha, t, r_phi, modes, cutoff, batch_size, tol
     ):
         """Tests applying the beamsplitter on different mode subsets."""
 
@@ -165,7 +164,7 @@ class TestModeSubsets:
         ref_stateA = np.exp(-0.5 * np.abs(alpha_outA) ** 2) * alpha_outA**n / np.sqrt(factorial(n))
         ref_stateB = np.exp(-0.5 * np.abs(alpha_outB) ** 2) * alpha_outB**n / np.sqrt(factorial(n))
 
-        numer_state = state.reduced_dm(list(modes))
+        numer_state = state.reduced_dm(list(modes), cutoff=cutoff)
 
         ref_state = np.einsum(
             "i,j,k,l->ijkl",
@@ -175,4 +174,6 @@ class TestModeSubsets:
             np.conj(ref_stateB),
         )
 
+        expected_shape = ((batch_size,) if batch_size is not None else ()) + ref_state.shape
+        assert numer_state.shape == expected_shape
         assert np.allclose(numer_state, ref_state, atol=tol, rtol=0)

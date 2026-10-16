@@ -78,7 +78,8 @@ class TestTwomodeSqueezing:
     @pytest.mark.parametrize("r", MAG)
     @pytest.mark.parametrize("p", PHASE)
     @pytest.mark.parametrize("modes", MODES)
-    def test_squeezing_on_mode_subset(self, setup_backend, r, p, modes, cutoff, pure, tol):
+    @pytest.mark.backends("fock", "tf")
+    def test_squeezing_on_mode_subset(self, setup_backend, r, p, modes, cutoff, batch_size, tol):
         r"""Test two-mode squeezing on vacuum-state for both pure states and
         mixed states on different mode subsets with the amplitude given by
                 :math:`\delta_{kl} \frac{e^{in\phi} \tanh^n{r}}{\cosh{r}}`
@@ -89,11 +90,11 @@ class TestTwomodeSqueezing:
 
         state = backend.state()
 
-        state_data = state.reduced_dm(list(modes))
-
-        for k in it.product(range(cutoff), repeat=2):
-            for l in it.product(range(cutoff), repeat=2):
-                t = (k[0], l[0], k[1], l[1])
-                tmsv2 = get_amplitude(k, r, p) * np.conj(get_amplitude(l, r, p))
-
-                assert np.allclose(state_data[t], tmsv2, atol=tol, rtol=0)
+        state_data = state.reduced_dm(list(modes), cutoff=cutoff)
+        amplitudes = np.array(
+            [[get_amplitude((i, j), r, p) for j in range(cutoff)] for i in range(cutoff)]
+        )
+        expected = np.einsum("ij,kl->ikjl", amplitudes, amplitudes.conj())
+        expected_shape = ((batch_size,) if batch_size is not None else ()) + expected.shape
+        assert state_data.shape == expected_shape
+        assert np.allclose(state_data, expected, atol=tol, rtol=0)

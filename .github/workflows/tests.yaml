@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -19,6 +23,7 @@ env:
   OPENBLAS_NUM_THREADS: '1'
   OMP_NUM_THREADS: '1'
   MKL_NUM_THREADS: '1'
+  NUMBA_NUM_THREADS: '1'
   TF_NUM_INTRAOP_THREADS: '1'
   TF_NUM_INTEROP_THREADS: '1'
   TF_CPP_MIN_LOG_LEVEL: '2'
@@ -26,26 +31,24 @@ env:
 
 jobs:
   matrix:
-    name: upstream (${{ matrix.id }})
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    name: upstream (${{ matrix.os }}, ${{ matrix.profile.id }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
 
     env:
       SYMPY_USE_CACHE: "no"
-      OPTIONS: ${{ matrix.options }}
-      BATCHED: ${{ matrix.batched }}
-      RESULTS: maintenance/artifacts/core/${{ matrix.id }}
+      OPTIONS: ${{ matrix.profile.options }}
+      BATCHED: ${{ matrix.profile.batched }}
+      RESULTS: maintenance/artifacts/core/${{ matrix.os }}-${{ matrix.profile.id }}
 
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - {id: frontend-apps-api-gaussian, batched: '0', options: 'frontend or apps or api or gaussian', tensorflow: true, cloud: true}
-          - {id: fock, batched: '0', options: 'fock', tensorflow: true, cloud: true}
-          - {id: tensorflow, batched: '0', options: 'tf', tensorflow: true, cloud: true}
+        os: [ubuntu-24.04, windows-2025, macos-15]
+        profile:
+          - {id: all-backends, batched: '0', options: '', tensorflow: true, cloud: true}
           - {id: tensorflow-batched-pure, batched: '1', options: 'tf and pure', tensorflow: true, cloud: true}
           - {id: tensorflow-batched-mixed, batched: '1', options: 'tf and mixed', tensorflow: true, cloud: true}
-          - {id: bosonic, batched: '0', options: 'bosonic', tensorflow: true, cloud: true}
           - {id: non-tensorflow, batched: '0', options: 'not tf', tensorflow: false, cloud: true}
           - {id: local-without-cloud, batched: '0', options: 'not tf', tensorflow: false, cloud: false}
     steps:
@@ -65,17 +68,17 @@ jobs:
         run: python -m pip install -r maintenance/requirements-core.txt
 
       - name: Install the cloud extra for remote API tests
-        if: matrix.cloud
+        if: matrix.profile.cloud
         run: python -m pip install -r maintenance/requirements-cloud.txt
 
       - name: Install TensorFlow for the configurations that use it
-        if: matrix.tensorflow
+        if: matrix.profile.tensorflow
         run: python -m pip install -r maintenance/requirements-tensorflow.txt
 
       - name: Install and check the project
         env:
-          EXPECT_TENSORFLOW: ${{ matrix.tensorflow }}
-          EXPECT_CLOUD: ${{ matrix.cloud }}
+          EXPECT_TENSORFLOW: ${{ matrix.profile.tensorflow }}
+          EXPECT_CLOUD: ${{ matrix.profile.cloud }}
         run: |
           python -m pip install --no-deps --no-build-isolation .
           python -m pip check
@@ -87,21 +90,24 @@ jobs:
               assert (importlib.util.find_spec(module) is not None) == expected, module
           PY
 
-      - name: Run the upstream test selection
+      - name: Run the full suite or explicit optional-dependency/batch configuration
         run: |
           mkdir -p "$RESULTS"
           python -m pytest tests -q --tb=short -p no:warnings \
             --randomly-seed=42 -m "$OPTIONS" \
-            --cov=strawberryfields --cov-report=term \
+            --cov=strawberryfields --cov-branch --cov-report=term \
             --cov-report="xml:$RESULTS/coverage.xml" \
             --junitxml="$RESULTS/tests.xml" 2>&1 | tee "$RESULTS/pytest.log"
+
+      - name: Require the maintained backend checks to execute
+        run: python maintenance/check_required_tests.py "$RESULTS/tests.xml" "${{ matrix.profile.id }}"
 
       - name: Save test results, coverage and failure details
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: upstream-${{ matrix.id }}
-          path: maintenance/artifacts/core/${{ matrix.id }}/
+          name: upstream-${{ matrix.os }}-${{ matrix.profile.id }}
+          path: maintenance/artifacts/core/${{ matrix.os }}-${{ matrix.profile.id }}/
           retention-days: 14
 
   core-tests:

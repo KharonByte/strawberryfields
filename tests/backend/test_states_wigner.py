@@ -132,7 +132,9 @@ def test_two_mode_squeezed(setup_backend, hbar, tol):
     assert np.allclose(W1, W1exact, atol=0.01, rtol=0)
 
 
-def fock_1_state_quad(setup_backend, hbar, tol):
+@pytest.mark.parametrize("cutoff", [12], indirect=True)
+@pytest.mark.backends("fock", "tf")
+def test_fock_1_state_quad(setup_backend, hbar, tol):
     """Test the quadrature probability distribution
     functions for the |1> Fock state"""
     backend = setup_backend(1)
@@ -154,7 +156,8 @@ def fock_1_state_quad(setup_backend, hbar, tol):
     assert np.allclose(p_vals, exact_p, atol=tol, rtol=0)
 
 
-def vacuum_state_quad(setup_backend, hbar, tol):
+@pytest.mark.parametrize("cutoff", [12], indirect=True)
+def test_vacuum_state_quad(setup_backend, hbar, tol):
     """Test the quadrature probability distribution
     functions for the vacuum state"""
     backend = setup_backend(1)
@@ -176,11 +179,12 @@ def vacuum_state_quad(setup_backend, hbar, tol):
     assert np.allclose(p_vals, exact_p, atol=tol, rtol=0)
 
 
-def coherent_state_quad(setup_backend, hbar, tol):
+@pytest.mark.parametrize("cutoff", [12], indirect=True)
+def test_coherent_state_quad(setup_backend, hbar, tol):
     """Test the quadrature probability distribution
     functions for the coherent state with alpha = 1"""
     backend = setup_backend(1)
-    backend.prepare_coherent_state(1, 0)
+    backend.prepare_coherent_state(1.0, 0.0, 0)
 
     state = backend.state()
 
@@ -189,9 +193,7 @@ def coherent_state_quad(setup_backend, hbar, tol):
 
     # Exact probability distribution
     def x_exact(a):
-        return np.sqrt(1 / (np.pi * hbar)) * np.exp(
-            -1 * ((a - 0.5 * np.sqrt(2 * hbar)) ** 2) / hbar
-        )
+        return np.sqrt(1 / (np.pi * hbar)) * np.exp(-1 * ((a - np.sqrt(2 * hbar)) ** 2) / hbar)
 
     def p_exact(a):
         return np.sqrt(1 / (np.pi * hbar)) * np.exp(-1 * (a**2) / hbar)
