@@ -28,9 +28,10 @@ now honours explicit indirect parameters, covered by its own regression test.
 
 The guard also requires all 148 restored unbatched cases: TensorFlow polynomial
 quadratures, direct two-mode squeezing and dark counts; Gaussian squeezed-state
-parity; and Gaussian/Bosonic state observables. It checks parameter counts as
-well as pass status. The newly enabled TensorFlow cases remain excluded from
-batch runs because their API or assertions require unbatched execution.
+parity; and Gaussian/Bosonic state observables. It rejects duplicate test
+identities and checks parameter counts and pass status. The newly enabled
+TensorFlow cases remain excluded from batch runs because their API or assertions
+require unbatched execution.
 
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,

@@ -167,6 +167,12 @@ def verify(report, configuration):
         states = {"True" if configuration.endswith("pure") else "False"}
     cases = list(ET.parse(report).getroot().iter("testcase"))
     errors = []
+    seen = set()
+    for case in cases:
+        identity = (case.get("classname", ""), case.get("name", ""))
+        if identity in seen:
+            errors.append(f"Duplicate test case: {identity[0]}::{identity[1]}")
+        seen.add(identity)
     checked = 0
     for (classname, function), supported in required.items():
         if batched and function in UNBATCHED_ONLY:
