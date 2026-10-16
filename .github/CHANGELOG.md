@@ -8,6 +8,7 @@
 
 * Enable 148 supported backend test cases and enforce their execution in CPU CI,
   retaining exclusions for TensorFlow checks that require unbatched execution.
+  [(#22)](https://github.com/KharonByte/strawberryfields/pull/22)
 
 * Circuit and parameter validation is extracted from the `sf.Program` class and is
   instead accessible via the `sf.program_utils.validate_gate_parameters` function.
