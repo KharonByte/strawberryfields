@@ -79,13 +79,12 @@ Dependabot security updates are configured through repository settings.
 
 All active actions use immutable Node.js 24 release pins. Jobs run on pull
 requests and pushes to `master`, with duplicate in-progress runs cancelled.
-The `Tests` workflow also runs all seven historical upstream selections on
-Linux CPU, including three TensorFlow configurations and a separate environment
-without TensorFlow. The required `core-tests` result succeeds only when every
-selection succeeds. An eighth configuration runs the non-TensorFlow selection
-with no cloud client installed; only the cloud-specific test module is skipped
-there. The seven original configurations retain the remote API tests.
-Each uploads its full test log, JUnit results and coverage.
+The `Tests` workflow runs the full unfiltered CPU suite, both TensorFlow batch
+modes, and separate environments without TensorFlow and without the cloud
+client, on each of the three platforms. The required `core-tests` result
+succeeds only when all 15 configurations pass, including the guard against
+missing or skipped supported regression checks. Each uploads its full test
+log, JUnit results and branch coverage. Cloud API tests use mocks.
 See [the matrix and its results](UPSTREAM-CI.md) for details. Package publishing
 remains upstream-only. Generated files under `maintenance/artifacts/` are ignored
 by Git.

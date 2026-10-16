@@ -59,7 +59,7 @@ class TestInitialStatesAgreeGaussian:
 
         mu, cov = utils.vacuum_state(basis="gaussian", hbar=hbar)
 
-        if eng.backend_name == "gassian":
+        if eng.backend_name == "gaussian":
             mu_exp, cov_exp = state.reduced_gaussian(0)
             assert np.allclose(mu, mu_exp, atol=tol, rtol=0)
             assert np.allclose(cov, cov_exp, atol=tol, rtol=0)
@@ -68,6 +68,9 @@ class TestInitialStatesAgreeGaussian:
             _, mu_exp, cov_exp = state.reduced_bosonic(0)
             assert np.allclose(np.expand_dims(mu, axis=0), mu_exp, atol=tol, rtol=0)
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
+
+        else:
+            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
 
     @pytest.mark.parametrize("a", ALPHA)
     def test_coherent(self, a, setup_eng, hbar, tol):
@@ -81,7 +84,7 @@ class TestInitialStatesAgreeGaussian:
 
         mu, cov = utils.coherent_state(np.abs(a), np.angle(a), basis="gaussian", hbar=hbar)
 
-        if eng.backend_name == "gassian":
+        if eng.backend_name == "gaussian":
             mu_exp, cov_exp = state.reduced_gaussian(0)
             assert np.allclose(mu, mu_exp, atol=tol, rtol=0)
             assert np.allclose(cov, cov_exp, atol=tol, rtol=0)
@@ -90,6 +93,9 @@ class TestInitialStatesAgreeGaussian:
             _, mu_exp, cov_exp = state.reduced_bosonic(0)
             assert np.allclose(np.expand_dims(mu, axis=0), mu_exp, atol=tol, rtol=0)
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
+
+        else:
+            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
 
     @pytest.mark.parametrize("r, phi", zip(R, PHI))
     def test_squeezed(self, r, phi, setup_eng, hbar, tol):
@@ -103,7 +109,7 @@ class TestInitialStatesAgreeGaussian:
 
         mu, cov = utils.squeezed_state(r, phi, basis="gaussian", hbar=hbar)
 
-        if eng.backend_name == "gassian":
+        if eng.backend_name == "gaussian":
             mu_exp, cov_exp = state.reduced_gaussian(0)
             assert np.allclose(mu, mu_exp, atol=tol, rtol=0)
             assert np.allclose(cov, cov_exp, atol=tol, rtol=0)
@@ -112,6 +118,9 @@ class TestInitialStatesAgreeGaussian:
             _, mu_exp, cov_exp = state.reduced_bosonic(0)
             assert np.allclose(np.expand_dims(mu, axis=0), mu_exp, atol=tol, rtol=0)
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
+
+        else:
+            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
 
     @pytest.mark.parametrize("a, r, phi", zip(ALPHA, R, PHI))
     def test_displaced_squeezed(self, a, r, phi, setup_eng, hbar, tol):
@@ -128,7 +137,7 @@ class TestInitialStatesAgreeGaussian:
             np.abs(a), np.angle(a), r, phi, basis="gaussian", hbar=hbar
         )
 
-        if eng.backend_name == "gassian":
+        if eng.backend_name == "gaussian":
             mu_exp, cov_exp = state.reduced_gaussian(0)
             assert np.allclose(mu, mu_exp, atol=tol, rtol=0)
             assert np.allclose(cov, cov_exp, atol=tol, rtol=0)
@@ -137,6 +146,9 @@ class TestInitialStatesAgreeGaussian:
             _, mu_exp, cov_exp = state.reduced_bosonic(0)
             assert np.allclose(np.expand_dims(mu, axis=0), mu_exp, atol=tol, rtol=0)
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
+
+        else:
+            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
 
 
 @pytest.fixture

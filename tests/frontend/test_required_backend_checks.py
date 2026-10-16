@@ -1,0 +1,115 @@
+# Copyright 2026 KharonByte contributors.
+# Licensed under the Apache License, Version 2.0.
+# See http://www.apache.org/licenses/LICENSE-2.0
+"""The CI guard must fail when maintained backend checks disappear or skip."""
+
+import importlib.util
+from pathlib import Path
+import xml.etree.ElementTree as ET
+
+import pytest
+
+checker = Path(__file__).resolve().parents[2] / "maintenance" / "check_required_tests.py"
+spec = importlib.util.spec_from_file_location("required_backend_checks", checker)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+verify = module.verify
+
+pytestmark = pytest.mark.frontend
+
+
+@pytest.fixture
+def report(tmp_path, monkeypatch):
+    """A bosonic job includes both shared beam-splitter and heterodyne checks."""
+    root = ET.Element("testsuite")
+    contracts = (
+        ("backend.test_beamsplitter_operation.TestModeSubsets", "test_beamsplitter_on_mode_subset"),
+        ("backend.test_heterodyne.TestHeterodyne", "test_mode_reset_vacuum"),
+    )
+    monkeypatch.setattr(module, "REQUIRED", {key: {"bosonic"} for key in contracts})
+    for classname, function in contracts:
+        for pure in ("True", "False"):
+            ET.SubElement(
+                root, "testcase", classname=classname, name=f"{function}[BosonicBackend-{pure}]"
+            )
+
+    def save():
+        path = tmp_path / "tests.xml"
+        ET.ElementTree(root).write(path)
+        return path
+
+    return root, save
+
+
+def test_required_checks_pass(report):
+    _, save = report
+    assert verify(save(), "bosonic") == 4
+
+
+def test_missing_state_configuration_fails(report):
+    root, save = report
+    root.remove(root[0])
+    with pytest.raises(ValueError, match="Missing:.*pure=True"):
+        verify(save(), "bosonic")
+
+
+def test_empty_report_fails(report):
+    root, save = report
+    root.clear()
+    with pytest.raises(ValueError, match="Missing:"):
+        verify(save(), "bosonic")
+
+
+@pytest.mark.parametrize("outcome", ["skipped", "failure", "error"])
+def test_nonpassing_required_case_fails(report, outcome):
+    root, save = report
+    ET.SubElement(root[0], outcome)
+    with pytest.raises(ValueError, match="Did not pass:"):
+        verify(save(), "bosonic")
+
+
+def test_one_skipped_parameter_cannot_hide_behind_passes(report):
+    root, save = report
+    case = ET.SubElement(
+        root,
+        "testcase",
+        classname=root[0].get("classname"),
+        name=root[0].get("name")[:-1] + "-extra]",
+    )
+    ET.SubElement(case, "skipped")
+    with pytest.raises(ValueError, match="Did not pass:"):
+        verify(save(), "bosonic")
+
+
+def test_unrelated_unsupported_case_can_skip(report):
+    root, save = report
+    case = ET.SubElement(
+        root, "testcase", classname="backend.unsupported", name="test_feature[FockBackend-True]"
+    )
+    ET.SubElement(case, "skipped")
+    assert verify(save(), "bosonic") == 4
+
+
+def test_cutoff_parameter_before_backend_is_recognized(report):
+    root, save = report
+    for case in root:
+        case.set("name", case.get("name").replace("[", "[12-"))
+    assert verify(save(), "bosonic") == 4
+
+
+@pytest.mark.parametrize("configuration,state", [("pure", "True"), ("mixed", "False")])
+def test_batched_profile_requires_only_its_state(tmp_path, monkeypatch, configuration, state):
+    classname = "backend.test_mzgate_operation.TestFockRepresentation"
+    function = "test_mzgate_two_photon_input"
+    monkeypatch.setattr(module, "REQUIRED", {(classname, function): {"tf"}})
+    root = ET.Element("testsuite")
+    case = ET.SubElement(
+        root, "testcase", classname=classname, name=f"{function}[TFBackend-{state}]"
+    )
+    path = tmp_path / "tests.xml"
+    ET.ElementTree(root).write(path)
+    assert verify(path, f"tensorflow-batched-{configuration}") == 1
+    case.set("name", f"{function}[TFBackend-{'False' if state == 'True' else 'True'}]")
+    ET.ElementTree(root).write(path)
+    with pytest.raises(ValueError, match="Missing:"):
+        verify(path, f"tensorflow-batched-{configuration}")

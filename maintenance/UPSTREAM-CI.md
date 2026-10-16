@@ -1,34 +1,46 @@
 # Full upstream CPU CI
 
-The `Tests` workflow now runs the complete historical matrix on Ubuntu 24.04
-with Python 3.12.3. It uses pinned `requirements-ci.txt` dependencies and installs
-the separate TensorFlow CPU add-on in the six configurations that require it.
-An additional configuration runs the non-TensorFlow selection without the cloud
-extra, using `maintenance/requirements-core.txt`. CI verifies the expected
-presence or absence of both TensorFlow and XCC before collecting tests.
+The `Tests` workflow runs five CPU configurations on each of Ubuntu 24.04
+(x86-64), Windows Server 2025 (x86-64) and macOS 15 (ARM64), using Python 3.12.3.
+Each environment installs `maintenance/requirements-core.txt` and the selected
+pinned cloud/TensorFlow add-ons. macOS uses `tensorflow`; Linux and Windows use
+`tensorflow-cpu`, at the same version. CI checks their presence or absence
+before collecting tests.
 
 | Configuration | Selection | Batched |
 | --- | --- | --- |
-| Frontend, applications, API, Gaussian | `frontend or apps or api or gaussian` | No |
-| Fock | `fock` | No |
-| TensorFlow | `tf` | No |
+| All backends, frontend, applications, API and integration | Entire `tests` directory, no marker filter | No |
 | TensorFlow pure | `tf and pure` | Yes |
 | TensorFlow mixed | `tf and mixed` | Yes |
-| Bosonic | `bosonic` | No |
 | Without TensorFlow installed | `not tf` | No |
 | Without TensorFlow or the cloud client installed | `not tf` | No |
 
-All eight jobs run without fail-fast cancellation. The `core-tests` check fails
-if any configuration fails or does not complete successfully. Failures are not
-converted to successful checks. JUnit results, coverage and complete logs are
-saved in the `upstream-<configuration>` artifacts. GPU execution is not included.
+All 15 jobs run without fail-fast cancellation. The `core-tests` check requires
+every configuration to succeed. JUnit results, branch coverage and complete
+logs are saved in `upstream-<os>-<configuration>` artifacts. GPU execution is
+not included. Remote API tests use mocks; no cloud credentials or QPU are needed.
 
-Run one configuration locally after installing `requirements-ci.txt` and,
-unless testing the absence of TensorFlow, `maintenance/requirements-tensorflow.txt`:
+`maintenance/check_required_tests.py` also rejects missing, skipped or failed
+supported backend/pure-state combinations for the restored beam-splitter,
+two-mode squeezing, heterodyne reset, measurement exception, Mach-Zehnder,
+mean-photon, quadrature and Gaussian initial-state checks. The cutoff fixture
+now honours explicit indirect parameters, covered by its own regression test.
+
+Backend capability exclusions remain: Gaussian backends cannot directly prepare
+Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
+and TensorFlow Wigner evaluation does not support batching. Existing numerical
+expected failures and other unsupported combinations are not reclassified or
+hidden by this test-only change. Every remaining exclusion is recorded with
+its reason in the JUnit report.
+
+Run the full unbatched suite locally after installing the core, cloud and
+TensorFlow requirement files:
 
 ```bash
 BATCHED=0 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-  python -m pytest tests -q --tb=short -p no:warnings --randomly-seed=42 -m "bosonic"
+  python -m pytest tests -q --tb=short -p no:warnings --randomly-seed=42 \
+  --junitxml=tests.xml
+python maintenance/check_required_tests.py tests.xml all-backends
 ```
 
 The first complete [hosted run](https://github.com/KharonByte/strawberryfields/actions/runs/38256686910)
