@@ -4,6 +4,7 @@
 """Reject missing or skipped checks for the maintained backend contracts."""
 
 import argparse
+from collections import Counter
 import re
 import xml.etree.ElementTree as ET
 
@@ -164,6 +165,29 @@ BATCH_CAPABLE_REQUIRED.update(
         ): {backend: 2 for backend in BACKENDS},
     }
 )
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("integration.test_hbar_integration.TestIntegration", function): {
+            backend: 2 for backend in BACKENDS
+        }
+        for function in ("test_x_displacement", "test_z_displacement")
+    }
+)
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("backend.test_state_reduction.TestStateReduction", function): {
+            backend: count for backend in BACKENDS
+        }
+        for function, count in (
+            ("test_entangled_marginal_is_thermal", 18),
+            ("test_retained_entangled_pair_tensor", 6),
+            ("test_mixed_marginal_with_coherent_spectator", 6),
+            ("test_mixed_parent_can_have_pure_subsystem", 3),
+            ("test_photon_probabilities_of_squeezed_pair", 3),
+            ("test_coherent_marginal_retains_cutoff_tail", 3),
+        )
+    }
+)
 EXPANDED_UNBATCHED = {
     (
         "backend.test_displacement_operation.TestFockRepresentation",
@@ -196,15 +220,13 @@ EXPANDED_UNBATCHED = {
     ): {"gaussian": 1},
     ("backend.test_states.TestBosonicState", "test_displacement"): {"gaussian": 1},
     ("backend.test_states.TestBosonicState", "test_density_matrix"): {"gaussian": 1},
-    ("integration.test_hbar_integration.TestIntegration", "test_x_displacement"): {
-        backend: 2 for backend in BACKENDS
-    },
-    ("integration.test_hbar_integration.TestIntegration", "test_z_displacement"): {
-        backend: 2 for backend in BACKENDS
-    },
 }
 UNBATCHED_REQUIRED.update(EXPANDED_UNBATCHED)
 CONFIGURATION_REQUIRED = set(EXPANDED_UNBATCHED) | set(BATCH_CAPABLE_REQUIRED)
+PARAMETRIZED_UNITS = {
+    "integration.test_hbar_integration.TestIntegration": {0.5, 1.0},
+    "backend.test_state_reduction.TestStateReduction": {1.0, 1.7, 2.0},
+}
 REQUIRED.update(
     {
         ("backend.test_states.TestBaseStateMeanPhotonNumber", function): BACKENDS
@@ -305,29 +327,34 @@ def verify(report, configuration):
                     if any(case.find(tag) is not None for tag in ("skipped", "failure", "error")):
                         errors.append(f"Did not pass: {label}: {case.get('name')}")
                 if (classname, function) in CONFIGURATION_REQUIRED:
-                    units = set()
+                    units = Counter()
                     for case in matching:
                         properties = {
                             prop.get("name"): prop.get("value")
                             for prop in case.findall("./properties/property")
                         }
                         try:
-                            units.add(float(properties["sf_hbar"]))
+                            effective = float(properties["sf_hbar"])
+                            units[effective] += 1
+                            if classname in PARAMETRIZED_UNITS:
+                                assert effective == float(properties["requested_hbar"])
                             assert int(properties["cutoff"]) == 6
                             assert properties["batch_size"] == ("2" if batched else "None")
                         except (KeyError, ValueError, AssertionError):
                             errors.append(
                                 f"Missing or incorrect effective configuration: {label}: {case.get('name')}"
                             )
-                    expected_units = (
-                        {0.5, 1.0}
-                        if classname == "integration.test_hbar_integration.TestIntegration"
-                        else {1.7}
-                    )
-                    if matching and units != expected_units:
+                    expected_units = PARAMETRIZED_UNITS.get(classname, {1.7})
+                    if matching and set(units) != expected_units:
                         errors.append(
                             f"Incorrect effective units for {label}: expected {sorted(expected_units)}, found {sorted(units)}"
                         )
+                    if expected is not None and matching:
+                        per_unit, remainder = divmod(expected, len(expected_units))
+                        if remainder or units != {unit: per_unit for unit in expected_units}:
+                            errors.append(
+                                f"Incorrect effective units counts for {label}: {dict(units)}"
+                            )
                 checked += len(matching)
     if errors:
         raise ValueError(

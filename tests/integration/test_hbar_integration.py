@@ -54,13 +54,14 @@ class TestIntegration:
         assert_normal_variance(samples, np.exp(-2 * R) * hbar / 2)
 
     @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
-    @pytest.mark.usefixtures("skip_tf_batch")
-    def test_x_displacement(self, setup_eng, hbar, tol):
-        """test x displacement on the Gaussian and Bosonic backends gives correct displacement"""
+    def test_x_displacement(self, setup_eng, hbar, tol, batch_size):
+        """Check physical x displacement and every TensorFlow batch member."""
         eng, prog = setup_eng(1)
+        batched = eng.backend_name == "tf" and batch_size is not None
+        displacement = np.linspace(-X, X, batch_size) if batched else X
 
         with prog.context as q:
-            ops.Xgate(X) | q
+            ops.Xgate(displacement) | q
 
         state = eng.run(prog).state
         if eng.backend_name == "gaussian":
@@ -69,19 +70,22 @@ class TestIntegration:
             mu_x = state.means()[0, 0]
         else:
             mu_x, variance = state.quad_expectation(0, 0)
+            shape = (batch_size,) if batched else ()
+            assert np.shape(mu_x) == np.shape(variance) == shape
             assert np.allclose(variance, hbar / 2, atol=tol, rtol=0)
 
         assert state.hbar == hbar
-        assert np.allclose(mu_x, X, atol=tol, rtol=0)
+        assert np.allclose(mu_x, displacement, atol=tol, rtol=0)
 
     @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
-    @pytest.mark.usefixtures("skip_tf_batch")
-    def test_z_displacement(self, setup_eng, hbar, tol):
-        """test x displacement on the Gaussian and Bosonic backends gives correct displacement"""
+    def test_z_displacement(self, setup_eng, hbar, tol, batch_size):
+        """Check physical p displacement and every TensorFlow batch member."""
         eng, prog = setup_eng(1)
+        batched = eng.backend_name == "tf" and batch_size is not None
+        displacement = np.linspace(-P, P, batch_size) if batched else P
 
         with prog.context as q:
-            ops.Zgate(P) | q
+            ops.Zgate(displacement) | q
 
         state = eng.run(prog).state
         if eng.backend_name == "gaussian":
@@ -90,10 +94,12 @@ class TestIntegration:
             mu_z = state.means()[0, 1]
         else:
             mu_z, variance = state.quad_expectation(0, np.pi / 2)
+            shape = (batch_size,) if batched else ()
+            assert np.shape(mu_z) == np.shape(variance) == shape
             assert np.allclose(variance, hbar / 2, atol=tol, rtol=0)
 
         assert state.hbar == hbar
-        assert np.allclose(mu_z, P, atol=tol, rtol=0)
+        assert np.allclose(mu_z, displacement, atol=tol, rtol=0)
 
 
 @pytest.mark.parametrize("hbar", HBAR, indirect=True)

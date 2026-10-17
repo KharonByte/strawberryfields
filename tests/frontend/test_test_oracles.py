@@ -62,6 +62,44 @@ def test_failure(hbar):
     result.stdout.fnmatch_lines(["*intentional fixture teardown probe*"])
 
 
+@pytest.mark.parametrize("arguments", ["monkeypatch, hbar", "hbar, monkeypatch"])
+def test_hbar_restoration_with_later_monkeypatch(pytester, arguments):
+    """Fixture and test-body mutations share one undo stack, in either argument order."""
+    fixture_path = Path(__file__).resolve().parents[1] / "conftest.py"
+    pytester.makeconftest(f"""
+import importlib.util
+import strawberryfields as sf
+spec = importlib.util.spec_from_file_location("unit_fixture_source", {str(fixture_path)!r})
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+hbar = module.hbar
+sf.hbar = 1.7
+""")
+    pytester.makepyfile(f"""
+import pytest
+import strawberryfields as sf
+
+@pytest.mark.parametrize("hbar", [0.5], indirect=True)
+def test_mutation({arguments}):
+    assert hbar == sf.hbar == 0.5
+    monkeypatch.setattr(sf, "hbar", 4.0)
+
+def test_after_mutation():
+    assert sf.hbar == 1.7
+
+@pytest.mark.parametrize("hbar", [0.5], indirect=True)
+def test_failure({arguments}):
+    monkeypatch.setattr(sf, "hbar", 4.0)
+    raise RuntimeError("intentional fixture teardown probe")
+
+def test_after_failure():
+    assert sf.hbar == 1.7
+""")
+    result = pytester.runpytest_subprocess("-q", "-p", "no:randomly", "-p", "no:cacheprovider")
+    result.assert_outcomes(passed=3, failed=1)
+    result.stdout.fnmatch_lines(["*intentional fixture teardown probe*"])
+
+
 @pytest.mark.parametrize("hbar", [0.5, 1.0], indirect=True)
 def test_requested_units_reach_global(hbar, request):
     assert hbar == sf.hbar == request.node.callspec.params["hbar"]

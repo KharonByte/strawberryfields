@@ -91,14 +91,12 @@ def alpha():
 
 
 @pytest.fixture
-def hbar(request):
+def hbar(request, monkeypatch):
     """Explicit units override the environment/default and never leak to another test."""
-    previous = sf.hbar
-    sf.hbar = float(getattr(request, "param", os.environ.get("HBAR", HBAR)))
-    try:
-        yield sf.hbar
-    finally:
-        sf.hbar = previous
+    value = float(getattr(request, "param", os.environ.get("HBAR", HBAR)))
+    # Share the test's undo stack so later monkeypatches cannot restore stale units.
+    monkeypatch.setattr(sf, "hbar", value)
+    return value
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -287,6 +285,9 @@ def pytest_runtest_call(item):
                 ("batch_size", str(item.funcargs["batch_size"])),
             ]
         )
+        parameters = getattr(getattr(item, "callspec", None), "params", {})
+        if "hbar" in parameters:
+            item.user_properties.append(("requested_hbar", str(parameters["hbar"])))
 
 
 def pytest_runtest_setup(item):
