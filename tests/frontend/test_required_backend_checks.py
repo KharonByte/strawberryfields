@@ -23,6 +23,8 @@ pytestmark = pytest.mark.frontend
 def isolate_unbatched_contracts(monkeypatch):
     """Each synthetic report declares the additional contracts it exercises."""
     monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
+    monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", set())
 
 
 @pytest.fixture
@@ -242,3 +244,77 @@ def test_batched_profile_rejects_duplicate_cases(tmp_path, monkeypatch, configur
     ET.ElementTree(root).write(path)
     with pytest.raises(ValueError, match="Duplicate test case:"):
         verify(path, f"tensorflow-batched-{configuration}")
+
+
+@pytest.fixture
+def expanded_report(tmp_path, monkeypatch):
+    classname = "integration.test_hbar_integration.TestIntegration"
+    function = "test_squeeze_variance_frontend"
+    contract = (classname, function)
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {contract: {"tf": 2}})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {contract})
+    root = ET.Element("testsuite")
+    for unit in (0.5, 1.0):
+        case = ET.SubElement(
+            root, "testcase", classname=classname, name=f"{function}[tf-True-{unit}]"
+        )
+        properties = ET.SubElement(case, "properties")
+        for name, value in (
+            ("sf_hbar", str(unit)),
+            ("cutoff", "6"),
+            ("batch_size", "2"),
+        ):
+            ET.SubElement(properties, "property", name=name, value=value)
+
+    def save():
+        path = tmp_path / "expanded.xml"
+        ET.ElementTree(root).write(path)
+        return path
+
+    return root, save
+
+
+def test_expanded_batch_checks_require_effective_configuration(expanded_report):
+    _, save = expanded_report
+    assert verify(save(), "tensorflow-batched-pure") == 2
+
+
+@pytest.mark.parametrize("outcome", ["skipped", "failure", "error"])
+def test_expanded_batch_checks_cannot_skip(expanded_report, outcome):
+    root, save = expanded_report
+    ET.SubElement(root[0], outcome)
+    with pytest.raises(ValueError, match="Did not pass:"):
+        verify(save(), "tensorflow-batched-pure")
+
+
+def test_expanded_batch_checks_require_every_parameter(expanded_report):
+    root, save = expanded_report
+    root.remove(root[0])
+    with pytest.raises(ValueError, match="Expected 2 cases.*found 1"):
+        verify(save(), "tensorflow-batched-pure")
+
+
+@pytest.mark.parametrize(
+    "property_name,bad_value",
+    [
+        ("sf_hbar", "1.7"),
+        ("sf_hbar", "0.5"),
+        ("cutoff", "4"),
+        ("batch_size", "None"),
+        ("batch_size", "3"),
+    ],
+)
+def test_mislabelled_configuration_is_rejected(expanded_report, property_name, bad_value):
+    root, save = expanded_report
+    for case in root:
+        case.find(f"./properties/property[@name='{property_name}']").set("value", bad_value)
+    with pytest.raises(ValueError, match="effective (units|configuration)"):
+        verify(save(), "tensorflow-batched-pure")
+
+
+def test_configuration_evidence_cannot_be_missing(expanded_report):
+    root, save = expanded_report
+    root[0].remove(root[0].find("properties"))
+    with pytest.raises(ValueError, match="effective configuration"):
+        verify(save(), "tensorflow-batched-pure")

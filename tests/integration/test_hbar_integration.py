@@ -21,8 +21,6 @@ import strawberryfields as sf
 from strawberryfields import ops
 
 N_MEAS = 200
-NUM_STDS = 10.0
-STD_10 = NUM_STDS / np.sqrt(N_MEAS)
 
 R = 0.3
 X = 0.2
@@ -34,7 +32,7 @@ HBAR = [0.5, 1]
 class TestIntegration:
     """Tests that go through the frontend and backend, and state object"""
 
-    def test_squeeze_variance_frontend(self, setup_eng, hbar, tol):
+    def test_squeeze_variance_frontend(self, setup_eng, hbar, batch_size, assert_normal_variance):
         """test homodyne measurement of a squeeze state is correct,
         returning a variance of np.exp(-2*r)*h/2, via the frontend"""
         eng, prog = setup_eng(1)
@@ -43,16 +41,20 @@ class TestIntegration:
             ops.Sgate(R) | q
             ops.MeasureX | q
 
-        res = np.empty(0)
+        res = []
 
         for i in range(N_MEAS):
             eng.run(prog)
-            res = np.append(res, q[0].val)
+            res.append(np.asarray(q[0].val).reshape(-1))
             eng.reset()
 
-        assert np.allclose(np.var(res), np.exp(-2 * R) * hbar / 2, atol=STD_10 + tol, rtol=0)
+        # Each batch member must independently have the physical squeezed variance.
+        samples = np.stack(res)
+        assert samples.shape == (N_MEAS, batch_size or 1)
+        assert_normal_variance(samples, np.exp(-2 * R) * hbar / 2)
 
-    @pytest.mark.backends("gaussian", "bosonic")
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    @pytest.mark.usefixtures("skip_tf_batch")
     def test_x_displacement(self, setup_eng, hbar, tol):
         """test x displacement on the Gaussian and Bosonic backends gives correct displacement"""
         eng, prog = setup_eng(1)
@@ -65,11 +67,15 @@ class TestIntegration:
             mu_x = state.means()[0]
         elif eng.backend_name == "bosonic":
             mu_x = state.means()[0, 0]
+        else:
+            mu_x, variance = state.quad_expectation(0, 0)
+            assert np.allclose(variance, hbar / 2, atol=tol, rtol=0)
 
         assert state.hbar == hbar
         assert np.allclose(mu_x, X, atol=tol, rtol=0)
 
-    @pytest.mark.backends("gaussian", "bosonic")
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    @pytest.mark.usefixtures("skip_tf_batch")
     def test_z_displacement(self, setup_eng, hbar, tol):
         """test x displacement on the Gaussian and Bosonic backends gives correct displacement"""
         eng, prog = setup_eng(1)
@@ -82,6 +88,9 @@ class TestIntegration:
             mu_z = state.means()[1]
         elif eng.backend_name == "bosonic":
             mu_z = state.means()[0, 1]
+        else:
+            mu_z, variance = state.quad_expectation(0, np.pi / 2)
+            assert np.allclose(variance, hbar / 2, atol=tol, rtol=0)
 
         assert state.hbar == hbar
         assert np.allclose(mu_z, P, atol=tol, rtol=0)
@@ -91,7 +100,7 @@ class TestIntegration:
 class BackendOnly:
     """Tests that ignore the frontend. This test is currently not run."""
 
-    def test_squeeze_variance(self, setup_backend, hbar, pure, monkeypatch, tol):
+    def test_squeeze_variance(self, setup_backend, hbar, pure, assert_normal_variance):
         """test homodyne measurement of a squeeze state is correct,
         returning a variance of np.exp(-2*r)*h/2"""
         # TODO: this test is a backend test that duplicates
@@ -101,12 +110,12 @@ class BackendOnly:
         # We should revisit this test and decide what to do with it.
         backend = setup_backend(1)
 
-        res = np.empty(0)
+        res = []
 
         for i in range(N_MEAS):
-            backend.squeeze(R, mode=0)
             backend.reset(pure=pure)
+            backend.squeeze(R, 0, 0)
             x = backend.measure_homodyne(phi=0, mode=0)
-            res = np.append(res, x)
+            res.append(np.asarray(x).reshape(-1))
 
-        assert np.allclose(np.var(res), np.exp(-2 * R) * hbar / 2, atol=STD_10 + tol, rtol=0)
+        assert_normal_variance(np.stack(res), np.exp(-2 * R) * hbar / 2)
