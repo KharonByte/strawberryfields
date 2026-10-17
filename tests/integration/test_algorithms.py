@@ -91,7 +91,7 @@ def test_gaussian_gate_teleportation(setup_eng, pure):
     assert np.allclose(cov1, cov2, atol=0.05, rtol=0)
 
 
-@pytest.mark.backends("fock", "tf", "gaussian")
+@pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
 def test_gaussian_boson_sampling_fock_probs(setup_eng, batch_size, tol):
     """Test that GBS returns expected Fock probabilities"""
     eng, prog = setup_eng(4)

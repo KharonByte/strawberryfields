@@ -71,7 +71,7 @@ class TestEngineReset:
         eng.reset()
         assert np.all(eng.backend.is_vacuum(tol))
 
-    @pytest.mark.backends("fock")
+    @pytest.mark.backends("fock", "tf")
     def test_eng_reset(self, setup_eng, cutoff):
         """Test the Engine.reset() features."""
         eng, prog = setup_eng(2)
@@ -368,3 +368,31 @@ class TestProperExecution:
             """for the arguments {{'shots': {}}}""".format(backend_name, shots),
         ):
             eng.run(p1, shots=shots).samples
+
+
+@pytest.mark.backends("fock", "tf")
+class TestPhotonStatistics:
+    """Shared Fock-state observables must also execute without TensorFlow installed."""
+
+    def test_three_mode_fock_state_mean_photon(self, setup_eng, tol):
+        """Tests that the mean photon numbers of a three-mode system,
+        where one mode is prepared in a Fock state, are correct."""
+
+        eng, prog = setup_eng(3)
+
+        with prog.context as q:
+            ops.Fock(1) | q[1]
+
+        result = eng.run(prog)
+        state = result.state
+        nbar0, var_n0 = state.mean_photon(0)
+        nbar1, var_n1 = state.mean_photon(1)
+        nbar2, var_n2 = state.mean_photon(2)
+
+        assert np.allclose(nbar0, 0.0, atol=tol, rtol=0)
+        assert np.allclose(nbar1, 1.0, atol=tol, rtol=0)
+        assert np.allclose(nbar2, 0.0, atol=tol, rtol=0)
+
+        assert np.allclose(var_n0, 0.0, atol=tol, rtol=0)
+        assert np.allclose(var_n1, 0.0, atol=tol, rtol=0)
+        assert np.allclose(var_n2, 0.0, atol=tol, rtol=0)

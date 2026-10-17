@@ -29,9 +29,31 @@ now honours explicit indirect parameters, covered by its own regression test.
 The guard also requires all 148 restored unbatched cases: TensorFlow polynomial
 quadratures, direct two-mode squeezing and dark counts; Gaussian squeezed-state
 parity; and Gaussian/Bosonic state observables. It rejects duplicate test
-identities and checks parameter counts and pass status. The newly enabled
-TensorFlow cases remain excluded from batch runs because their API or assertions
-require unbatched execution.
+identities and checks parameter counts and pass status. TensorFlow polynomial
+quadratures retain their unsupported batching exclusions.
+
+A further 516 previously skipped case/configuration combinations are covered:
+428 Gaussian/Bosonic density-matrix comparisons, 16 Fock/TensorFlow displacement
+unit checks, 16 shared state/engine assertions, and 56 TensorFlow batching cases.
+The density comparisons include complex off-diagonal entries and preserve the
+existing Fock/TensorFlow amplitude checks. Batch assertions verify shapes and
+every member, with additional distinct-input controls. These are parametrized
+combinations, not 516 distinct features; 56 belong to separate batch runs.
+The X/Z displacement checks exercise distinct batch members and verify their
+means, variances and shapes; polynomial-quadrature batching remains excluded.
+
+The `hbar` fixture honours explicit parameters before environment/default values
+and shares the test's monkeypatch undo stack, restoring previous units even
+when a test changes them again or fails. State-reduction tests use this same
+fixture for all three unit settings (1.0, 1.7 and 2.0) and check the returned
+state's units. Homodyne variance is checked
+per batch member using a two-sided chi-square interval with false-rejection
+probability 1e-6 for Gaussian samples, replacing the absolute tolerance that
+accepted a constant sampler. Regression tests reject zero/incorrectly scaled
+samples, lost coherences, missing configurations and mislabeled unit values.
+The CI guard requires the expanded counts and recorded units, cutoff and batch
+size, with per-unit counts and agreement between requested and effective units.
+Non-vacuum TensorFlow fidelity remains a separate numerical defect.
 
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,

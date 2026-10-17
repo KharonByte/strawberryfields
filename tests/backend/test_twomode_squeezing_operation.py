@@ -53,8 +53,7 @@ class TestTwomodeSqueezing:
     @pytest.mark.parametrize("r", MAG)
     @pytest.mark.parametrize("p", PHASE)
     @pytest.mark.backends("fock", "tf")
-    @pytest.mark.usefixtures("skip_tf_batch")
-    def test_two_mode_squeezing(self, setup_backend, r, p, cutoff, pure, tol):
+    def test_two_mode_squeezing(self, setup_backend, r, p, cutoff, pure, tol, batch_size):
         r"""Test two-mode squeezing on vacuum-state for both pure states and
         mixed states with the amplitude given by
                 :math:`\delta_{kl} \frac{e^{in\phi} \tanh^n{r}}{\cosh{r}}`
@@ -65,17 +64,39 @@ class TestTwomodeSqueezing:
 
         state = backend.state()
 
-        if pure:
-            for k in it.product(range(cutoff), repeat=2):
-                tmsv = get_amplitude(k, r, p)
-                assert np.allclose(state.data[k], tmsv, atol=tol, rtol=0)
-        else:
-            for k in it.product(range(cutoff), repeat=2):
-                for l in it.product(range(cutoff), repeat=2):
-                    t = (k[0], l[0], k[1], l[1])
-                    tmsv2 = get_amplitude(k, r, p) * np.conj(get_amplitude(l, r, p))
+        ket = np.array([get_amplitude(k, r, p) for k in it.product(range(cutoff), repeat=2)])
+        ket = ket.reshape(cutoff, cutoff)
+        expected = ket if pure else np.einsum("ij,kl->ikjl", ket, ket.conj())
+        if batch_size is not None:
+            expected = np.broadcast_to(expected, (batch_size,) + expected.shape)
+        actual = np.asarray(state.data)
+        assert actual.shape == expected.shape
+        np.testing.assert_allclose(actual, expected, atol=tol, rtol=0)
 
-                    assert np.allclose(state.data[t], tmsv2, atol=tol, rtol=0)
+    @pytest.mark.backends("fock", "tf")
+    def test_distinct_squeezing_inputs(self, setup_backend, cutoff, pure, tol, batch_size):
+        """A batch must preserve each member's independent squeezing parameters."""
+        magnitudes = np.linspace(0.06, 0.16, batch_size or 1)
+        phases = np.linspace(0.2, 2.0, batch_size or 1)
+        backend = setup_backend(2)
+        backend.two_mode_squeeze(
+            magnitudes if batch_size else magnitudes[0],
+            phases if batch_size else phases[0],
+            0,
+            1,
+        )
+        expected = []
+        for magnitude, phase in zip(magnitudes, phases):
+            ket = np.diag(
+                (np.exp(1j * phase) * np.tanh(magnitude)) ** np.arange(cutoff) / np.cosh(magnitude)
+            )
+            expected.append(ket if pure else np.einsum("ij,kl->ikjl", ket, ket.conj()))
+        expected = np.stack(expected) if batch_size else expected[0]
+        actual = np.asarray(backend.state().data)
+        assert actual.shape == expected.shape
+        if batch_size and batch_size > 1:
+            assert not np.allclose(expected[0], expected[-1], atol=tol, rtol=0)
+        np.testing.assert_allclose(actual, expected, atol=tol, rtol=0)
 
     @pytest.mark.parametrize("r", MAG)
     @pytest.mark.parametrize("p", PHASE)

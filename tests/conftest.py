@@ -20,6 +20,7 @@ import os
 import pytest
 
 import numpy as np
+from scipy.stats import chi2
 
 import strawberryfields as sf
 from strawberryfields.engine import LocalEngine
@@ -89,11 +90,61 @@ def alpha():
     return float(os.environ.get("ALPHA", ALPHA))
 
 
-@pytest.fixture(scope="session")
-def hbar():
-    """The value of hbar"""
+@pytest.fixture
+def hbar(request, monkeypatch):
+    """Explicit units override the environment/default and never leak to another test."""
+    value = float(getattr(request, "param", os.environ.get("HBAR", HBAR)))
+    # Share the test's undo stack so later monkeypatches cannot restore stale units.
+    monkeypatch.setattr(sf, "hbar", value)
+    return value
+
+
+@pytest.fixture(scope="session", autouse=True)
+def default_hbar():
+    """Keep the existing suite-wide default, restoring the caller's units afterwards."""
+    previous = sf.hbar
     sf.hbar = float(os.environ.get("HBAR", HBAR))
-    return sf.hbar
+    yield
+    sf.hbar = previous
+
+
+@pytest.fixture
+def assert_normal_variance():
+    """Check each Gaussian sample column with a two-sided 1e-6 chi-square test."""
+
+    def check(samples, expected):
+        samples = np.asarray(samples)
+        assert samples.ndim in (1, 2) and samples.size > 0
+        assert samples.shape[0] >= 2
+        assert np.all(np.isfinite(samples))
+        assert np.ndim(expected) == 0 and np.isfinite(expected) and expected > 0
+        degrees = samples.shape[0] - 1
+        bounds = chi2.ppf([5e-7, 1 - 5e-7], degrees) * expected / degrees
+        variance = np.var(samples, axis=0, ddof=1)
+        assert np.all(
+            (bounds[0] <= variance) & (variance <= bounds[1])
+        ), f"Sample variance {variance} outside Gaussian interval {bounds}"
+
+    return check
+
+
+@pytest.fixture
+def assert_fock_density(cutoff, tol):
+    """Compare the full one/two-mode density matrix to independent Fock coefficients."""
+
+    def check(state, ket):
+        assert ket.ndim in (1, 2)
+        modes = list(range(ket.ndim))
+        expected = (
+            np.outer(ket, ket.conj())
+            if ket.ndim == 1
+            else np.einsum("ij,kl->ikjl", ket, ket.conj())
+        )
+        actual = np.asarray(state.reduced_dm(modes, cutoff=cutoff))
+        assert actual.shape == expected.shape
+        np.testing.assert_allclose(actual, expected, atol=tol, rtol=0)
+
+    return check
 
 
 @pytest.fixture(
@@ -154,7 +205,7 @@ def backend(monkeypatch):
         yield dummy_backend
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def print_fixtures(cutoff, hbar, batch_size):
     """Print the test configuration at the beginning of the session"""
     print(
@@ -165,7 +216,7 @@ def print_fixtures(cutoff, hbar, batch_size):
 
 
 @pytest.fixture(params=backend_params)
-def setup_backend(request, cutoff, pure, batch_size):  # pylint: disable=redefined-outer-name
+def setup_backend(request, cutoff, pure, batch_size, hbar):  # pylint: disable=redefined-outer-name
     """Parameterized fixture, used to automatically create a backend of certain number of modes.
 
     This fixture should only be used in backend tests, as it bypasses Engine and
@@ -194,7 +245,9 @@ def setup_backend(request, cutoff, pure, batch_size):  # pylint: disable=redefin
 
 
 @pytest.fixture(params=eng_backend_params)
-def setup_backend_pars(request, cutoff, pure, batch_size):  # pylint: disable=redefined-outer-name
+def setup_backend_pars(
+    request, cutoff, pure, batch_size, hbar
+):  # pylint: disable=redefined-outer-name
     """Parameterized fixture, a container for the backend parameters.
 
     Every test that uses this fixture, or a fixture that depends on it
@@ -220,6 +273,21 @@ def setup_eng(setup_backend_pars):  # pylint: disable=redefined-outer-name
         return eng, prog
 
     return _setup_eng
+
+
+def pytest_runtest_call(item):
+    """Record effective settings so CI need not trust parameter labels alone."""
+    if "setup_backend" in item.fixturenames or "setup_eng" in item.fixturenames:
+        item.user_properties.extend(
+            [
+                ("sf_hbar", str(sf.hbar)),
+                ("cutoff", str(item.funcargs["cutoff"])),
+                ("batch_size", str(item.funcargs["batch_size"])),
+            ]
+        )
+        parameters = getattr(getattr(item, "callspec", None), "params", {})
+        if "hbar" in parameters:
+            item.user_properties.append(("requested_hbar", str(parameters["hbar"])))
 
 
 def pytest_runtest_setup(item):
