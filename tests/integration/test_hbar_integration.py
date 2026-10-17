@@ -102,7 +102,7 @@ class BackendOnly:
 
     def test_squeeze_variance(self, setup_backend, hbar, pure, assert_normal_variance):
         """test homodyne measurement of a squeeze state is correct,
-        returning a variance of np.exp(-2*r)*h/2"""
+        returning a variance of np.exp(-2*r) in the backend's normalized units"""
         # TODO: this test is a backend test that duplicates
         # the existing `test_squeeze_variance` integration test.
         # It should live in the backend folder, but currently takes too
@@ -118,4 +118,5 @@ class BackendOnly:
             x = backend.measure_homodyne(phi=0, mode=0)
             res.append(np.asarray(x).reshape(-1))
 
-        assert_normal_variance(np.stack(res), np.exp(-2 * R) * hbar / 2)
+        # The backend API uses hbar=2; the frontend applies the physical-unit scaling.
+        assert_normal_variance(np.stack(res), np.exp(-2 * R))
