@@ -29,6 +29,7 @@ from strawberryfields.backends.base import BaseBackend
 from strawberryfields.backends.fockbackend import FockBackend
 from strawberryfields.backends.gaussianbackend import GaussianBackend
 from strawberryfields.backends.bosonicbackend import BosonicBackend
+from strawberryfields.backends.states import BaseGaussianState, BaseBosonicState
 
 try:
     import tensorflow as tf
@@ -124,6 +125,40 @@ def assert_normal_variance():
         assert np.all(
             (bounds[0] <= variance) & (variance <= bounds[1])
         ), f"Sample variance {variance} outside Gaussian interval {bounds}"
+
+    return check
+
+
+@pytest.fixture
+def state_trace(cutoff):
+    """Use the native Fock trace or trace the finite Gaussian/Bosonic Fock tensor."""
+
+    def trace(state):
+        if not isinstance(state, (BaseGaussianState, BaseBosonicState)):
+            return state.trace()
+        modes = state.num_modes
+        assert modes in (1, 2)
+        density = np.asarray(state.reduced_dm(list(range(modes)), cutoff=cutoff))
+        assert density.shape == (cutoff,) * (2 * modes)
+        assert np.all(np.isfinite(density))
+        # reduced_dm interleaves ket/bra axes; group them before taking the trace.
+        axes = list(range(0, 2 * modes, 2)) + list(range(1, 2 * modes, 2))
+        return np.trace(density.transpose(axes).reshape(cutoff**modes, cutoff**modes))
+
+    return trace
+
+
+@pytest.fixture
+def assert_bosonic_even():
+    """Bound cancellation roundoff at the original Bosonic dm() cutoff of ten."""
+
+    def check(state):
+        density = np.asarray(state.reduced_dm([0], cutoff=10))
+        assert density.shape == (10, 10)
+        assert np.all(np.isfinite(density))
+        bound = 100 * np.finfo(np.float64).eps
+        np.testing.assert_allclose(density[1::2, :], 0, atol=bound, rtol=0)
+        np.testing.assert_allclose(density[:, 1::2], 0, atol=bound, rtol=0)
 
     return check
 

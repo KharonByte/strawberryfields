@@ -262,7 +262,7 @@ class TestDarkCounts:
             np.asarray(q[1].val).reshape(-1), expected[..., 1].reshape(-1)
         )
 
-    @pytest.mark.backends("fock")
+    @pytest.mark.backends("fock", "tf")
     @pytest.mark.parametrize("dark_counts", [[3], 6, [4, 2, 1]])
     def test_fock_darkcounts_errors(self, dark_counts, setup_eng):
         """Test Fock measurements errors when applying dark counts to more/less detectors than measured"""

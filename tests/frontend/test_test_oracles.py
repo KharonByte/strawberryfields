@@ -229,3 +229,61 @@ def test_density_oracle_rejects_corruption(assert_fock_density, cutoff, modes, c
     state = SimpleNamespace(reduced_dm=lambda *args, **kwargs: density)
     with pytest.raises(AssertionError):
         assert_fock_density(state, ket)
+
+
+@pytest.mark.parametrize("backend", ["gaussian", "bosonic"])
+@pytest.mark.parametrize("modes", [1, 2])
+@pytest.mark.parametrize("corruption", [None, "shape", "nonfinite", "normalization"])
+def test_finite_density_trace(state_trace, cutoff, tol, monkeypatch, backend, modes, corruption):
+    """Interleaved ket/bra axes must preserve trace and expose lost population."""
+    state = sf.Engine(backend).run(sf.Program(modes)).state
+    ket = np.arange(1, cutoff**modes + 1).reshape((cutoff,) * modes).astype(complex)
+    ket *= np.exp(0.31j * ket.real)
+    ket /= np.linalg.norm(ket)
+    density = np.outer(ket, ket.conj()) if modes == 1 else np.einsum("ij,kl->ikjl", ket, ket.conj())
+    if corruption == "shape":
+        density = density[0]
+    elif corruption == "nonfinite":
+        density.flat[0] = np.nan
+    elif corruption == "normalization":
+        density *= 0.9
+
+    def reduced_dm(selected, cutoff):
+        assert selected == list(range(modes))
+        assert cutoff == ket.shape[0]
+        return density
+
+    monkeypatch.setattr(state, "reduced_dm", reduced_dm)
+    if corruption is None:
+        assert np.allclose(state_trace(state), 1, atol=tol, rtol=0)
+    else:
+        with pytest.raises(AssertionError):
+            assert np.allclose(state_trace(state), 1, atol=tol, rtol=0)
+
+
+@pytest.mark.parametrize("corruption", [None, "row", "column", "shape", "nonfinite"])
+def test_bosonic_parity_roundoff_bound(assert_bosonic_even, monkeypatch, corruption):
+    """Accept cancellation roundoff but reject a small nonzero odd component."""
+    state = sf.Engine("bosonic").run(sf.Program(1)).state
+    density = np.zeros((10, 10), dtype=complex)
+    density[0, 0] = 1
+    density[1, 1] = np.finfo(np.float64).eps
+    if corruption == "row":
+        density[1, 0] = 1e-6
+    elif corruption == "column":
+        density[0, 1] = 1e-6
+    elif corruption == "shape":
+        density = density[0]
+    elif corruption == "nonfinite":
+        density[0, 0] = np.nan
+
+    def reduced_dm(selected, cutoff):
+        assert selected == [0] and cutoff == 10
+        return density
+
+    monkeypatch.setattr(state, "reduced_dm", reduced_dm)
+    if corruption is None:
+        assert_bosonic_even(state)
+    else:
+        with pytest.raises(AssertionError):
+            assert_bosonic_even(state)

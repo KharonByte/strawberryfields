@@ -545,7 +545,9 @@ class TestExtractUnitary:
         else:
             assert np.allclose(final_state, expected_state.reshape([-1]), atol=tol, rtol=0)
 
-    def test_extract_arbitrary_unitary_two_modes_not_vectorized(self, setup_eng, cutoff, tol):
+    def test_extract_arbitrary_unitary_two_modes_not_vectorized(
+        self, setup_eng, cutoff, tol, batch_size
+    ):
         """Test that arbitrary unitary extraction works for 2 mode"""
         S = ops.Sgate(0.4, -1.2)
         B = ops.BSgate(2.234, -1.165)
@@ -556,8 +558,10 @@ class TestExtractUnitary:
         )
 
         eng_ref, p0 = setup_eng(2)
-        if eng_ref.backend.short_name == "tf":
-            pytest.skip("Un vectorized mode only supports Fock backend for now")
+        if eng_ref.backend.short_name == "tf" and batch_size is not None:
+            initial_state = np.stack(
+                [np.roll(initial_state, i, axis=0) * (1 + 0.1 * i) for i in range(batch_size)]
+            )
 
         with p0.context as q:
             ops.Ket(initial_state) | q
@@ -575,15 +579,18 @@ class TestExtractUnitary:
             vectorize_modes=False,
             backend=eng_ref.backend_name,
         )
-        final_state = np.einsum("abcd,bd->ac", U, initial_state)
+        assert U.shape == (cutoff,) * 4
+        final_state = np.einsum("abcd,...bd->...ac", U, initial_state)
         expected_state = eng_ref.run([p0, prog]).state.ket()
 
+        assert final_state.shape == expected_state.shape
         assert np.allclose(final_state, expected_state, atol=tol, rtol=0)
 
 
-@pytest.mark.backends("fock")
+@pytest.mark.backends("fock", "tf")
+@pytest.mark.usefixtures("skip_tf_batch")
 class TestExtractChannelOneMode:
-    """Test extraction of unitaries"""
+    """Compare Fock-extracted channels with independently executed Fock/TF circuits."""
 
     @pytest.fixture
     def setup_one_mode_circuit(self, setup_eng, cutoff):
@@ -634,9 +641,10 @@ class TestExtractChannelOneMode:
         assert np.allclose(final_rho, rho, atol=tol, rtol=0)
 
 
-@pytest.mark.backends("fock")
+@pytest.mark.backends("fock", "tf")
+@pytest.mark.usefixtures("skip_tf_batch")
 class TestExtractChannelTwoMode:
-    """Test extraction of unitaries"""
+    """Compare Fock-extracted channels with independently executed Fock/TF circuits."""
 
     @pytest.fixture
     def setup_two_mode_circuit(self, setup_eng, cutoff):

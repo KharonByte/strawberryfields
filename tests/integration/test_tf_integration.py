@@ -111,23 +111,23 @@ class TestOneMode:
         coh_ket = coherent_state(ALPHA, cutoff)
         assert np.allclose(ket, coh_ket, atol=tol, rtol=0.0)
 
-    def test_eng_run_state_dm(self, pure, cutoff, setup_eng, tol):
+    def test_eng_run_state_dm(self, pure, cutoff, setup_eng, tol, batch_size):
         """Tests whether the density matrix of the returned state is an
         Tensor object when executed with `eng.run`."""
-        if not pure:
-            pytest.skip("Tested only for pure states")
-
         eng, prog = setup_eng(1)
+        alpha = ALPHA * np.linspace(1, 0.5, batch_size) if batch_size else ALPHA
 
         with prog.context as q:
-            Dgate(ALPHA) | q
+            Dgate(alpha) | q
 
         state = eng.run(prog).state
         dm = state.dm()
+        assert state.is_pure == pure
         assert isinstance(dm, tf.Tensor)
 
-        ket = coherent_state(ALPHA, cutoff)
-        coh_dm = np.einsum("i,j->ij", ket, ket.conj())
+        ket = coherent_state(np.asarray(alpha)[..., None], cutoff)
+        coh_dm = np.einsum("...i,...j->...ij", ket, ket.conj())
+        assert dm.shape == coh_dm.shape
         assert np.allclose(dm, coh_dm, atol=tol, rtol=0.0)
 
     def test_eng_run_state_trace(self, setup_eng, tol):

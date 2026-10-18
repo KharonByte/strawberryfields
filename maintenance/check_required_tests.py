@@ -222,7 +222,74 @@ EXPANDED_UNBATCHED = {
     ("backend.test_states.TestBosonicState", "test_density_matrix"): {"gaussian": 1},
 }
 UNBATCHED_REQUIRED.update(EXPANDED_UNBATCHED)
-CONFIGURATION_REQUIRED = set(EXPANDED_UNBATCHED) | set(BATCH_CAPABLE_REQUIRED)
+SOFTWARE_ONLY_UNBATCHED = {
+    (f"backend.{module}.TestFockRepresentation", function): {"gaussian": count, "bosonic": count}
+    for module, function, count in (
+        ("test_squeezed_state_preparation", "test_normalized_squeezed_state", 15),
+        ("test_squeeze_operation", "test_normalized_squeezed_state", 15),
+        ("test_state_preparations", "test_normalized_coherent_state", 28),
+        ("test_state_preparations", "test_normalized_prepare_vac", 1),
+        ("test_beamsplitter_operation", "test_normalized_beamsplitter_output", 9),
+        ("test_loss_channel", "test_normalized_after_loss_channel_on_coherent_state", 27),
+        ("test_displacement_operation", "test_normalized_displaced_state", 28),
+        ("test_rotation_operation", "test_normalized_rotated_coherent_states", 7),
+        (
+            "test_displaced_squeezed_state_preparation",
+            "test_normalized_displaced_squeezed_state",
+            16,
+        ),
+    )
+}
+SOFTWARE_ONLY_UNBATCHED.update(
+    {
+        (f"backend.{module}.TestFockRepresentation", "test_no_odd_fock"): {"bosonic": 15}
+        for module in ("test_squeezed_state_preparation", "test_squeeze_operation")
+    }
+)
+SOFTWARE_ONLY_UNBATCHED.update(
+    {
+        (f"integration.test_utils_integration.{classname}", function): {"tf": 1}
+        for classname in ("TestExtractChannelOneMode", "TestExtractChannelTwoMode")
+        for function in (
+            "test_extract_choi_channel",
+            "test_extract_liouville_channel",
+            "test_extract_kraus_channel",
+        )
+    }
+)
+SOFTWARE_ONLY_UNBATCHED.update(
+    {
+        ("integration.test_utils_integration.TestExtractChannelTwoMode", function): {"tf": 1}
+        for function in (
+            "test_extract_choi_channel_vectorize",
+            "test_extract_liouville_channel_vectorize",
+            "test_extract_kraus_channel_vectorize",
+        )
+    }
+)
+for contract, counts in SOFTWARE_ONLY_UNBATCHED.items():
+    UNBATCHED_REQUIRED[contract] = {**UNBATCHED_REQUIRED.get(contract, {}), **counts}
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("backend.test_states_probabilities.TestAllFockProbs", "test_two_mode_gaussian"): {
+            "fock": 9,
+            "tf": 9,
+            "gaussian": 9,
+        },
+        (
+            "integration.test_measurement_integration.TestDarkCounts",
+            "test_fock_darkcounts_errors",
+        ): {"fock": 3, "tf": 3},
+        (
+            "integration.test_utils_integration.TestExtractUnitary",
+            "test_extract_arbitrary_unitary_two_modes_not_vectorized",
+        ): {"fock": 1, "tf": 1},
+        ("integration.test_tf_integration.TestOneMode", "test_eng_run_state_dm"): {"tf": 1},
+    }
+)
+CONFIGURATION_REQUIRED = (
+    set(EXPANDED_UNBATCHED) | set(SOFTWARE_ONLY_UNBATCHED) | set(BATCH_CAPABLE_REQUIRED)
+)
 PARAMETRIZED_UNITS = {
     "integration.test_hbar_integration.TestIntegration": {0.5, 1.0},
     "backend.test_state_reduction.TestStateReduction": {1.0, 1.7, 2.0},
@@ -278,6 +345,10 @@ PARAMETERS = re.compile(
     r"(?:\[|-)(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
     r"-(True|False)(?:-|\])"
 )
+STATE_FIRST_PARAMETERS = re.compile(
+    r"(?:\[|-)(True|False)-(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
+    r"(?:-|\])"
+)
 
 
 def verify(report, configuration):
@@ -311,8 +382,16 @@ def verify(report, configuration):
             if case.get("classname") != classname or name.split("[")[0] != function:
                 continue
             match = PARAMETERS.search(name)
-            if match:
-                backend, pure = match.groups()
+            state_first = STATE_FIRST_PARAMETERS.search(name)
+            labels = match.groups() if match else None
+            if state_first:
+                reverse_labels = state_first.groups()[::-1]
+                if labels and labels != reverse_labels:
+                    errors.append(f"Ambiguous backend/state labels: {classname}::{name}")
+                    continue
+                labels = reverse_labels
+            if labels:
+                backend, pure = labels
                 found.setdefault((LABELS.get(backend, backend), pure), []).append(case)
         for backend in sorted(supported & selected):
             for pure in sorted(states):

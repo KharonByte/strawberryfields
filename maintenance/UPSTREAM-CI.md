@@ -59,6 +59,18 @@ the returned state's units directly. Reporting regressions exercise multiple
 state-unit values within one test, including restored units and failure paths.
 Non-vacuum TensorFlow fidelity remains a separate numerical defect.
 
+Another 704 previously skipped configurations are enabled: 689 unbatched and
+15 TensorFlow batched. Gaussian/Bosonic normalization uses finite-cutoff density
+tensors with explicit ket/bra ordering and the existing tolerance. Bosonic
+squeezed-state parity retains cutoff 10 and permits only cancellation roundoff
+(`100 * float64.eps`); other backends retain exact-zero assertions. TensorFlow
+probability, density-matrix and unitary-reference comparisons check complete
+batch shapes and distinct inputs. Channel extraction still uses Fock internally;
+the added coverage compares its output with independently executed TF circuits.
+The coverage guard requires these configurations, including legacy storage-first
+parameter IDs, and rejects conflicting backend/state labels. See
+[the remaining-skip audit](SKIP-AUDIT.md) for unresolved coverage and software issues.
+
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
 and TensorFlow Wigner evaluation does not support batching. Existing numerical

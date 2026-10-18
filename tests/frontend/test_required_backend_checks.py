@@ -15,6 +15,11 @@ spec = importlib.util.spec_from_file_location("required_backend_checks", checker
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 verify = module.verify
+PARITY_REQUIREMENTS = {
+    key: deepcopy(value)
+    for key, value in module.UNBATCHED_REQUIRED.items()
+    if key[1] == "test_no_odd_fock"
+}
 
 pytestmark = pytest.mark.frontend
 
@@ -416,3 +421,67 @@ def test_state_reduction_requires_requested_unit_evidence(reduction_report):
     properties.remove(properties.find("property[@name='requested_hbar']"))
     with pytest.raises(ValueError, match="setup configuration"):
         verify(save(), "all-backends")
+
+
+@pytest.mark.parametrize(
+    "configuration", ["all-backends", "tensorflow-batched-pure", "tensorflow-batched-mixed"]
+)
+@pytest.mark.parametrize("corruption", [None, "skipped", "missing_state", "ambiguous_state"])
+def test_storage_first_labels(tmp_path, monkeypatch, configuration, corruption):
+    """Legacy storage-first IDs must be counted without accepting conflicting labels."""
+    contract = ("integration.test_tf_integration.TestOneMode", "test_eng_run_state_dm")
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {contract: {"tf": 1}})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {contract})
+    batched = configuration.startswith("tensorflow-batched-")
+    states = [configuration.endswith("pure")] if batched else [True, False]
+    root = ET.Element("testsuite")
+    for pure in states:
+        case = ET.SubElement(
+            root, "testcase", classname=contract[0], name=f"{contract[1]}[{pure}-tf]"
+        )
+        props = ET.SubElement(case, "properties")
+        for name, value in (
+            ("setup_hbar", "1.7"),
+            ("cutoff", "6"),
+            ("batch_size", "2" if batched else "None"),
+        ):
+            ET.SubElement(props, "property", name=name, value=value)
+    if corruption == "skipped":
+        ET.SubElement(root[0], "skipped")
+    elif corruption == "missing_state":
+        root[0].set("name", f"{contract[1]}[tf]")
+    elif corruption == "ambiguous_state":
+        root[0].set("name", f"{contract[1]}[True-tf-False]")
+    path = tmp_path / "storage-first.xml"
+    ET.ElementTree(root).write(path)
+    if corruption is None:
+        assert verify(path, configuration) == len(states)
+    else:
+        match = {
+            "skipped": "Did not pass",
+            "missing_state": "Missing:",
+            "ambiguous_state": "Ambiguous backend/state",
+        }[corruption]
+        with pytest.raises(ValueError, match=match):
+            verify(path, configuration)
+
+
+@pytest.mark.parametrize("contract", PARITY_REQUIREMENTS)
+def test_extending_parity_keeps_gaussian_requirements(tmp_path, monkeypatch, contract):
+    """A complete Bosonic report must not hide dropped Gaussian parity checks."""
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {contract: PARITY_REQUIREMENTS[contract]})
+    root = ET.Element("testsuite")
+    for pure in (True, False):
+        for parameter in range(15):
+            ET.SubElement(
+                root,
+                "testcase",
+                classname=contract[0],
+                name=f"{contract[1]}[BosonicBackend-{pure}-{parameter}]",
+            )
+    path = tmp_path / "bosonic-without-gaussian.xml"
+    ET.ElementTree(root).write(path)
+    with pytest.raises(ValueError, match="Missing: test_no_odd_fock/gaussian"):
+        verify(path, "all-backends")

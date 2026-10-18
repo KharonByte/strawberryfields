@@ -145,8 +145,9 @@ class TestFockRepresentation:
     @pytest.mark.parametrize("T", LOSS_TS)
     @pytest.mark.parametrize("mag_alpha", MAG_ALPHAS)
     @pytest.mark.parametrize("phase_alpha", PHASE_ALPHAS)
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_normalized_after_loss_channel_on_coherent_state(
-        self, setup_backend, T, mag_alpha, phase_alpha, tol
+        self, setup_backend, T, mag_alpha, phase_alpha, tol, state_trace
     ):
         """Tests if a range of loss states are normalized."""
         backend = setup_backend(1)
@@ -154,7 +155,7 @@ class TestFockRepresentation:
         backend.prepare_coherent_state(mag_alpha, phase_alpha, 0)
         backend.loss(T, 0)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1.0, atol=tol, rtol=0.0)
 
     @pytest.mark.parametrize("T", LOSS_TS)
