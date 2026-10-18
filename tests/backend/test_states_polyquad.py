@@ -40,7 +40,8 @@ phi = 0.123
 qphi = 0.78
 
 
-@pytest.mark.backends("fock", "gaussian")
+@pytest.mark.backends("fock", "gaussian", "tf")
+@pytest.mark.usefixtures("skip_tf_batch")
 class TestSingleModePolyQuadratureExpectations:
     """Test single mode poly_quad_expectation methods"""
 
@@ -400,7 +401,8 @@ class TestSingleModePolyQuadratureExpectations:
         assert np.allclose(var, var_ex, atol=tol, rtol=0)
 
 
-@pytest.mark.backends("fock", "gaussian")
+@pytest.mark.backends("fock", "gaussian", "tf")
+@pytest.mark.usefixtures("skip_tf_batch")
 class TestMultiModePolyQuadratureExpectations:
     """Test multi mode poly_quad_expectation methods"""
 

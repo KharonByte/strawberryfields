@@ -178,6 +178,7 @@ class TestBaseStateMeanPhotonNumber:
 class TestBaseFockKetDensityMatrix:
     """Tests for the ket, dm, and reduced density matrix function."""
 
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_rdm(self, setup_backend, tol, cutoff, batch_size):
         """Test reduced density matrix of a coherent state is as expected
         This is supported by all backends, since it returns
@@ -220,6 +221,7 @@ class TestBaseFockKetDensityMatrix:
 
         assert np.allclose(ket, expected, atol=tol, rtol=0)
 
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_density_matrix_thermal_state(self, setup_backend, cutoff, batch_size, tol):
         """Test that a thermal state returns the correct density matrix, using
         both the dm() and reduced_dm() methods."""
@@ -610,7 +612,7 @@ class TestNumberExpectation:
         expected_var = mean0**2 * var1 + mean1**2 * var0 + var0 * var1
         assert np.allclose(res[1], expected_var, atol=tol, rtol=0.01)
 
-    @pytest.mark.backends("fock", "tf")
+    @pytest.mark.backends("fock", "tf", "gaussian")
     def test_number_expectation_four_modes(self, setup_backend, tol, batch_size):
         """Tests the expectation value of photon numbers when there is correlation"""
         if batch_size is not None:
@@ -723,7 +725,7 @@ class TestParityExpectation:
 
         assert np.allclose(state.parity_expectation([0, 1]), 1, atol=tol, rtol=0)
 
-    @pytest.mark.backends("fock", "tf")
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_thermal(self, setup_backend, tol, batch_size):
         """Tests the parity operator for a thermal state"""
         if batch_size is not None:
@@ -741,6 +743,7 @@ class TestParityExpectation:
 class TestFidelities:
     """Fidelity tests."""
 
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_vacuum(self, setup_backend, tol):
         backend = setup_backend(2)
         state = backend.state()
