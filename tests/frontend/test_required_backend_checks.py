@@ -68,6 +68,21 @@ ADAPTER_CATALOG = {
     )
     for contract, _, _ in ADAPTER_CASES
 }
+GRADIENT_CLASS = "integration.test_tf_integration.TestGradient"
+GRADIENT_FUNCTIONS = (
+    "test_displacement_mean_photon_gradient",
+    "test_displaced_thermal_mean_photon_gradient",
+    "test_coherent_ket_gradient",
+    "test_coherent_dm_gradient",
+    "test_displaced_squeezed_mean_photon_gradient",
+    "test_BS_state_gradients",
+    "test_MZ_state_gradients",
+    "test_2mode_squeezed_vacuum_gradients",
+)
+GRADIENT_CATALOG = {
+    (GRADIENT_CLASS, function): deepcopy(module.BATCH_CAPABLE_REQUIRED[(GRADIENT_CLASS, function)])
+    for function in GRADIENT_FUNCTIONS
+}
 
 pytestmark = pytest.mark.frontend
 
@@ -573,3 +588,81 @@ def test_density_adapters_cannot_disappear(tmp_path, monkeypatch, contract, back
     ET.ElementTree(root).write(path)
     with pytest.raises(ValueError, match="Missing:"):
         verify(path, profile)
+
+
+@pytest.fixture
+def gradient_report(tmp_path, monkeypatch):
+    """Use the real catalog, but list the supported gradient cases independently."""
+    assert all(counts == {"tf": 1} for counts in GRADIENT_CATALOG.values())
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", GRADIENT_CATALOG)
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", set(GRADIENT_CATALOG))
+
+    def build(profile):
+        root = ET.Element("testsuite")
+        batched = profile.startswith("tensorflow-batched-")
+        states = [profile.endswith("pure")] if batched else [True, False]
+        for function in GRADIENT_FUNCTIONS:
+            for pure in states:
+                ket = function == "test_coherent_ket_gradient"
+                parameters = f"{pure}-tf" if ket else f"tf-{pure}"
+                case = ET.SubElement(
+                    root, "testcase", classname=GRADIENT_CLASS, name=f"{function}[{parameters}]"
+                )
+                if ket and not pure:
+                    ET.SubElement(case, "skipped", message="Test skipped in mixed state mode")
+                properties = ET.SubElement(case, "properties")
+                for name, value in (
+                    ("setup_hbar", "1.7"),
+                    ("cutoff", "6"),
+                    ("batch_size", "2" if batched else "None"),
+                ):
+                    ET.SubElement(properties, "property", name=name, value=value)
+
+        def save():
+            path = tmp_path / "gradients.xml"
+            ET.ElementTree(root).write(path)
+            return path
+
+        return root, save
+
+    return build
+
+
+@pytest.mark.parametrize(
+    "function,pure",
+    [
+        (function, pure)
+        for function in GRADIENT_FUNCTIONS
+        for pure in (True, False)
+        if pure or function != "test_coherent_ket_gradient"
+    ],
+)
+def test_gradient_guards_require_every_supported_case(gradient_report, function, pure):
+    """All 15 cases must pass in scalar and batch jobs; the mixed ket stays excluded."""
+    for profile in ("all-backends", "tensorflow-batched-" + ("pure" if pure else "mixed")):
+        root, save = gradient_report(profile)
+        assert verify(save(), profile) == (15 if profile == "all-backends" else 8 if pure else 7)
+        parameters = f"{pure}-tf" if function == "test_coherent_ket_gradient" else f"tf-{pure}"
+        case = next(case for case in root if case.get("name") == f"{function}[{parameters}]")
+        root.remove(case)
+        with pytest.raises(ValueError, match="Missing:"):
+            verify(save(), profile)
+        root.append(case)
+        ET.SubElement(case, "skipped")
+        with pytest.raises(ValueError, match="Did not pass:"):
+            verify(save(), profile)
+
+
+def test_only_ket_gradient_has_storage_exemption():
+    """The ket exception must not suppress mixed-state coverage elsewhere."""
+    assert module.REQUIRED_STATES == {
+        (GRADIENT_CLASS, "test_coherent_ket_gradient", "tf"): {"True"}
+    }
+
+
+@pytest.mark.parametrize("profile", ["non-tensorflow", "local-without-cloud"])
+def test_gradient_guards_allow_missing_optional_tensorflow(gradient_report, profile):
+    root, save = gradient_report(profile)
+    root.clear()
+    assert verify(save(), profile) == 0

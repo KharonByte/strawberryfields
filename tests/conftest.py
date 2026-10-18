@@ -182,6 +182,28 @@ def assert_fock_density(cutoff, tol):
     return check
 
 
+@pytest.fixture
+def assert_independent_jacobian(tol):
+    """Require each analytic derivative and zero coupling between batch members."""
+
+    def check(actual, derivative, batch_size):
+        derivative = np.asarray(derivative)
+        assert np.all(np.isfinite(derivative))
+        expected = derivative
+        if batch_size is not None:
+            assert derivative.ndim >= 1 and derivative.shape[0] == batch_size
+            expected = np.zeros(derivative.shape + (batch_size,))
+            for member in range(batch_size):
+                expected[member, ..., member] = derivative[member]
+        assert actual is not None, "Disconnected gradient"
+        actual = np.asarray(actual)
+        assert actual.shape == expected.shape, "Incorrect Jacobian shape"
+        assert np.all(np.isfinite(actual))
+        np.testing.assert_allclose(actual, expected, atol=tol, rtol=0)
+
+    return check
+
+
 @pytest.fixture(
     params=[
         pytest.param(True, marks=pytest.mark.pure),

@@ -18,6 +18,85 @@ pytestmark = pytest.mark.frontend
 pytest_plugins = ["pytester"]
 
 
+@pytest.mark.parametrize(
+    "batch_size,derivative,jacobian",
+    [
+        (None, 2.0, 2.0),
+        (None, [2.0, -1.0], [2.0, -1.0]),
+        (1, [2.0], [[2.0]]),
+        (2, [2.0, 4.0], [[2.0, 0.0], [0.0, 4.0]]),
+        (2, [[2.0, -1.0], [4.0, -3.0]], [[[2.0, 0.0], [-1.0, 0.0]], [[0.0, 4.0], [0.0, -3.0]]]),
+        (
+            3,
+            [[2.0, 1.0], [4.0, 1.0], [6.0, 1.0]],
+            [
+                [[2.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+                [[0.0, 4.0, 0.0], [0.0, 1.0, 0.0]],
+                [[0.0, 0.0, 6.0], [0.0, 0.0, 1.0]],
+            ],
+        ),
+    ],
+)
+def test_independent_jacobian_accepts_analytic_entries(
+    assert_independent_jacobian, batch_size, derivative, jacobian
+):
+    """Scalar, multiple-output and unequal output/batch axes retain their shape."""
+    assert_independent_jacobian(jacobian, derivative, batch_size)
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    [
+        "missing_output_batch",
+        "summed_gradient",
+        "duplicated_member",
+        "cross_member",
+        "swapped_members",
+        "transposed_axes",
+        "nan",
+        "zero",
+        "disconnected",
+    ],
+)
+def test_independent_jacobian_rejects_incorrect_batches(assert_independent_jacobian, corruption):
+    """The Jacobian of (x**2, x) at x=[1,2,3] has no cross-member entries."""
+    derivative = np.array([[2.0, 1.0], [4.0, 1.0], [6.0, 1.0]])
+    jacobian = np.array(
+        [
+            [[2.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+            [[0.0, 4.0, 0.0], [0.0, 1.0, 0.0]],
+            [[0.0, 0.0, 6.0], [0.0, 0.0, 1.0]],
+        ]
+    )
+    if corruption == "missing_output_batch":
+        jacobian = jacobian[0]
+    elif corruption == "summed_gradient":
+        jacobian = jacobian.sum(axis=(0, 1))
+    elif corruption == "duplicated_member":
+        jacobian[1, 0, 1] = jacobian[2, 0, 2] = 2.0
+    elif corruption == "cross_member":
+        jacobian[0, 0, 1] = 1.0
+    elif corruption == "swapped_members":
+        jacobian = jacobian[::-1, :, ::-1]
+    elif corruption == "transposed_axes":
+        jacobian = jacobian.transpose(1, 0, 2)
+    elif corruption == "nan":
+        jacobian[0, 0, 0] = np.nan
+    elif corruption == "zero":
+        jacobian[:] = 0
+    else:
+        jacobian = None
+    with pytest.raises(AssertionError):
+        assert_independent_jacobian(jacobian, derivative, 3)
+
+
+@pytest.mark.parametrize("jacobian", [None, 0.0, [2.0], np.nan])
+def test_independent_jacobian_rejects_incorrect_scalar(assert_independent_jacobian, jacobian):
+    """Enabling batches must preserve the scalar derivative contract."""
+    with pytest.raises(AssertionError):
+        assert_independent_jacobian(jacobian, 2.0, None)
+
+
 def test_hbar_fixture_precedence_and_restoration(pytester, monkeypatch):
     """Exercise the real fixture through pytest, including failing test teardown."""
     fixture_path = Path(__file__).resolve().parents[1] / "conftest.py"

@@ -310,6 +310,25 @@ BATCH_CAPABLE_REQUIRED.update(
         ("integration.test_tf_integration.TestOneMode", "test_eng_run_state_dm"): {"tf": 1},
     }
 )
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("integration.test_tf_integration.TestGradient", function): {"tf": 1}
+        for function in (
+            "test_displacement_mean_photon_gradient",
+            "test_displaced_thermal_mean_photon_gradient",
+            "test_coherent_ket_gradient",
+            "test_coherent_dm_gradient",
+            "test_displaced_squeezed_mean_photon_gradient",
+            "test_BS_state_gradients",
+            "test_MZ_state_gradients",
+            "test_2mode_squeezed_vacuum_gradients",
+        )
+    }
+)
+# A mixed density matrix has no ket accessor. Other gradients require both stores.
+REQUIRED_STATES = {
+    ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"}
+}
 CONFIGURATION_REQUIRED = (
     set(EXPANDED_UNBATCHED)
     | set(SOFTWARE_ONLY_UNBATCHED)
@@ -420,7 +439,10 @@ def verify(report, configuration):
                 backend, pure = labels
                 found.setdefault((LABELS.get(backend, backend), pure), []).append(case)
         for backend in sorted(supported & selected):
-            for pure in sorted(states):
+            supported_states = REQUIRED_STATES.get(
+                (classname, function, backend), {"True", "False"}
+            )
+            for pure in sorted(states & supported_states):
                 matching = found.get((backend, pure), [])
                 label = f"{function}/{backend}/pure={pure}"
                 if not matching:

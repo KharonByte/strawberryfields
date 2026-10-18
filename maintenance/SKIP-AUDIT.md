@@ -11,8 +11,14 @@ comparisons, 16 Gaussian/Bosonic utility-state density comparisons, two Gaussian
 mode-addition checks and six cutoff-aware Fock/TF vacuum-density checks. Channel
 extraction still uses Fock; TF independently executes the reference circuit.
 
-The remaining inventory contains **3,017 unbatched skips, 305 TensorFlow pure
-batch skips and 309 mixed batch skips**. These are configuration rows,
+Another **15 TensorFlow batch gradients** are enabled: eight pure and seven
+mixed. Analytic values and full Jacobians cover distinct batch members and
+zero cross-member derivatives, at the existing cutoff and tolerance. Mixed
+two-mode tests prepare density matrices and verify their storage. The coherent
+ket gradient retains its mixed-storage exclusion.
+
+The remaining inventory contains **3,017 unbatched skips, 297 TensorFlow pure
+batch skips and 302 mixed batch skips**. These are configuration rows,
 not distinct unsupported features. Eight existing expected
 failures are separate from these totals.
 
@@ -22,7 +28,7 @@ failures are separate from these totals.
 | Representation-specific or duplicate contract | 1,323 |
 | Parameter or execution precondition | 59 |
 | Correct dependency-profile exclusion | 1 |
-| Investigated contracts requiring follow-up test work (below) | 167 |
+| Investigated contracts still requiring follow-up test work (below) | 152 |
 | Families blocked by reproduced failures, accuracy gaps or empty-state questions | 87 |
 | Resource-sensitive cases with a Gaussian-only oracle | 12 |
 
@@ -40,10 +46,11 @@ the other six used incomplete batch indexing. These outcomes do not certify
 support. Independent adapters were then tested without changing simulator code
 or relaxing the original tolerances:
 
-- **15 batch gradients:** analytic per-member Jacobians pass with distinct
-  parameters and explicit cross-member derivatives. Thermal preparation produces
-  mixed storage even when the engine starts in pure mode. These need maintained
-  gradient tests, not a claim that TensorFlow cannot differentiate vector output.
+- **15 batch gradients, now enabled:** maintained tests check analytic per-member
+  Jacobians and explicit cross-member derivatives with distinct parameters.
+  Thermal preparation produces mixed storage even when the engine starts in
+  pure mode. Regression tests reject summed, disconnected, duplicated and
+  cross-coupled derivatives; the CI guard requires every supported configuration.
 - **66 state-decomposition cases:** 28 pass after finite-density moment/fidelity
   adaptation. Twenty Bosonic cases execute native Gaussian preparation, so their
   decomposed-instruction-count assertion does not apply. The other 18 exceed the
@@ -66,8 +73,8 @@ or relaxing the original tolerances:
   Bounded-input Fock and mixed/batched TF controls pass at cutoff 12 with the
   original 0.001 tolerance.
 
-These diagnostic adapters are not enabled by the 42-case change. Their follow-up
-tests need coverage guards and cross-platform validation. Existing batch photon
+The remaining 152 diagnostic configurations need follow-up tests, coverage
+guards and cross-platform validation. Existing batch photon
 statistics also need stronger shape and independent-member assertions.
 
 The general squeezed-state oracle's zero-squeezing exclusion is already covered

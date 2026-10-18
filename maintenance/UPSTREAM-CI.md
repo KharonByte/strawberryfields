@@ -80,6 +80,14 @@ inputs. Regression tests reject missing batch axes, duplicated batch outputs
 and missing coverage requirements. The earlier unbatched channel inputs and
 numerical tolerances remain covered.
 
+The 15 TensorFlow batch gradient configurations (eight pure, seven mixed) now
+compare full Jacobians to analytic derivatives. Distinct parameters exercise
+every batch member and zero cross-member derivatives. Mixed two-mode tests use
+density-matrix preparation and verify their storage. The guard also requires
+the 15 corresponding unbatched cases; only the mixed-storage ket accessor stays
+excluded. Regression tests reject disconnected/summed gradients, wrong tensor
+axes, duplicated members and cross-member coupling, and require all 15 cases.
+
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
 and TensorFlow Wigner evaluation does not support batching. Existing numerical
