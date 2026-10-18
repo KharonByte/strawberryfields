@@ -16,9 +16,11 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 verify = module.verify
 PARITY_REQUIREMENTS = {
-    key: deepcopy(value)
-    for key, value in module.UNBATCHED_REQUIRED.items()
-    if key[1] == "test_no_odd_fock"
+    key: deepcopy(module.UNBATCHED_REQUIRED[key])
+    for key in (
+        ("backend.test_squeeze_operation.TestFockRepresentation", "test_no_odd_fock"),
+        ("backend.test_squeezed_state_preparation.TestFockRepresentation", "test_no_odd_fock"),
+    )
 }
 
 pytestmark = pytest.mark.frontend
