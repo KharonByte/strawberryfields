@@ -23,8 +23,19 @@ projections preserve the covariance, mean, fidelity and instruction-count
 assertions. They check batch shapes and normalization without rescaling away
 cutoff loss; analytic controls cover complex correlations and the cutoff boundary.
 
-The remaining inventory contains **2,999 unbatched skips, 293 TensorFlow pure
-batch skips and 298 mixed batch skips**. These are configuration rows,
+Another **38 configurations** are enabled: six thermal decompositions, 30
+passive-optics decompositions and two Gaussian rotated-squeezed projections.
+Thermal tests use cutoff 12; the five passive-optics tests use cutoff 16. All
+other tests retain their own cutoff, with the default still 6. At these cutoffs,
+the audited covariance errors were at most 0.00000653 and 0.000124 respectively,
+below the unchanged 0.001 tolerance. Passive tests check the analytic initial
+and final covariance as well as propagation of the simulated covariance.
+Rotated-squeezed references use phase `2 * phi` and check complex density entries,
+normalization and fidelity. Separate low-energy TF controls cover distinct batch
+inputs and actual pure/mixed storage for all five passive decompositions.
+
+The remaining inventory contains **2,973 unbatched skips, 287 TensorFlow pure
+batch skips and 292 mixed batch skips**. These are configuration rows,
 not distinct unsupported features. Eight existing expected
 failures are separate from these totals.
 
@@ -34,7 +45,7 @@ failures are separate from these totals.
 | Representation-specific or duplicate contract | 1,323 |
 | Parameter or execution precondition | 59 |
 | Correct dependency-profile exclusion | 1 |
-| Investigated contracts still requiring follow-up test work (below) | 126 |
+| Investigated contracts still requiring follow-up test work (below) | 88 |
 | Families blocked by reproduced failures, accuracy gaps or empty-state questions | 87 |
 | Resource-sensitive cases with a Gaussian-only oracle | 12 |
 
@@ -57,24 +68,22 @@ or relaxing the original tolerances:
   Thermal preparation produces mixed storage even when the engine starts in
   pure mode. Regression tests reject summed, disconnected, duplicated and
   cross-coupled derivatives; the CI guard requires every supported configuration.
-- **66 state-decomposition cases, 26 now enabled:** maintained finite-density
-  adapters cover the verified low-energy states. Twenty Bosonic cases execute
-  native Gaussian preparation, so their
-  decomposed-instruction-count assertion does not apply. The other 18 exceed the
-  finite-cutoff accuracy budget. For example, the thermal covariance error drops
-  from 0.00664 at cutoff 6 to 0.00000653 at cutoff 12, below the unchanged 0.001
-  tolerance in the Fock control. Two additional Gaussian cases expose
-  a weak rotated-squeezed reference: the ket needs phase `2 * phi` for covariance
-  rotated by `phi`. The old fidelity tolerance hides a full-density error of
-  0.0162; the corrected analytic reference agrees within 3e-16. Repair that
-  test oracle before enabling those two cases.
-- **68 phase-space cases:** the tests assume Gaussian moment accessors and need
-  explicit tensor/batch adapters. Representative interferometer comparisons pass
-  at cutoff 12 after failing at 6. Random active transforms, graph embedding,
-  teleportation and 500-shot cloning need separate precision/statistical budgets.
-  Matching clone marginals alone hides severe normalization loss (observed traces
-  0.2200 to 0.8999); those six configurations remain excluded pending convergence checks.
-  Bosonic rejects `GraphEmbed` at compilation in two configurations.
+- **66 state-decomposition cases, 34 now enabled:** maintained finite-density
+  adapters cover the verified states at explicit cutoffs. Twenty Bosonic cases
+  execute native Gaussian preparation, so their decomposed-instruction-count
+  assertion does not apply. Twelve other finite-cutoff cases still need accuracy
+  and resource budgets. The two Gaussian rotated-squeezed cases now use the
+  corrected ket phase and full complex-density assertions; the old fidelity-only
+  check accepted a density error of 0.0162.
+- **68 phase-space cases, 30 now enabled:** passive transformations and four
+  interferometer meshes use finite-density moments at cutoff 16. Cutoff 12 can
+  pass the comparison between two simulated covariances while missing the
+  independent analytic answer; the maintained tests require both. Random active
+  transforms, graph embedding, teleportation and 500-shot cloning still need
+  separate precision/statistical budgets. Matching clone marginals alone hides
+  severe normalization loss (observed traces 0.2200 to 0.8999); those six
+  configurations remain excluded pending convergence checks. Bosonic rejects
+  `GraphEmbed` at compilation in two configurations.
 - **18 P/CX/CZ gate cases:** the original assertions have no Fock/TF branch.
   Full moment comparisons expose severe truncation at squeezing 3 and cutoff 6;
   removing the skip alone gives false confidence. Meaningful finite-Fock
@@ -82,7 +91,7 @@ or relaxing the original tolerances:
   Bounded-input Fock and mixed/batched TF controls pass at cutoff 12 with the
   original 0.001 tolerance.
 
-The remaining 126 diagnostic configurations need follow-up tests, coverage
+The remaining 88 diagnostic configurations need follow-up tests, coverage
 guards and cross-platform validation. Existing batch photon
 statistics also need stronger shape and independent-member assertions.
 

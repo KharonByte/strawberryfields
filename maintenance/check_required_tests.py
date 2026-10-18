@@ -347,6 +347,36 @@ BATCH_CAPABLE_REQUIRED.update(
         for function in functions
     }
 )
+# Only these six tests need larger finite-state spaces; all other guarded
+# configurations retain cutoff 6.
+REQUIRED_CUTOFFS = {
+    ("integration.test_decompositions_integration.TestGaussianBackendDecompositions", function): 16
+    for function in (
+        "test_passive_gaussian_transform",
+        "test_interferometer",
+        "test_interferometer_rectangular_compact",
+        "test_interferometer_triangular_compact",
+        "test_interferometer_sun_compact",
+    )
+}
+REQUIRED_CUTOFFS[
+    (
+        "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "test_thermal",
+    )
+] = 12
+BATCH_CAPABLE_REQUIRED.update(
+    {contract: {"gaussian": 1, "fock": 1, "tf": 1} for contract in REQUIRED_CUTOFFS}
+)
+BATCH_CAPABLE_REQUIRED[
+    (
+        "integration.test_decompositions_integration.TestFockBackendDecomposeState",
+        "test_rotated_squeezed",
+    )
+] = {"gaussian": 1, "fock": 1, "tf": 1}
+BATCH_CAPABLE_REQUIRED[
+    ("integration.test_decomposition_controls", "test_distinct_passive_inputs")
+] = {"tf": 5}
 # A mixed density matrix has no ket accessor. Other gradients require both stores.
 REQUIRED_STATES = {
     ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"}
@@ -488,7 +518,9 @@ def verify(report, configuration):
                             units[setup_hbar] += 1
                             if classname in PARAMETRIZED_UNITS:
                                 assert setup_hbar == float(properties["requested_hbar"])
-                            assert int(properties["cutoff"]) == 6
+                            assert int(properties["cutoff"]) == REQUIRED_CUTOFFS.get(
+                                (classname, function), 6
+                            )
                             assert properties["batch_size"] == ("2" if batched else "None")
                         except (KeyError, ValueError, AssertionError):
                             errors.append(

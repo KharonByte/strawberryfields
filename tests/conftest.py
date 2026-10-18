@@ -247,6 +247,50 @@ def state_moments(cutoff, hbar, tol):
 
 
 @pytest.fixture
+def assert_passive_moments(tol):
+    """Require analytic moments as well as agreement between two simulated states."""
+
+    def check(initial, final, optical, expected_means, expected_cov, batch_size=None):
+        dimension = optical.shape[0]
+        assert optical.shape == (dimension, dimension)
+        batch = () if batch_size is None else (batch_size,)
+        expected_means = np.broadcast_to(expected_means, batch + (dimension,))
+        expected_cov = np.broadcast_to(expected_cov, batch + (dimension, dimension))
+        for (means, covariance), reference_means, reference_cov in (
+            (initial, expected_means, expected_cov),
+            (final, expected_means @ optical.T, optical @ expected_cov @ optical.T),
+        ):
+            assert means.shape == reference_means.shape
+            assert covariance.shape == reference_cov.shape
+            np.testing.assert_allclose(means, reference_means, atol=tol, rtol=0)
+            np.testing.assert_allclose(covariance, reference_cov, atol=tol, rtol=0)
+        # Retain the original covariance-propagation assertion too.
+        assert np.allclose(final[1], optical @ initial[1] @ optical.T, atol=tol)
+
+    return check
+
+
+@pytest.fixture
+def assert_marginal_fidelity(cutoff, tol):
+    """Check complex marginal coherences before projecting onto the reference ket."""
+
+    def check(state, mode, ket, batch_size=None):
+        assert ket.shape == (cutoff,)
+        batch = () if batch_size is None else (batch_size,)
+        density = np.asarray(state.reduced_dm([mode], cutoff=cutoff))
+        assert density.shape == batch + (cutoff, cutoff)
+        expected = np.broadcast_to(np.outer(ket, ket.conj()), density.shape)
+        np.testing.assert_allclose(density, expected, atol=tol, rtol=0)
+        np.testing.assert_allclose(np.trace(density, axis1=-2, axis2=-1), 1, atol=tol, rtol=0)
+        fidelity = np.einsum("i,...ij,j->...", ket.conj(), density, ket).real
+        assert fidelity.shape == batch
+        assert np.allclose(fidelity, 1, atol=tol)
+        return fidelity
+
+    return check
+
+
+@pytest.fixture
 def assert_independent_jacobian(tol):
     """Require each analytic derivative and zero coupling between batch members."""
 

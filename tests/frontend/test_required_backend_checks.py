@@ -79,6 +79,36 @@ ADAPTER_CASES += [
         ("tf", "tensorflow-batched-mixed"),
     )
 ]
+OPTICS_CUTOFFS = {
+    ("integration.test_decompositions_integration." + classname, function): cutoff
+    for classname, functions, cutoff in (
+        (
+            "TestGaussianBackendDecompositions",
+            (
+                "test_passive_gaussian_transform",
+                "test_interferometer",
+                "test_interferometer_rectangular_compact",
+                "test_interferometer_triangular_compact",
+                "test_interferometer_sun_compact",
+            ),
+            16,
+        ),
+        ("TestGaussianBackendDecomposeState", ("test_thermal",), 12),
+        ("TestFockBackendDecomposeState", ("test_rotated_squeezed",), 6),
+    )
+    for function in functions
+}
+ADAPTER_CASES += [
+    (contract, backend, profile)
+    for contract in OPTICS_CUTOFFS
+    for backend, profile in (
+        ("gaussian", "all-backends"),
+        ("fock", "all-backends"),
+        ("tf", "all-backends"),
+        ("tf", "tensorflow-batched-pure"),
+        ("tf", "tensorflow-batched-mixed"),
+    )
+]
 ADAPTER_CATALOG = {
     contract: (
         deepcopy(module.UNBATCHED_REQUIRED.get(contract, {})),
@@ -101,6 +131,9 @@ GRADIENT_CATALOG = {
     (GRADIENT_CLASS, function): deepcopy(module.BATCH_CAPABLE_REQUIRED[(GRADIENT_CLASS, function)])
     for function in GRADIENT_FUNCTIONS
 }
+
+PASSIVE_CONTROL = ("integration.test_decomposition_controls", "test_distinct_passive_inputs")
+PASSIVE_REQUIREMENT = deepcopy(module.BATCH_CAPABLE_REQUIRED[PASSIVE_CONTROL])
 
 pytestmark = pytest.mark.frontend
 
@@ -594,7 +627,7 @@ def test_density_adapters_cannot_disappear(tmp_path, monkeypatch, contract, back
             properties = ET.SubElement(case, "properties")
             for name, value in (
                 ("setup_hbar", "1.7"),
-                ("cutoff", "6"),
+                ("cutoff", str(OPTICS_CUTOFFS.get(contract, 6))),
                 ("batch_size", "2" if batched else "None"),
             ):
                 ET.SubElement(properties, "property", name=name, value=value)
@@ -728,3 +761,104 @@ def test_gradient_guards_allow_missing_optional_tensorflow(gradient_report, prof
     root, save = gradient_report(profile)
     root.clear()
     assert verify(save(), profile) == 0
+
+
+@pytest.mark.parametrize(
+    "contract,cutoff",
+    list(OPTICS_CUTOFFS.items())
+    + [
+        (
+            (
+                "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+                "test_vacuum",
+            ),
+            6,
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "profile", ["all-backends", "tensorflow-batched-pure", "tensorflow-batched-mixed"]
+)
+def test_per_test_cutoff_is_required(tmp_path, monkeypatch, contract, cutoff, profile):
+    """A larger cutoff is a per-test contract, never a global allowlist."""
+    monkeypatch.setattr(module, "REQUIRED", {contract: {"tf"}})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {contract})
+    states = [True, False] if profile == "all-backends" else [profile.endswith("pure")]
+    root = ET.Element("testsuite")
+    cutoffs = []
+    for state in states:
+        case = ET.SubElement(
+            root, "testcase", classname=contract[0], name=f"{contract[1]}[tf-{state}]"
+        )
+        props = ET.SubElement(case, "properties")
+        ET.SubElement(props, "property", name="setup_hbar", value="1.7")
+        ET.SubElement(
+            props, "property", name="batch_size", value="None" if profile == "all-backends" else "2"
+        )
+        cutoffs.append(ET.SubElement(props, "property", name="cutoff", value=str(cutoff)))
+    path = tmp_path / "per-test-cutoff.xml"
+    ET.ElementTree(root).write(path)
+    assert verify(path, profile) == len(states)
+    for wrong in {"6", "12", "16", "18", "invalid", ""} - {str(cutoff)}:
+        cutoffs[0].set("value", wrong)
+        ET.ElementTree(root).write(path)
+        with pytest.raises(ValueError, match="incorrect setup configuration"):
+            verify(path, profile)
+    props = root[0].find("properties")
+    props.remove(cutoffs[0])
+    ET.ElementTree(root).write(path)
+    with pytest.raises(ValueError, match="incorrect setup configuration"):
+        verify(path, profile)
+
+
+def test_only_audited_tests_override_cutoff():
+    assert module.REQUIRED_CUTOFFS == {
+        key: value for key, value in OPTICS_CUTOFFS.items() if value != 6
+    }
+
+
+@pytest.mark.parametrize(
+    "profile", ["all-backends", "tensorflow-batched-pure", "tensorflow-batched-mixed"]
+)
+def test_each_passive_mesh_is_required(tmp_path, monkeypatch, profile):
+    assert PASSIVE_REQUIREMENT == {"tf": 5}
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {PASSIVE_CONTROL: PASSIVE_REQUIREMENT})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {PASSIVE_CONTROL})
+    states = [True, False] if profile == "all-backends" else [profile.endswith("pure")]
+    root = ET.Element("testsuite")
+    for state in states:
+        for mesh in (
+            "passive",
+            "rectangular",
+            "rectangular_compact",
+            "triangular_compact",
+            "sun_compact",
+        ):
+            case = ET.SubElement(
+                root,
+                "testcase",
+                classname=PASSIVE_CONTROL[0],
+                name=f"{PASSIVE_CONTROL[1]}[{mesh}-tf-{state}]",
+            )
+            props = ET.SubElement(case, "properties")
+            for name, value in (
+                ("setup_hbar", "1.7"),
+                ("cutoff", "6"),
+                ("batch_size", "None" if profile == "all-backends" else "2"),
+            ):
+                ET.SubElement(props, "property", name=name, value=value)
+    path = tmp_path / "distinct-meshes.xml"
+    ET.ElementTree(root).write(path)
+    assert verify(path, profile) == 5 * len(states)
+    for case in list(root):
+        root.remove(case)
+        ET.ElementTree(root).write(path)
+        with pytest.raises(ValueError, match="Expected 5 cases"):
+            verify(path, profile)
+        root.append(case)
+        skipped = ET.SubElement(case, "skipped")
+        ET.ElementTree(root).write(path)
+        with pytest.raises(ValueError, match="Did not pass"):
+            verify(path, profile)
+        case.remove(skipped)

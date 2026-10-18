@@ -96,6 +96,17 @@ The guard requires all five affected tests across Gaussian, Fock and TF,
 including their earlier configurations, and checks every overlapping backend/state
 label after normalizing aliases. Conflicting later labels cannot satisfy coverage.
 
+The next 38 configurations add 26 unbatched and 12 TF batch checks for thermal
+and passive decompositions and rotated-squeezed projections. The guard requires
+cutoff 12 for the thermal test and 16 for the five passive tests; all other
+guarded configurations retain cutoff 6. Analytic moments prevent matching
+truncation errors from passing together. Full complex marginal comparisons catch
+incorrect squeezing phases that fidelity alone misses. Separate low-energy
+controls check all five passive decompositions with distinct TF batch inputs in
+actual pure and mixed storage, at cutoff 6. Negative controls reject biased
+covariances, phase errors, lost batch axes and duplicated members. These checks
+need CPU memory, not physical quantum hardware.
+
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
 and TensorFlow Wigner evaluation does not support batching. Existing numerical
