@@ -80,8 +80,9 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("r", SQZ_R)
     @pytest.mark.parametrize("phi", SQZ_PHI)
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_displaced_squeezed_with_no_displacement(
-        self, setup_backend, r, phi, cutoff, batch_size, pure, tol
+        self, setup_backend, r, phi, cutoff, batch_size, pure, tol, assert_fock_density
     ):
         """Tests if a squeezed coherent state with no displacement is equal to a squeezed state (Eq. (5.5.6) in Loudon)."""
         mag_alpha = 0
@@ -91,11 +92,6 @@ class TestFockRepresentation:
         backend.prepare_displaced_squeezed_state(mag_alpha, phase_alpha, r, phi, 0)
         state = backend.state()
 
-        if state.is_pure:
-            num_state = state.ket()
-        else:
-            num_state = state.dm()
-
         n = np.arange(0, cutoff, 2)
         even_refs = (
             np.sqrt(sech(r))
@@ -103,6 +99,17 @@ class TestFockRepresentation:
             / factorial(n / 2)
             * (-0.5 * np.exp(1j * phi) * np.tanh(r)) ** (n / 2)
         )
+
+        if backend.short_name in ("gaussian", "bosonic"):
+            ket = np.zeros(cutoff, dtype=complex)
+            ket[::2] = even_refs
+            assert_fock_density(state, ket)
+            return
+
+        if state.is_pure:
+            num_state = state.ket()
+        else:
+            num_state = state.dm()
 
         if batch_size is not None:
             if pure:

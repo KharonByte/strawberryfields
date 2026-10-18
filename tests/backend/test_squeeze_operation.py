@@ -103,18 +103,16 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("r", MAG)
     @pytest.mark.parametrize("p", PHASE)
-    def test_reference_squeezed_vacuum(self, setup_backend, r, p, cutoff, batch_size, pure, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_reference_squeezed_vacuum(
+        self, setup_backend, r, p, cutoff, batch_size, pure, tol, assert_fock_density
+    ):
         """Tests if a range of squeezed vacuum states are equal to the form of Eq. (5.5.6) in Loudon."""
         z = r * np.exp(1j * p)
 
         backend = setup_backend(1)
         backend.squeeze(np.abs(z), np.angle(z), 0)
         state = backend.state()
-
-        if state.is_pure:
-            num_state = state.ket()
-        else:
-            num_state = state.dm()
 
         k = np.arange(0, cutoff, 2)
         even_refs = (
@@ -123,6 +121,17 @@ class TestFockRepresentation:
             / fac(k / 2)
             * (-0.5 * np.exp(1j * p) * np.tanh(r)) ** (k / 2)
         )
+
+        if backend.short_name in ("gaussian", "bosonic"):
+            ket = np.zeros(cutoff, dtype=complex)
+            ket[::2] = even_refs
+            assert_fock_density(state, ket)
+            return
+
+        if state.is_pure:
+            num_state = state.ket()
+        else:
+            num_state = state.dm()
 
         if pure:
             if batch_size is not None:
