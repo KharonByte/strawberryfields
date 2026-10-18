@@ -6,6 +6,7 @@
 import importlib.util
 from pathlib import Path
 from types import SimpleNamespace
+import xml.etree.ElementTree as ET
 
 import numpy as np
 import pytest
@@ -103,6 +104,65 @@ def test_after_failure():
 @pytest.mark.parametrize("hbar", [0.5, 1.0], indirect=True)
 def test_requested_units_reach_global(hbar, request):
     assert hbar == sf.hbar == request.node.callspec.params["hbar"]
+
+
+def test_report_distinguishes_setup_units_from_body_units(pytester):
+    """Setup metadata must not claim to describe later states, even on failure."""
+    fixture_path = Path(__file__).resolve().parents[1] / "conftest.py"
+    pytester.makeconftest(fixture_path.read_text(encoding="utf-8"))
+    pytester.makepyfile("""
+import pytest
+import strawberryfields as sf
+
+def check_units(make_state, hbar, monkeypatch, request, completion):
+    assert sf.hbar == hbar
+    observed = []
+    for value in (1.0, 2.0):
+        monkeypatch.setattr(sf, "hbar", value)
+        state = make_state()
+        assert state.hbar == value
+        observed.append(str(state.hbar))
+    request.node.user_properties.append(("observed_state_units", ",".join(observed)))
+    if completion == "restored":
+        monkeypatch.setattr(sf, "hbar", hbar)
+    elif completion == "failed":
+        raise RuntimeError("intentional reporting probe")
+
+@pytest.mark.parametrize("hbar", [0.5, 1.7], indirect=True)
+@pytest.mark.parametrize("completion", ["changed", "restored", "failed"])
+def test_engine_units(setup_eng, hbar, monkeypatch, request, completion):
+    def make_state():
+        engine, program = setup_eng(1)
+        return engine.run(program).state
+    check_units(make_state, hbar, monkeypatch, request, completion)
+
+@pytest.mark.parametrize("hbar", [0.5, 1.7], indirect=True)
+@pytest.mark.parametrize("completion", ["changed", "restored", "failed"])
+def test_backend_units(setup_backend, hbar, monkeypatch, request, completion):
+    check_units(lambda: setup_backend(1).state(), hbar, monkeypatch, request, completion)
+""")
+    report = pytester.path / "units.xml"
+    result = pytester.runpytest_subprocess(
+        "-q",
+        "-p",
+        "no:randomly",
+        "-p",
+        "no:cacheprovider",
+        "-m",
+        "gaussian and pure",
+        f"--junitxml={report}",
+    )
+    result.assert_outcomes(passed=8, failed=4)
+    cases = list(ET.parse(report).getroot().iter("testcase"))
+    assert len(cases) == 12
+    for case in cases:
+        properties = {
+            prop.get("name"): prop.get("value") for prop in case.findall("./properties/property")
+        }
+        assert "sf_hbar" not in properties
+        assert properties["setup_hbar"] == properties["requested_hbar"]
+        assert float(properties["setup_hbar"]) in (0.5, 1.7)
+        assert properties["observed_state_units"] == "1.0,2.0"
 
 
 @pytest.mark.parametrize("variance", [0.137202909, 0.274405818])

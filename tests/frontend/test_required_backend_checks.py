@@ -263,7 +263,7 @@ def expanded_report(tmp_path, monkeypatch, request):
         )
         properties = ET.SubElement(case, "properties")
         for name, value in (
-            ("sf_hbar", str(unit)),
+            ("setup_hbar", str(unit)),
             ("requested_hbar", str(unit)),
             ("cutoff", "6"),
             ("batch_size", "2"),
@@ -278,7 +278,7 @@ def expanded_report(tmp_path, monkeypatch, request):
     return root, save
 
 
-def test_expanded_batch_checks_require_effective_configuration(expanded_report):
+def test_expanded_batch_checks_require_setup_configuration(expanded_report):
     _, save = expanded_report
     assert verify(save(), "tensorflow-batched-pure") == 2
 
@@ -301,8 +301,8 @@ def test_expanded_batch_checks_require_every_parameter(expanded_report):
 @pytest.mark.parametrize(
     "property_name,bad_value",
     [
-        ("sf_hbar", "1.7"),
-        ("sf_hbar", "0.5"),
+        ("setup_hbar", "1.7"),
+        ("setup_hbar", "0.5"),
         ("cutoff", "4"),
         ("batch_size", "None"),
         ("batch_size", "3"),
@@ -312,14 +312,23 @@ def test_mislabelled_configuration_is_rejected(expanded_report, property_name, b
     root, save = expanded_report
     for case in root:
         case.find(f"./properties/property[@name='{property_name}']").set("value", bad_value)
-    with pytest.raises(ValueError, match="effective (units|configuration)"):
+    with pytest.raises(ValueError, match="setup (units|configuration)"):
         verify(save(), "tensorflow-batched-pure")
 
 
 def test_configuration_evidence_cannot_be_missing(expanded_report):
     root, save = expanded_report
     root[0].remove(root[0].find("properties"))
-    with pytest.raises(ValueError, match="effective configuration"):
+    with pytest.raises(ValueError, match="setup configuration"):
+        verify(save(), "tensorflow-batched-pure")
+
+
+def test_ambiguous_unit_metadata_is_rejected(expanded_report):
+    """Legacy metadata cannot substitute for explicitly labelled setup units."""
+    root, save = expanded_report
+    for case in root:
+        case.find("./properties/property[@name='setup_hbar']").set("name", "sf_hbar")
+    with pytest.raises(ValueError, match="setup configuration"):
         verify(save(), "tensorflow-batched-pure")
 
 
@@ -344,7 +353,7 @@ def reduction_report(tmp_path, monkeypatch):
                 )
                 properties = ET.SubElement(case, "properties")
                 for name, value in (
-                    ("sf_hbar", str(unit)),
+                    ("setup_hbar", str(unit)),
                     ("requested_hbar", str(unit)),
                     ("cutoff", "6"),
                     ("batch_size", "None"),
@@ -376,28 +385,28 @@ def test_state_reduction_requires_all_units(reduction_report, configuration, exp
 def test_state_reduction_rejects_collapsed_units(reduction_report, change_requested):
     root, save = reduction_report
     for case in root:
-        case.find("./properties/property[@name='sf_hbar']").set("value", "1.7")
+        case.find("./properties/property[@name='setup_hbar']").set("value", "1.7")
         if change_requested:
             case.find("./properties/property[@name='requested_hbar']").set("value", "1.7")
-    with pytest.raises(ValueError, match="effective units"):
+    with pytest.raises(ValueError, match="setup units"):
         verify(save(), "all-backends")
 
 
 def test_state_reduction_rejects_swapped_units(reduction_report):
     """The correct total per unit cannot conceal circuits run at the wrong units."""
     root, save = reduction_report
-    root[0].find("./properties/property[@name='sf_hbar']").set("value", "1.7")
-    root[6].find("./properties/property[@name='sf_hbar']").set("value", "1.0")
-    with pytest.raises(ValueError, match="effective configuration"):
+    root[0].find("./properties/property[@name='setup_hbar']").set("value", "1.7")
+    root[6].find("./properties/property[@name='setup_hbar']").set("value", "1.0")
+    with pytest.raises(ValueError, match="setup configuration"):
         verify(save(), "all-backends")
 
 
 def test_state_reduction_rejects_uneven_unit_counts(reduction_report):
     """All units and the total count remain present, but one circuit/unit is missing."""
     root, save = reduction_report
-    for name in ("sf_hbar", "requested_hbar"):
+    for name in ("setup_hbar", "requested_hbar"):
         root[0].find(f"./properties/property[@name='{name}']").set("value", "1.7")
-    with pytest.raises(ValueError, match="effective units counts"):
+    with pytest.raises(ValueError, match="setup units counts"):
         verify(save(), "all-backends")
 
 
@@ -405,5 +414,5 @@ def test_state_reduction_requires_requested_unit_evidence(reduction_report):
     root, save = reduction_report
     properties = root[0].find("properties")
     properties.remove(properties.find("property[@name='requested_hbar']"))
-    with pytest.raises(ValueError, match="effective configuration"):
+    with pytest.raises(ValueError, match="setup configuration"):
         verify(save(), "all-backends")

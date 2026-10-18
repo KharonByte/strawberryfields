@@ -334,26 +334,26 @@ def verify(report, configuration):
                             for prop in case.findall("./properties/property")
                         }
                         try:
-                            effective = float(properties["sf_hbar"])
-                            units[effective] += 1
+                            setup_hbar = float(properties["setup_hbar"])
+                            units[setup_hbar] += 1
                             if classname in PARAMETRIZED_UNITS:
-                                assert effective == float(properties["requested_hbar"])
+                                assert setup_hbar == float(properties["requested_hbar"])
                             assert int(properties["cutoff"]) == 6
                             assert properties["batch_size"] == ("2" if batched else "None")
                         except (KeyError, ValueError, AssertionError):
                             errors.append(
-                                f"Missing or incorrect effective configuration: {label}: {case.get('name')}"
+                                f"Missing or incorrect setup configuration: {label}: {case.get('name')}"
                             )
                     expected_units = PARAMETRIZED_UNITS.get(classname, {1.7})
                     if matching and set(units) != expected_units:
                         errors.append(
-                            f"Incorrect effective units for {label}: expected {sorted(expected_units)}, found {sorted(units)}"
+                            f"Incorrect setup units for {label}: expected {sorted(expected_units)}, found {sorted(units)}"
                         )
                     if expected is not None and matching:
                         per_unit, remainder = divmod(expected, len(expected_units))
                         if remainder or units != {unit: per_unit for unit in expected_units}:
                             errors.append(
-                                f"Incorrect effective units counts for {label}: {dict(units)}"
+                                f"Incorrect setup units counts for {label}: {dict(units)}"
                             )
                 checked += len(matching)
     if errors:

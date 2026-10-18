@@ -51,8 +51,12 @@ per batch member using a two-sided chi-square interval with false-rejection
 probability 1e-6 for Gaussian samples, replacing the absolute tolerance that
 accepted a constant sampler. Regression tests reject zero/incorrectly scaled
 samples, lost coherences, missing configurations and mislabeled unit values.
-The CI guard requires the expanded counts and recorded units, cutoff and batch
-size, with per-unit counts and agreement between requested and effective units.
+The CI guard requires the expanded counts and setup configuration: `setup_hbar`,
+cutoff and batch size, with per-unit counts and agreement between requested and
+setup units. These properties are captured before the test body; they do not
+describe later unit changes. State-reduction and displacement tests also check
+the returned state's units directly. Reporting regressions exercise multiple
+state-unit values within one test, including restored units and failure paths.
 Non-vacuum TensorFlow fidelity remains a separate numerical defect.
 
 Backend capability exclusions remain: Gaussian backends cannot directly prepare

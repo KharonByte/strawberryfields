@@ -276,11 +276,11 @@ def setup_eng(setup_backend_pars):  # pylint: disable=redefined-outer-name
 
 
 def pytest_runtest_call(item):
-    """Record effective settings so CI need not trust parameter labels alone."""
+    """Record setup settings; tests may change units again inside their bodies."""
     if "setup_backend" in item.fixturenames or "setup_eng" in item.fixturenames:
         item.user_properties.extend(
             [
-                ("sf_hbar", str(sf.hbar)),
+                ("setup_hbar", str(sf.hbar)),
                 ("cutoff", str(item.funcargs["cutoff"])),
                 ("batch_size", str(item.funcargs["batch_size"])),
             ]
