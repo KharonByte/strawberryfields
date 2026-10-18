@@ -71,6 +71,15 @@ The coverage guard requires these configurations, including legacy storage-first
 parameter IDs, and rejects conflicting backend/state labels. See
 [the remaining-skip audit](SKIP-AUDIT.md) for unresolved coverage and software issues.
 
+An additional 42 configurations are enabled: 22 unbatched and ten in each TF
+batch profile. These cover Gaussian mode addition, Gaussian/Bosonic utility
+states in the Fock representation, cutoff-aware vacuum density matrices and
+batched channel-reference comparisons. The latter retain all three channel
+representations, both two-mode tensor layouts and distinct positive batch
+inputs. Regression tests reject missing batch axes, duplicated batch outputs
+and missing coverage requirements. The earlier unbatched channel inputs and
+numerical tolerances remain covered.
+
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
 and TensorFlow Wigner evaluation does not support batching. Existing numerical

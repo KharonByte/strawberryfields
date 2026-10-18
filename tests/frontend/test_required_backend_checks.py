@@ -22,6 +22,52 @@ PARITY_REQUIREMENTS = {
         ("backend.test_squeezed_state_preparation.TestFockRepresentation", "test_no_odd_fock"),
     )
 }
+ADAPTER_CASES = [
+    (
+        ("integration.test_utils_integration.TestInitialStatesAgreeFock", function),
+        backend,
+        "all-backends",
+    )
+    for function in ("test_vacuum", "test_coherent", "test_squeezed", "test_displaced_squeezed")
+    for backend in ("gaussian", "bosonic")
+]
+ADAPTER_CASES += [
+    (
+        ("backend.test_modes.TestFockRepresentation", "test_normalized_add_mode"),
+        "gaussian",
+        "all-backends",
+    )
+]
+ADAPTER_CASES += [
+    (("backend.test_states.TestBosonicState", "test_density_matrix"), backend, profile)
+    for backend, profile in (
+        ("fock", "all-backends"),
+        ("tf", "all-backends"),
+        ("tf", "tensorflow-batched-pure"),
+        ("tf", "tensorflow-batched-mixed"),
+    )
+]
+ADAPTER_CASES += [
+    (("integration.test_utils_integration." + classname, function + suffix), "tf", profile)
+    for classname, suffix in (
+        ("TestExtractChannelOneMode", ""),
+        ("TestExtractChannelTwoMode", ""),
+        ("TestExtractChannelTwoMode", "_vectorize"),
+    )
+    for function in (
+        "test_extract_choi_channel",
+        "test_extract_liouville_channel",
+        "test_extract_kraus_channel",
+    )
+    for profile in ("tensorflow-batched-pure", "tensorflow-batched-mixed")
+]
+ADAPTER_CATALOG = {
+    contract: (
+        deepcopy(module.UNBATCHED_REQUIRED.get(contract, {})),
+        deepcopy(module.BATCH_CAPABLE_REQUIRED.get(contract, {})),
+    )
+    for contract, _, _ in ADAPTER_CASES
+}
 
 pytestmark = pytest.mark.frontend
 
@@ -487,3 +533,43 @@ def test_extending_parity_keeps_gaussian_requirements(tmp_path, monkeypatch, con
     ET.ElementTree(root).write(path)
     with pytest.raises(ValueError, match="Missing: test_no_odd_fock/gaussian"):
         verify(path, "all-backends")
+
+
+@pytest.mark.parametrize("contract,backend,profile", ADAPTER_CASES)
+def test_density_adapters_cannot_disappear(tmp_path, monkeypatch, contract, backend, profile):
+    """Exercise the real catalog: every enabled adapter must be required in CI."""
+    unbatched, batch_capable = ADAPTER_CATALOG[contract]
+    batched = profile.startswith("tensorflow-batched-")
+    expected = batch_capable if batched else {**unbatched, **batch_capable}
+    assert expected[backend] == 1
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {contract: unbatched} if unbatched else {})
+    monkeypatch.setattr(
+        module, "BATCH_CAPABLE_REQUIRED", {contract: batch_capable} if batch_capable else {}
+    )
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {contract})
+    states = [profile.endswith("pure")] if batched else [True, False]
+    root = ET.Element("testsuite")
+    for required_backend in sorted(expected.keys() & module.MATRIX[profile]):
+        for pure in states:
+            case = ET.SubElement(
+                root,
+                "testcase",
+                classname=contract[0],
+                name=f"{contract[1]}[{required_backend}-{pure}]",
+            )
+            properties = ET.SubElement(case, "properties")
+            for name, value in (
+                ("setup_hbar", "1.7"),
+                ("cutoff", "6"),
+                ("batch_size", "2" if batched else "None"),
+            ):
+                ET.SubElement(properties, "property", name=name, value=value)
+    path = tmp_path / "density-adapters.xml"
+    ET.ElementTree(root).write(path)
+    assert verify(path, profile) == len(root)
+    removed = next(case for case in root if f"[{backend}-" in case.get("name"))
+    root.remove(removed)
+    ET.ElementTree(root).write(path)
+    with pytest.raises(ValueError, match="Missing:"):
+        verify(path, profile)

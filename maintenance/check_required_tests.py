@@ -269,6 +269,29 @@ SOFTWARE_ONLY_UNBATCHED.update(
 )
 for contract, counts in SOFTWARE_ONLY_UNBATCHED.items():
     UNBATCHED_REQUIRED[contract] = {**UNBATCHED_REQUIRED.get(contract, {}), **counts}
+# Density adapters preserve the original finite-cutoff assertions. Channel
+# extraction remains unbatched; its reference circuit now checks each TF batch.
+DENSITY_ADAPTER_UNBATCHED = {
+    ("integration.test_utils_integration.TestInitialStatesAgreeFock", function): {
+        "gaussian": 1,
+        "bosonic": 1,
+    }
+    for function in ("test_vacuum", "test_coherent", "test_squeezed", "test_displaced_squeezed")
+}
+DENSITY_ADAPTER_UNBATCHED[
+    ("backend.test_modes.TestFockRepresentation", "test_normalized_add_mode")
+] = {"gaussian": 1}
+UNBATCHED_REQUIRED.update(DENSITY_ADAPTER_UNBATCHED)
+for contract in tuple(SOFTWARE_ONLY_UNBATCHED):
+    if contract[0].startswith("integration.test_utils_integration.TestExtractChannel"):
+        BATCH_CAPABLE_REQUIRED[contract] = UNBATCHED_REQUIRED.pop(contract)
+DENSITY_ADAPTER_BATCH = ("backend.test_states.TestBosonicState", "test_density_matrix")
+BATCH_CAPABLE_REQUIRED[DENSITY_ADAPTER_BATCH] = {
+    **UNBATCHED_REQUIRED.pop(DENSITY_ADAPTER_BATCH),
+    "bosonic": 1,
+    "fock": 1,
+    "tf": 1,
+}
 BATCH_CAPABLE_REQUIRED.update(
     {
         ("backend.test_states_probabilities.TestAllFockProbs", "test_two_mode_gaussian"): {
@@ -288,7 +311,10 @@ BATCH_CAPABLE_REQUIRED.update(
     }
 )
 CONFIGURATION_REQUIRED = (
-    set(EXPANDED_UNBATCHED) | set(SOFTWARE_ONLY_UNBATCHED) | set(BATCH_CAPABLE_REQUIRED)
+    set(EXPANDED_UNBATCHED)
+    | set(SOFTWARE_ONLY_UNBATCHED)
+    | set(BATCH_CAPABLE_REQUIRED)
+    | set(DENSITY_ADAPTER_UNBATCHED)
 )
 PARAMETRIZED_UNITS = {
     "integration.test_hbar_integration.TestIntegration": {0.5, 1.0},

@@ -1,14 +1,19 @@
 # Software-only coverage audit
 
-The 704 enabled configurations comprise 584 Gaussian/Bosonic normalization
+The first 704 enabled configurations comprise 584 Gaussian/Bosonic normalization
 checks, 60 Bosonic squeezed-state parity checks, and 60 TensorFlow/edge cases.
 They need no physical quantum hardware. Original numerical tolerances are
 preserved; the new Bosonic parity assertion explicitly bounds floating-point
 cancellation without weakening the exact-zero checks for other backends.
 
-The remaining inventory contains **3,039 unbatched skips, 315 TensorFlow pure
-batch skips and 319 mixed batch skips**. These are configuration rows across
-255 test functions, not distinct unsupported features. Eight existing expected
+Another **42 configurations** are enabled: 18 TF batch channel-reference
+comparisons, 16 Gaussian/Bosonic utility-state density comparisons, two Gaussian
+mode-addition checks and six cutoff-aware Fock/TF vacuum-density checks. Channel
+extraction still uses Fock; TF independently executes the reference circuit.
+
+The remaining inventory contains **3,017 unbatched skips, 305 TensorFlow pure
+batch skips and 309 mixed batch skips**. These are configuration rows,
+not distinct unsupported features. Eight existing expected
 failures are separate from these totals.
 
 | Remaining classification | Configurations |
@@ -17,8 +22,7 @@ failures are separate from these totals.
 | Representation-specific or duplicate contract | 1,323 |
 | Parameter or execution precondition | 59 |
 | Correct dependency-profile exclusion | 1 |
-| Additional adapters validated locally | 42 |
-| Test adaptation or contract review still needed | 167 |
+| Investigated contracts requiring follow-up test work (below) | 167 |
 | Families blocked by reproduced failures, accuracy gaps or empty-state questions | 87 |
 | Resource-sensitive cases with a Gaussian-only oracle | 12 |
 
@@ -27,24 +31,43 @@ incompatible case was forcibly run. The simulator source was unchanged. Hosted
 JUnit artifacts retain every case's outcome and skip reason; the coverage guard
 requires the newly enabled configurations to execute and pass.
 
-## Further test work
+## Investigation of the other 167 configurations
 
-The following **42 remaining configurations** passed bounded local CPU probes
-with adapted assertions. They still need maintained tests, coverage guards and
-cross-platform validation before inclusion:
+All 167 original configurations were executed diagnostically with their backend
+exclusions bypassed. They produced 143 failures, 15 passes and nine remaining
+pure-storage skips. Nine of those passes executed no numerical assertions;
+the other six used incomplete batch indexing. These outcomes do not certify
+support. Independent adapters were then tested without changing simulator code
+or relaxing the original tolerances:
 
-- 18 TensorFlow batch channel-reference comparisons, including distinct positive
-  density inputs and complete batch shapes. Extraction itself uses Fock.
-- 16 Gaussian/Bosonic utility-state comparisons using complete density matrices
-  instead of assuming a pure-state ket representation.
-- Two Gaussian mode-addition checks using finite-density traces.
-- Six Fock/TF vacuum-density checks using the initialized cutoff and batch shape,
-  replacing the inappropriate hard-coded 10-by-10 reference.
+- **15 batch gradients:** analytic per-member Jacobians pass with distinct
+  parameters and explicit cross-member derivatives. Thermal preparation produces
+  mixed storage even when the engine starts in pure mode. These need maintained
+  gradient tests, not a claim that TensorFlow cannot differentiate vector output.
+- **66 state-decomposition cases:** 28 pass after finite-density moment/fidelity
+  adaptation. Twenty Bosonic cases execute native Gaussian preparation, so their
+  decomposed-instruction-count assertion does not apply. The other 18 exceed the
+  finite-cutoff accuracy budget. For example, the thermal covariance error drops
+  from 0.00664 at cutoff 6 to 0.00000653 at cutoff 12, below the unchanged 0.001
+  tolerance in the Fock control. Two of the passing Gaussian cases also expose
+  a weak rotated-squeezed reference: the ket needs phase `2 * phi` for covariance
+  rotated by `phi`. The old fidelity tolerance hides a full-density error of
+  0.0162; the corrected analytic reference agrees within 3e-16. Repair that
+  test oracle before enabling those two cases.
+- **68 phase-space cases:** the tests assume Gaussian moment accessors and need
+  explicit tensor/batch adapters. Representative interferometer comparisons pass
+  at cutoff 12 after failing at 6. Random active transforms, graph embedding,
+  teleportation and 500-shot cloning need separate precision/statistical budgets.
+  Bosonic rejects `GraphEmbed` at compilation in two configurations.
+- **18 P/CX/CZ gate cases:** the original assertions have no Fock/TF branch.
+  Full moment comparisons expose severe truncation at squeezing 3 and cutoff 6;
+  removing the skip alone gives false confidence. Meaningful finite-Fock
+  fixtures must retain the Gaussian/Bosonic high-squeezing checks separately.
+  Bounded-input Fock and mixed/batched TF controls pass at cutoff 12 with the
+  original 0.001 tolerance.
 
-The other 167 open review rows cover phase-space assertions (68), state
-decomposition/compiler contracts (66), batch gradients (15), and tests whose
-numerical branches currently omit the selected backend (18). A forced pass in
-that last group would not constitute numerical coverage. Existing batch photon
+These diagnostic adapters are not enabled by the 42-case change. Their follow-up
+tests need coverage guards and cross-platform validation. Existing batch photon
 statistics also need stronger shape and independent-member assertions.
 
 The general squeezed-state oracle's zero-squeezing exclusion is already covered

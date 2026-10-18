@@ -232,7 +232,7 @@ def test_density_oracle_rejects_corruption(assert_fock_density, cutoff, modes, c
 
 
 @pytest.mark.parametrize("backend", ["gaussian", "bosonic"])
-@pytest.mark.parametrize("modes", [1, 2])
+@pytest.mark.parametrize("modes", [1, 2, 4])
 @pytest.mark.parametrize("corruption", [None, "shape", "nonfinite", "normalization"])
 def test_finite_density_trace(state_trace, cutoff, tol, monkeypatch, backend, modes, corruption):
     """Interleaved ket/bra axes must preserve trace and expose lost population."""
@@ -240,7 +240,9 @@ def test_finite_density_trace(state_trace, cutoff, tol, monkeypatch, backend, mo
     ket = np.arange(1, cutoff**modes + 1).reshape((cutoff,) * modes).astype(complex)
     ket *= np.exp(0.31j * ket.real)
     ket /= np.linalg.norm(ket)
-    density = np.outer(ket, ket.conj()) if modes == 1 else np.einsum("ij,kl->ikjl", ket, ket.conj())
+    density = np.outer(ket, ket.conj()).reshape((cutoff,) * (2 * modes))
+    interleaved = [axis for mode in range(modes) for axis in (mode, mode + modes)]
+    density = density.transpose(interleaved)
     if corruption == "shape":
         density = density[0]
     elif corruption == "nonfinite":
@@ -287,3 +289,42 @@ def test_bosonic_parity_roundoff_bound(assert_bosonic_even, monkeypatch, corrupt
     else:
         with pytest.raises(AssertionError):
             assert_bosonic_even(state)
+
+
+@pytest.mark.parametrize("modes,vectorize", [(1, False), (2, False), (2, True)])
+@pytest.mark.parametrize("representation", ["choi", "liouville", "kraus"])
+@pytest.mark.parametrize("corruption", [None, "duplicate_member", "missing_batch"])
+def test_channel_assertions_check_every_batch(modes, vectorize, representation, corruption):
+    """The real channel tests must reject duplicated values and broadcastable shapes."""
+    path = Path(__file__).resolve().parents[1] / "integration" / "test_utils_integration.py"
+    spec = importlib.util.spec_from_file_location("channel_assertions", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    cutoff = 3
+    ket = np.zeros((2,) + (cutoff,) * modes, dtype=complex)
+    ket.reshape(2, -1)[0, :2] = [np.sqrt(0.7), 1j * np.sqrt(0.3)]
+    ket.reshape(2, -1)[1, :2] = [np.sqrt(0.2), -1j * np.sqrt(0.8)]
+    density = (
+        np.einsum("bi,bj->bij", ket, ket.conj())
+        if modes == 1
+        else np.einsum("bij,bkl->bikjl", ket, ket.conj())
+    )
+    reference = density.copy()
+    if corruption == "duplicate_member":
+        reference[1] = reference[0]
+    elif corruption == "missing_batch":
+        reference = reference[0]
+    program = sf.Program(modes)
+    with program.context as q:
+        ops.LossChannel(1.0) | q[0]
+    instance = (
+        module.TestExtractChannelOneMode() if modes == 1 else module.TestExtractChannelTwoMode()
+    )
+    suffix = "_vectorize" if vectorize else ""
+    check = getattr(instance, f"test_extract_{representation}_channel{suffix}")
+    arguments = ((program, reference, density), cutoff, 1e-3)
+    if corruption is None:
+        check(*arguments)
+    else:
+        with pytest.raises(AssertionError):
+            check(*arguments)

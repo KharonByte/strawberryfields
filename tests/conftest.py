@@ -137,7 +137,7 @@ def state_trace(cutoff):
         if not isinstance(state, (BaseGaussianState, BaseBosonicState)):
             return state.trace()
         modes = state.num_modes
-        assert modes in (1, 2)
+        assert 1 <= modes <= 4
         density = np.asarray(state.reduced_dm(list(range(modes)), cutoff=cutoff))
         assert density.shape == (cutoff,) * (2 * modes)
         assert np.all(np.isfinite(density))
