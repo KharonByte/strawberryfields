@@ -17,8 +17,14 @@ zero cross-member derivatives, at the existing cutoff and tolerance. Mixed
 two-mode tests prepare density matrices and verify their storage. The coherent
 ket gradient retains its mixed-storage exclusion.
 
-The remaining inventory contains **3,017 unbatched skips, 297 TensorFlow pure
-batch skips and 302 mixed batch skips**. These are configuration rows,
+Another **26 state-decomposition configurations** are enabled: 18 unbatched
+and four in each TF batch profile. Finite-density moments and squeezed-state
+projections preserve the covariance, mean, fidelity and instruction-count
+assertions. They check batch shapes and normalization without rescaling away
+cutoff loss; analytic controls cover complex correlations and the cutoff boundary.
+
+The remaining inventory contains **2,999 unbatched skips, 293 TensorFlow pure
+batch skips and 298 mixed batch skips**. These are configuration rows,
 not distinct unsupported features. Eight existing expected
 failures are separate from these totals.
 
@@ -28,7 +34,7 @@ failures are separate from these totals.
 | Representation-specific or duplicate contract | 1,323 |
 | Parameter or execution precondition | 59 |
 | Correct dependency-profile exclusion | 1 |
-| Investigated contracts still requiring follow-up test work (below) | 152 |
+| Investigated contracts still requiring follow-up test work (below) | 126 |
 | Families blocked by reproduced failures, accuracy gaps or empty-state questions | 87 |
 | Resource-sensitive cases with a Gaussian-only oracle | 12 |
 
@@ -51,12 +57,13 @@ or relaxing the original tolerances:
   Thermal preparation produces mixed storage even when the engine starts in
   pure mode. Regression tests reject summed, disconnected, duplicated and
   cross-coupled derivatives; the CI guard requires every supported configuration.
-- **66 state-decomposition cases:** 28 pass after finite-density moment/fidelity
-  adaptation. Twenty Bosonic cases execute native Gaussian preparation, so their
+- **66 state-decomposition cases, 26 now enabled:** maintained finite-density
+  adapters cover the verified low-energy states. Twenty Bosonic cases execute
+  native Gaussian preparation, so their
   decomposed-instruction-count assertion does not apply. The other 18 exceed the
   finite-cutoff accuracy budget. For example, the thermal covariance error drops
   from 0.00664 at cutoff 6 to 0.00000653 at cutoff 12, below the unchanged 0.001
-  tolerance in the Fock control. Two of the passing Gaussian cases also expose
+  tolerance in the Fock control. Two additional Gaussian cases expose
   a weak rotated-squeezed reference: the ket needs phase `2 * phi` for covariance
   rotated by `phi`. The old fidelity tolerance hides a full-density error of
   0.0162; the corrected analytic reference agrees within 3e-16. Repair that
@@ -65,6 +72,8 @@ or relaxing the original tolerances:
   explicit tensor/batch adapters. Representative interferometer comparisons pass
   at cutoff 12 after failing at 6. Random active transforms, graph embedding,
   teleportation and 500-shot cloning need separate precision/statistical budgets.
+  Matching clone marginals alone hides severe normalization loss (observed traces
+  0.2200 to 0.8999); those six configurations remain excluded pending convergence checks.
   Bosonic rejects `GraphEmbed` at compilation in two configurations.
 - **18 P/CX/CZ gate cases:** the original assertions have no Fock/TF branch.
   Full moment comparisons expose severe truncation at squeezing 3 and cutoff 6;
@@ -73,7 +82,7 @@ or relaxing the original tolerances:
   Bounded-input Fock and mixed/batched TF controls pass at cutoff 12 with the
   original 0.001 tolerance.
 
-The remaining 152 diagnostic configurations need follow-up tests, coverage
+The remaining 126 diagnostic configurations need follow-up tests, coverage
 guards and cross-platform validation. Existing batch photon
 statistics also need stronger shape and independent-member assertions.
 

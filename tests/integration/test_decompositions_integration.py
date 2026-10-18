@@ -462,7 +462,8 @@ class TestBosonicBackendPrepareState:
 class TestGaussianBackendDecomposeState:
     """Test decomposing several Gaussian states for the Gaussian backend."""
 
-    def test_vacuum(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_vacuum(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed vacuum state"""
         eng, prog = setup_eng(3)
         cov = (hbar / 2) * np.identity(6)
@@ -470,12 +471,14 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
-        assert np.all(state.means() == np.zeros([6]))
+        actual_means, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
+        assert np.all(actual_means == 0)
         assert np.allclose(state.fidelity_vacuum(), 1, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_squeezed(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_squeezed(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed squeezed state"""
         eng, prog = setup_eng(3)
         cov = (hbar / 2) * np.diag([np.exp(-0.1)] * 3 + [np.exp(0.1)] * 3)
@@ -484,10 +487,12 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
+        _, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_displaced_squeezed(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_displaced_squeezed(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed displaced squeezed state"""
         eng, prog = setup_eng(3)
         cov = (hbar / 2) * np.diag([np.exp(-0.1)] * 3 + [np.exp(0.1)] * 3)
@@ -497,8 +502,9 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov, means) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
-        assert np.allclose(state.means(), means, atol=tol)
+        actual_means, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
+        assert np.allclose(actual_means, means, atol=tol)
         assert len(eng.run_progs[-1]) == 7
 
     def test_thermal(self, setup_eng, hbar, tol):
@@ -513,7 +519,8 @@ class TestGaussianBackendDecomposeState:
         assert np.allclose(state.cov(), cov, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_rotated_squeezed(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_rotated_squeezed(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed rotated squeezed state"""
         eng, prog = setup_eng(3)
 
@@ -526,7 +533,8 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
+        _, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
     def test_random_state_mixed(self, setup_eng, V_mixed, r_means, tol):
@@ -568,7 +576,8 @@ class TestFockBackendDecomposeState:
         assert np.allclose(state.fidelity_vacuum(), 1, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_squeezed(self, setup_eng, cutoff, hbar, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian")
+    def test_squeezed(self, setup_eng, cutoff, hbar, tol, batch_size):
         eng, prog = setup_eng(3)
         r = 0.05
         phi = 0
@@ -582,7 +591,17 @@ class TestFockBackendDecomposeState:
         assert len(eng.run_progs[-1]) == 3
 
         for n in range(3):
-            assert np.allclose(state.fidelity(in_state, n), 1, atol=tol)
+            if eng.backend_name == "gaussian":
+                density = np.asarray(state.reduced_dm([n], cutoff=cutoff))
+                assert density.shape == (cutoff, cutoff)
+                np.testing.assert_allclose(
+                    density, np.outer(in_state, in_state.conj()), atol=tol, rtol=0
+                )
+                fidelity = np.vdot(in_state, density @ in_state).real
+            else:
+                fidelity = np.asarray(state.fidelity(in_state, n))
+            assert np.shape(fidelity) == (() if batch_size is None else (batch_size,))
+            assert np.allclose(fidelity, 1, atol=tol)
 
     def test_rotated_squeezed(self, setup_eng, cutoff, hbar, tol):
         eng, prog = setup_eng(3)

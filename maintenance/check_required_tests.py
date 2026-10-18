@@ -325,6 +325,28 @@ BATCH_CAPABLE_REQUIRED.update(
         )
     }
 )
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("integration.test_decompositions_integration." + classname, function): {
+            "gaussian": 1,
+            "fock": 1,
+            "tf": 1,
+        }
+        for classname, functions in (
+            (
+                "TestGaussianBackendDecomposeState",
+                (
+                    "test_vacuum",
+                    "test_squeezed",
+                    "test_displaced_squeezed",
+                    "test_rotated_squeezed",
+                ),
+            ),
+            ("TestFockBackendDecomposeState", ("test_squeezed",)),
+        )
+        for function in functions
+    }
+)
 # A mixed density matrix has no ket accessor. Other gradients require both stores.
 REQUIRED_STATES = {
     ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"}
@@ -387,12 +409,12 @@ LABELS = {
     "TFBackend": "tf",
 }
 PARAMETERS = re.compile(
-    r"(?:\[|-)(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
-    r"-(True|False)(?:-|\])"
+    r"(?=(?:\[|-)(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
+    r"-(True|False)(?:-|\]))"
 )
 STATE_FIRST_PARAMETERS = re.compile(
-    r"(?:\[|-)(True|False)-(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
-    r"(?:-|\])"
+    r"(?=(?:\[|-)(True|False)-(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
+    r"(?:-|\]))"
 )
 
 
@@ -426,18 +448,19 @@ def verify(report, configuration):
             name = case.get("name", "")
             if case.get("classname") != classname or name.split("[")[0] != function:
                 continue
-            match = PARAMETERS.search(name)
-            state_first = STATE_FIRST_PARAMETERS.search(name)
-            labels = match.groups() if match else None
-            if state_first:
-                reverse_labels = state_first.groups()[::-1]
-                if labels and labels != reverse_labels:
-                    errors.append(f"Ambiguous backend/state labels: {classname}::{name}")
-                    continue
-                labels = reverse_labels
+            # Lookaheads retain overlapping pairs, including shared '-' boundaries.
+            labels = {
+                (LABELS.get(backend, backend), pure) for backend, pure in PARAMETERS.findall(name)
+            }
+            labels.update(
+                (LABELS.get(backend, backend), pure)
+                for pure, backend in STATE_FIRST_PARAMETERS.findall(name)
+            )
+            if len(labels) > 1:
+                errors.append(f"Ambiguous backend/state labels: {classname}::{name}")
+                continue
             if labels:
-                backend, pure = labels
-                found.setdefault((LABELS.get(backend, backend), pure), []).append(case)
+                found.setdefault(labels.pop(), []).append(case)
         for backend in sorted(supported & selected):
             supported_states = REQUIRED_STATES.get(
                 (classname, function, backend), {"True", "False"}

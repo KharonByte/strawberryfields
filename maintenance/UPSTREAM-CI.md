@@ -88,6 +88,14 @@ the 15 corresponding unbatched cases; only the mixed-storage ket accessor stays
 excluded. Regression tests reject disconnected/summed gradients, wrong tensor
 axes, duplicated members and cross-member coupling, and require all 15 cases.
 
+The 26 state-decomposition configurations add 18 unbatched and eight TF batch
+checks. Finite-density moment adapters validate every marginal's shape and trace,
+retain complex correlations and include the cutoff boundary in second moments.
+Independent analytic controls cover xxpp ordering and distinct batch members.
+The guard requires all five affected tests across Gaussian, Fock and TF,
+including their earlier configurations, and checks every overlapping backend/state
+label after normalizing aliases. Conflicting later labels cannot satisfy coverage.
+
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
 and TensorFlow Wigner evaluation does not support batching. Existing numerical

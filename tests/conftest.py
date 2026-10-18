@@ -183,6 +183,70 @@ def assert_fock_density(cutoff, tol):
 
 
 @pytest.fixture
+def state_moments(cutoff, hbar, tol):
+    """Return xxpp moments from native Gaussian data or finite Fock marginals."""
+
+    def moments(state, batch_size=None):
+        modes = state.num_modes
+        assert 1 <= modes <= 3
+        batch = () if batch_size is None else (batch_size,)
+        if isinstance(state, BaseGaussianState):
+            means, covariance = np.asarray(state.means()), np.asarray(state.cov())
+        else:
+            means = np.empty(batch + (2 * modes,))
+            second = np.empty(batch + (2 * modes, 2 * modes))
+            # Multiply before cropping: x^2 and p^2 include the |cutoff> boundary.
+            ladder = np.diag(np.sqrt(np.arange(1, cutoff + 1)), 1)
+            quadratures = np.sqrt(hbar / 2) * np.array(
+                [ladder + ladder.T, -1j * (ladder - ladder.T)]
+            )
+
+            def marginal(selected):
+                density = np.asarray(state.reduced_dm(selected))
+                assert density.shape == batch + (cutoff,) * (2 * len(selected))
+                assert np.all(np.isfinite(density))
+                if len(selected) == 2:
+                    # Group interleaved ket/bra axes into a matrix.
+                    density = np.einsum("...abcd->...acbd", density).reshape(
+                        batch + (cutoff**2, cutoff**2)
+                    )
+                np.testing.assert_allclose(
+                    np.trace(density, axis1=-2, axis2=-1), 1, atol=tol, rtol=0
+                )
+                np.testing.assert_allclose(
+                    density, density.swapaxes(-1, -2).conj(), atol=tol, rtol=0
+                )
+                return density
+
+            for mode in range(modes):
+                density = marginal([mode])
+                for q, operator in enumerate(quadratures):
+                    means[..., mode + q * modes] = np.einsum(
+                        "...ij,ji->...", density, operator[:cutoff, :cutoff]
+                    ).real
+                    for p, other in enumerate(quadratures):
+                        product = (operator @ other + other @ operator) / 2
+                        second[..., mode + q * modes, mode + p * modes] = np.einsum(
+                            "...ij,ji->...", density, product[:cutoff, :cutoff]
+                        ).real
+                for partner in range(mode + 1, modes):
+                    density_pair = marginal([mode, partner])
+                    for q, operator in enumerate(quadratures):
+                        for p, other in enumerate(quadratures):
+                            product = np.kron(operator[:cutoff, :cutoff], other[:cutoff, :cutoff])
+                            value = np.einsum("...ij,ji->...", density_pair, product).real
+                            first, last = mode + q * modes, partner + p * modes
+                            second[..., first, last] = second[..., last, first] = value
+            covariance = second - np.einsum("...i,...j->...ij", means, means)
+        assert means.shape == batch + (2 * modes,)
+        assert covariance.shape == batch + (2 * modes, 2 * modes)
+        assert np.all(np.isfinite(means)) and np.all(np.isfinite(covariance))
+        return means, covariance
+
+    return moments
+
+
+@pytest.fixture
 def assert_independent_jacobian(tol):
     """Require each analytic derivative and zero coupling between batch members."""
 

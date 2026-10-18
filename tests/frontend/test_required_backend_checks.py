@@ -61,6 +61,24 @@ ADAPTER_CASES += [
     )
     for profile in ("tensorflow-batched-pure", "tensorflow-batched-mixed")
 ]
+ADAPTER_CASES += [
+    (("integration.test_decompositions_integration." + classname, function), backend, profile)
+    for classname, functions in (
+        (
+            "TestGaussianBackendDecomposeState",
+            ("test_vacuum", "test_squeezed", "test_displaced_squeezed", "test_rotated_squeezed"),
+        ),
+        ("TestFockBackendDecomposeState", ("test_squeezed",)),
+    )
+    for function in functions
+    for backend, profile in (
+        ("gaussian", "all-backends"),
+        ("fock", "all-backends"),
+        ("tf", "all-backends"),
+        ("tf", "tensorflow-batched-pure"),
+        ("tf", "tensorflow-batched-mixed"),
+    )
+]
 ADAPTER_CATALOG = {
     contract: (
         deepcopy(module.UNBATCHED_REQUIRED.get(contract, {})),
@@ -588,6 +606,50 @@ def test_density_adapters_cannot_disappear(tmp_path, monkeypatch, contract, back
     ET.ElementTree(root).write(path)
     with pytest.raises(ValueError, match="Missing:"):
         verify(path, profile)
+    root.append(removed)
+    ET.SubElement(removed, "skipped")
+    ET.ElementTree(root).write(path)
+    with pytest.raises(ValueError, match="Did not pass:"):
+        verify(path, profile)
+
+
+@pytest.mark.parametrize(
+    "parameters,ambiguous",
+    [
+        ("tf-{state}-tf-{other}", True),
+        ("{state}-tf-{other}", True),
+        ("tf-{state}-{other}-tf", True),
+        ("{state}-tf-{state}-fock", True),
+        ("tf-{state}-extra-TFBackend-{other}", True),
+        ("tf-{state}-tf-{state}-tf-{other}", True),
+        ("{state}-tf-{state}-tf-{other}", True),
+        ("tf-{state}-tf", False),
+        ("{state}-tf-{state}", False),
+        ("tf-{state}-TFBackend-{state}", False),
+        ("TFBackend-{state}-tf-{state}", False),
+        ("0.2-{state}-TFBackend-0.7", False),
+    ],
+)
+def test_all_overlapping_labels_are_checked(tmp_path, monkeypatch, parameters, ambiguous):
+    """Later conflicts cannot masquerade as a passing scalar or batched case."""
+    contract = ("integration.test_guard", "test_contract")
+    monkeypatch.setattr(module, "REQUIRED", {contract: {"tf"}})
+    for profile in ("all-backends", "tensorflow-batched-pure", "tensorflow-batched-mixed"):
+        states = [True, False] if profile == "all-backends" else [profile.endswith("pure")]
+        root = ET.Element("testsuite")
+        for state in states:
+            ET.SubElement(
+                root, "testcase", classname=contract[0], name=f"{contract[1]}[tf-{state}]"
+            )
+        labels = parameters.format(state=states[0], other=not states[0])
+        root[0].set("name", f"{contract[1]}[{labels}]")
+        path = tmp_path / "overlapping-labels.xml"
+        ET.ElementTree(root).write(path)
+        if ambiguous:
+            with pytest.raises(ValueError, match="Ambiguous backend/state"):
+                verify(path, profile)
+        else:
+            assert verify(path, profile) == len(states)
 
 
 @pytest.fixture
