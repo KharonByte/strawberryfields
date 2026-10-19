@@ -48,25 +48,30 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("r", SQZ_R)
     @pytest.mark.parametrize("theta", SQZ_THETA)
-    def test_normalized_squeezed_state(self, setup_backend, r, theta, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_squeezed_state(self, setup_backend, r, theta, tol, state_trace):
         """Tests if a range of squeezed vacuum states are normalized."""
         backend = setup_backend(1)
 
         backend.prepare_squeezed_state(r, theta, 0)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1.0, atol=tol, rtol=0.0)
 
     @pytest.mark.parametrize("r", SQZ_R)
     @pytest.mark.parametrize("theta", SQZ_THETA)
-    @pytest.mark.backends("fock", "tf", "gaussian")
-    def test_no_odd_fock(self, setup_backend, r, theta, batch_size):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_no_odd_fock(self, setup_backend, r, theta, batch_size, assert_bosonic_even):
         """Tests if a range of squeezed vacuum states have
         only nonzero entries for even Fock states."""
         backend = setup_backend(1)
 
         backend.prepare_squeezed_state(r, theta, 0)
         s = backend.state()
+
+        if backend.short_name == "bosonic":
+            assert_bosonic_even(s)
+            return
 
         if s.is_pure:
             num_state = s.ket()

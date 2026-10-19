@@ -64,25 +64,29 @@ class TestRepresentationIndependent:
 class TestFockRepresentation:
     """Tests that make use of the Fock basis representation."""
 
-    def test_normalized_prepare_vac(self, setup_backend, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_prepare_vac(self, setup_backend, tol, state_trace):
         """Tests the ability to prepare vacuum states."""
 
         backend = setup_backend(1)
 
         backend.prepare_vacuum_state(0)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1.0, atol=tol, rtol=0.0)
 
     @pytest.mark.parametrize("mag_alpha", MAG_ALPHAS)
     @pytest.mark.parametrize("phase_alpha", PHASE_ALPHAS)
-    def test_normalized_coherent_state(self, setup_backend, mag_alpha, phase_alpha, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_coherent_state(
+        self, setup_backend, mag_alpha, phase_alpha, tol, state_trace
+    ):
         """Tests if a range of coherent states are normalized."""
         backend = setup_backend(1)
 
         backend.prepare_coherent_state(mag_alpha, phase_alpha, 0)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1.0, atol=tol, rtol=0.0)
 
     def test_prepare_ket_state(self, setup_backend, cutoff, tol):

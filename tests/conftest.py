@@ -29,6 +29,7 @@ from strawberryfields.backends.base import BaseBackend
 from strawberryfields.backends.fockbackend import FockBackend
 from strawberryfields.backends.gaussianbackend import GaussianBackend
 from strawberryfields.backends.bosonicbackend import BosonicBackend
+from strawberryfields.backends.states import BaseGaussianState, BaseBosonicState
 
 try:
     import tensorflow as tf
@@ -129,6 +130,40 @@ def assert_normal_variance():
 
 
 @pytest.fixture
+def state_trace(cutoff):
+    """Use the native Fock trace or trace the finite Gaussian/Bosonic Fock tensor."""
+
+    def trace(state):
+        if not isinstance(state, (BaseGaussianState, BaseBosonicState)):
+            return state.trace()
+        modes = state.num_modes
+        assert 1 <= modes <= 4
+        density = np.asarray(state.reduced_dm(list(range(modes)), cutoff=cutoff))
+        assert density.shape == (cutoff,) * (2 * modes)
+        assert np.all(np.isfinite(density))
+        # reduced_dm interleaves ket/bra axes; group them before taking the trace.
+        axes = list(range(0, 2 * modes, 2)) + list(range(1, 2 * modes, 2))
+        return np.trace(density.transpose(axes).reshape(cutoff**modes, cutoff**modes))
+
+    return trace
+
+
+@pytest.fixture
+def assert_bosonic_even():
+    """Bound cancellation roundoff at the original Bosonic dm() cutoff of ten."""
+
+    def check(state):
+        density = np.asarray(state.reduced_dm([0], cutoff=10))
+        assert density.shape == (10, 10)
+        assert np.all(np.isfinite(density))
+        bound = 100 * np.finfo(np.float64).eps
+        np.testing.assert_allclose(density[1::2, :], 0, atol=bound, rtol=0)
+        np.testing.assert_allclose(density[:, 1::2], 0, atol=bound, rtol=0)
+
+    return check
+
+
+@pytest.fixture
 def assert_fock_density(cutoff, tol):
     """Compare the full one/two-mode density matrix to independent Fock coefficients."""
 
@@ -142,6 +177,154 @@ def assert_fock_density(cutoff, tol):
         )
         actual = np.asarray(state.reduced_dm(modes, cutoff=cutoff))
         assert actual.shape == expected.shape
+        np.testing.assert_allclose(actual, expected, atol=tol, rtol=0)
+
+    return check
+
+
+@pytest.fixture
+def state_moments(cutoff, hbar, tol):
+    """Return xxpp moments from native Gaussian data or finite Fock marginals."""
+
+    def moments(state, batch_size=None):
+        modes = state.num_modes
+        assert 1 <= modes <= 3
+        batch = () if batch_size is None else (batch_size,)
+        if isinstance(state, BaseGaussianState):
+            means, covariance = np.asarray(state.means()), np.asarray(state.cov())
+        else:
+            means = np.empty(batch + (2 * modes,))
+            second = np.empty(batch + (2 * modes, 2 * modes))
+            # Multiply before cropping: x^2 and p^2 include the |cutoff> boundary.
+            ladder = np.diag(np.sqrt(np.arange(1, cutoff + 1)), 1)
+            quadratures = np.sqrt(hbar / 2) * np.array(
+                [ladder + ladder.T, -1j * (ladder - ladder.T)]
+            )
+
+            def marginal(selected):
+                density = np.asarray(state.reduced_dm(selected))
+                assert density.shape == batch + (cutoff,) * (2 * len(selected))
+                assert np.all(np.isfinite(density))
+                if len(selected) == 2:
+                    # Group interleaved ket/bra axes into a matrix.
+                    density = np.einsum("...abcd->...acbd", density).reshape(
+                        batch + (cutoff**2, cutoff**2)
+                    )
+                np.testing.assert_allclose(
+                    np.trace(density, axis1=-2, axis2=-1), 1, atol=tol, rtol=0
+                )
+                np.testing.assert_allclose(
+                    density, density.swapaxes(-1, -2).conj(), atol=tol, rtol=0
+                )
+                return density
+
+            for mode in range(modes):
+                density = marginal([mode])
+                for q, operator in enumerate(quadratures):
+                    means[..., mode + q * modes] = np.einsum(
+                        "...ij,ji->...", density, operator[:cutoff, :cutoff]
+                    ).real
+                    for p, other in enumerate(quadratures):
+                        product = (operator @ other + other @ operator) / 2
+                        second[..., mode + q * modes, mode + p * modes] = np.einsum(
+                            "...ij,ji->...", density, product[:cutoff, :cutoff]
+                        ).real
+                for partner in range(mode + 1, modes):
+                    density_pair = marginal([mode, partner])
+                    for q, operator in enumerate(quadratures):
+                        for p, other in enumerate(quadratures):
+                            product = np.kron(operator[:cutoff, :cutoff], other[:cutoff, :cutoff])
+                            value = np.einsum("...ij,ji->...", density_pair, product).real
+                            first, last = mode + q * modes, partner + p * modes
+                            second[..., first, last] = second[..., last, first] = value
+            covariance = second - np.einsum("...i,...j->...ij", means, means)
+        assert means.shape == batch + (2 * modes,)
+        assert covariance.shape == batch + (2 * modes, 2 * modes)
+        assert np.all(np.isfinite(means)) and np.all(np.isfinite(covariance))
+        return means, covariance
+
+    return moments
+
+
+@pytest.fixture
+def assert_finite_gaussian_moments(state_moments, batch_size, tol):
+    """Compare finite-state moments with the full expected batch and covariance."""
+
+    def check(state, expected_means, expected_covariance):
+        means, covariance = state_moments(state, batch_size)
+        batch = () if batch_size is None else (batch_size,)
+        dimension = 2 * state.num_modes
+        expected_means = np.broadcast_to(expected_means, batch + (dimension,))
+        expected_covariance = np.broadcast_to(expected_covariance, batch + (dimension, dimension))
+        assert means.shape == expected_means.shape
+        assert covariance.shape == expected_covariance.shape
+        np.testing.assert_allclose(means, expected_means, atol=tol, rtol=0)
+        np.testing.assert_allclose(covariance, expected_covariance, atol=tol, rtol=0)
+
+    return check
+
+
+@pytest.fixture
+def assert_passive_moments(tol):
+    """Require analytic moments as well as agreement between two simulated states."""
+
+    def check(initial, final, optical, expected_means, expected_cov, batch_size=None):
+        dimension = optical.shape[0]
+        assert optical.shape == (dimension, dimension)
+        batch = () if batch_size is None else (batch_size,)
+        expected_means = np.broadcast_to(expected_means, batch + (dimension,))
+        expected_cov = np.broadcast_to(expected_cov, batch + (dimension, dimension))
+        for (means, covariance), reference_means, reference_cov in (
+            (initial, expected_means, expected_cov),
+            (final, expected_means @ optical.T, optical @ expected_cov @ optical.T),
+        ):
+            assert means.shape == reference_means.shape
+            assert covariance.shape == reference_cov.shape
+            np.testing.assert_allclose(means, reference_means, atol=tol, rtol=0)
+            np.testing.assert_allclose(covariance, reference_cov, atol=tol, rtol=0)
+        # Retain the original covariance-propagation assertion too.
+        assert np.allclose(final[1], optical @ initial[1] @ optical.T, atol=tol)
+
+    return check
+
+
+@pytest.fixture
+def assert_marginal_fidelity(cutoff, tol):
+    """Check complex marginal coherences before projecting onto the reference ket."""
+
+    def check(state, mode, ket, batch_size=None):
+        assert ket.shape == (cutoff,)
+        batch = () if batch_size is None else (batch_size,)
+        density = np.asarray(state.reduced_dm([mode], cutoff=cutoff))
+        assert density.shape == batch + (cutoff, cutoff)
+        expected = np.broadcast_to(np.outer(ket, ket.conj()), density.shape)
+        np.testing.assert_allclose(density, expected, atol=tol, rtol=0)
+        np.testing.assert_allclose(np.trace(density, axis1=-2, axis2=-1), 1, atol=tol, rtol=0)
+        fidelity = np.einsum("i,...ij,j->...", ket.conj(), density, ket).real
+        assert fidelity.shape == batch
+        assert np.allclose(fidelity, 1, atol=tol)
+        return fidelity
+
+    return check
+
+
+@pytest.fixture
+def assert_independent_jacobian(tol):
+    """Require each analytic derivative and zero coupling between batch members."""
+
+    def check(actual, derivative, batch_size):
+        derivative = np.asarray(derivative)
+        assert np.all(np.isfinite(derivative))
+        expected = derivative
+        if batch_size is not None:
+            assert derivative.ndim >= 1 and derivative.shape[0] == batch_size
+            expected = np.zeros(derivative.shape + (batch_size,))
+            for member in range(batch_size):
+                expected[member, ..., member] = derivative[member]
+        assert actual is not None, "Disconnected gradient"
+        actual = np.asarray(actual)
+        assert actual.shape == expected.shape, "Incorrect Jacobian shape"
+        assert np.all(np.isfinite(actual))
         np.testing.assert_allclose(actual, expected, atol=tol, rtol=0)
 
     return check
@@ -288,6 +471,13 @@ def pytest_runtest_call(item):
         parameters = getattr(getattr(item, "callspec", None), "params", {})
         if "hbar" in parameters:
             item.user_properties.append(("requested_hbar", str(parameters["hbar"])))
+        recorded = {"mesh"}
+        if "assert_finite_gaussian_moments" in item.fixturenames:
+            recorded.update(("a", "r", "phi"))
+        item.user_properties.extend(
+            ("parameter_" + name, str(parameters[name]))
+            for name in sorted(recorded & parameters.keys())
+        )
 
 
 def pytest_runtest_setup(item):

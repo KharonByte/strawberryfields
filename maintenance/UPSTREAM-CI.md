@@ -59,6 +59,63 @@ the returned state's units directly. Reporting regressions exercise multiple
 state-unit values within one test, including restored units and failure paths.
 Non-vacuum TensorFlow fidelity remains a separate numerical defect.
 
+Another 704 previously skipped configurations are enabled: 689 unbatched and
+15 TensorFlow batched. Gaussian/Bosonic normalization uses finite-cutoff density
+tensors with explicit ket/bra ordering and the existing tolerance. Bosonic
+squeezed-state parity retains cutoff 10 and permits only cancellation roundoff
+(`100 * float64.eps`); other backends retain exact-zero assertions. TensorFlow
+probability, density-matrix and unitary-reference comparisons check complete
+batch shapes and distinct inputs. Channel extraction still uses Fock internally;
+the added coverage compares its output with independently executed TF circuits.
+The coverage guard requires these configurations, including legacy storage-first
+parameter IDs, and rejects conflicting backend/state labels. See
+[the remaining-skip audit](SKIP-AUDIT.md) for unresolved coverage and software issues.
+
+An additional 42 configurations are enabled: 22 unbatched and ten in each TF
+batch profile. These cover Gaussian mode addition, Gaussian/Bosonic utility
+states in the Fock representation, cutoff-aware vacuum density matrices and
+batched channel-reference comparisons. The latter retain all three channel
+representations, both two-mode tensor layouts and distinct positive batch
+inputs. Regression tests reject missing batch axes, duplicated batch outputs
+and missing coverage requirements. The earlier unbatched channel inputs and
+numerical tolerances remain covered.
+
+The 15 TensorFlow batch gradient configurations (eight pure, seven mixed) now
+compare full Jacobians to analytic derivatives. Distinct parameters exercise
+every batch member and zero cross-member derivatives. Mixed two-mode tests use
+density-matrix preparation and verify their storage. The guard also requires
+the 15 corresponding unbatched cases; only the mixed-storage ket accessor stays
+excluded. Regression tests reject disconnected/summed gradients, wrong tensor
+axes, duplicated members and cross-member coupling, and require all 15 cases.
+
+The 26 state-decomposition configurations add 18 unbatched and eight TF batch
+checks. Finite-density moment adapters validate every marginal's shape and trace,
+retain complex correlations and include the cutoff boundary in second moments.
+Independent analytic controls cover xxpp ordering and distinct batch members.
+The guard requires all five affected tests across Gaussian, Fock and TF,
+including their earlier configurations, and checks every overlapping backend/state
+label after normalizing aliases. Conflicting later labels cannot satisfy coverage.
+
+The next 38 configurations add 26 unbatched and 12 TF batch checks for thermal
+and passive decompositions and rotated-squeezed projections. The guard requires
+cutoff 12 for the thermal test and 16 for the five passive tests. Analytic moments prevent matching
+truncation errors from passing together. Full complex marginal comparisons catch
+incorrect squeezing phases that fidelity alone misses. Separate low-energy
+controls check all five passive decompositions with distinct TF batch inputs in
+actual pure and mixed storage, at cutoff 6. Negative controls reject biased
+covariances, phase errors, lost batch axes and duplicated members. These checks
+need CPU memory, not physical quantum hardware.
+
+Another 78 Gaussian-utility moment comparisons cover 52 unbatched Fock/TF cases
+and 13 in each TF batch profile, preserving the native Gaussian/Bosonic checks.
+The squeezed and displaced-squeezed tests and their distinct-input controls use
+cutoff 8; vacuum/coherent checks retain 6. Original inputs and tolerances remain.
+Regressions cover complex coherences, covariance, units, normalization, missing
+batch axes and duplicated members. Pytest records actual mesh and utility
+parameters; the guard rejects missing meshes, duplicate parameter tuples and
+missing or ambiguous metadata, even when pytest gives repeated inputs unique IDs.
+All other guarded configurations retain cutoff 6.
+
 Backend capability exclusions remain: Gaussian backends cannot directly prepare
 Fock states, direct two-mode squeezing is implemented only by Fock/TensorFlow,
 and TensorFlow Wigner evaluation does not support batching. Existing numerical
@@ -75,6 +132,22 @@ BATCHED=0 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
   --junitxml=tests.xml
 python maintenance/check_required_tests.py tests.xml all-backends
 ```
+
+The two Fock graph-embedding checks retain the original two-mode input and
+photon-number tolerance, using finite-density moments at cutoff 48. The guard
+requires pure and mixed Fock storage plus the existing Gaussian controls, and
+rejects missing, skipped, duplicated or incorrectly configured cases. Independent
+regressions reject errors smaller than the general 0.001 test tolerance.
+TensorFlow graph variants retain their exclusions; no precision default or
+simulator code changes are included.
+
+The pure-Fock three-mode graph check uses cutoff 72 and computes moments
+directly from its ket, preserving the cutoff boundary without allocating a
+full density matrix. It retains the original graph assertions and adds an
+independent covariance reference. Regressions exercise complex phases, mode
+order, units, normalization and storage; the guard requires this case and
+both existing Gaussian controls. Mixed Fock stays excluded before execution,
+and the separate TensorFlow precision issue does not change TF coverage.
 
 The first complete [hosted run](https://github.com/KharonByte/strawberryfields/actions/runs/38256686910)
 passed all seven configurations and the `core-tests` gate at commit `d3cd5fc`

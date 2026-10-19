@@ -146,8 +146,9 @@ class TestPostselection:
             else:
                 assert np.all(photons_out == total_photons)
 
-    @pytest.mark.backends("gaussian")
-    def test_embed_graph(self, setup_eng, hbar):
+    @pytest.mark.backends("gaussian", "fock")
+    @pytest.mark.parametrize("cutoff", [48], indirect=True)
+    def test_embed_graph(self, setup_eng, hbar, state_moments):
         """Test that an embedded graph has the right total mean photon number."""
 
         eng, prog = setup_eng(2)
@@ -157,7 +158,12 @@ class TestPostselection:
             ops.GraphEmbed(A, n_mean_per_mode) | (q[0], q[1])
 
         state = eng.run(prog).state
-        cov = state.cov()
+        if eng.backend_name == "gaussian":
+            cov = state.cov()
+        else:
+            assert bool(state.is_pure) == eng.backend_options["pure"]
+            means, cov = state_moments(state)
+            np.testing.assert_allclose(means, 0, atol=1e-8, rtol=0)
         n_mean_tot = np.trace(cov / (hbar / 2) - np.identity(4)) / 4
         expected = 2 * n_mean_per_mode
         assert np.allclose(n_mean_tot, expected)
@@ -262,7 +268,7 @@ class TestDarkCounts:
             np.asarray(q[1].val).reshape(-1), expected[..., 1].reshape(-1)
         )
 
-    @pytest.mark.backends("fock")
+    @pytest.mark.backends("fock", "tf")
     @pytest.mark.parametrize("dark_counts", [[3], 6, [4, 2, 1]])
     def test_fock_darkcounts_errors(self, dark_counts, setup_eng):
         """Test Fock measurements errors when applying dark counts to more/less detectors than measured"""

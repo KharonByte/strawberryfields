@@ -55,14 +55,15 @@ class TestRepresentationIndependent:
 class TestFockRepresentation:
     """Tests that make use of the Fock basis representation."""
 
-    def test_normalized_add_mode(self, setup_backend, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian")
+    def test_normalized_add_mode(self, setup_backend, tol, state_trace):
         """Tests if a state is normalized after adding modes."""
         backend = setup_backend(1)
 
         for num_subsystems in range(3):
             backend.add_mode(num_subsystems)
             state = backend.state()
-            tr = state.trace()
+            tr = state_trace(state)
             assert np.allclose(tr, 1.0, atol=tol, rtol=0.0)
 
     def test_normalized_del_mode(self, setup_backend, tol):

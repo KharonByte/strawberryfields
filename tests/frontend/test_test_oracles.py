@@ -18,6 +18,85 @@ pytestmark = pytest.mark.frontend
 pytest_plugins = ["pytester"]
 
 
+@pytest.mark.parametrize(
+    "batch_size,derivative,jacobian",
+    [
+        (None, 2.0, 2.0),
+        (None, [2.0, -1.0], [2.0, -1.0]),
+        (1, [2.0], [[2.0]]),
+        (2, [2.0, 4.0], [[2.0, 0.0], [0.0, 4.0]]),
+        (2, [[2.0, -1.0], [4.0, -3.0]], [[[2.0, 0.0], [-1.0, 0.0]], [[0.0, 4.0], [0.0, -3.0]]]),
+        (
+            3,
+            [[2.0, 1.0], [4.0, 1.0], [6.0, 1.0]],
+            [
+                [[2.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+                [[0.0, 4.0, 0.0], [0.0, 1.0, 0.0]],
+                [[0.0, 0.0, 6.0], [0.0, 0.0, 1.0]],
+            ],
+        ),
+    ],
+)
+def test_independent_jacobian_accepts_analytic_entries(
+    assert_independent_jacobian, batch_size, derivative, jacobian
+):
+    """Scalar, multiple-output and unequal output/batch axes retain their shape."""
+    assert_independent_jacobian(jacobian, derivative, batch_size)
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    [
+        "missing_output_batch",
+        "summed_gradient",
+        "duplicated_member",
+        "cross_member",
+        "swapped_members",
+        "transposed_axes",
+        "nan",
+        "zero",
+        "disconnected",
+    ],
+)
+def test_independent_jacobian_rejects_incorrect_batches(assert_independent_jacobian, corruption):
+    """The Jacobian of (x**2, x) at x=[1,2,3] has no cross-member entries."""
+    derivative = np.array([[2.0, 1.0], [4.0, 1.0], [6.0, 1.0]])
+    jacobian = np.array(
+        [
+            [[2.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+            [[0.0, 4.0, 0.0], [0.0, 1.0, 0.0]],
+            [[0.0, 0.0, 6.0], [0.0, 0.0, 1.0]],
+        ]
+    )
+    if corruption == "missing_output_batch":
+        jacobian = jacobian[0]
+    elif corruption == "summed_gradient":
+        jacobian = jacobian.sum(axis=(0, 1))
+    elif corruption == "duplicated_member":
+        jacobian[1, 0, 1] = jacobian[2, 0, 2] = 2.0
+    elif corruption == "cross_member":
+        jacobian[0, 0, 1] = 1.0
+    elif corruption == "swapped_members":
+        jacobian = jacobian[::-1, :, ::-1]
+    elif corruption == "transposed_axes":
+        jacobian = jacobian.transpose(1, 0, 2)
+    elif corruption == "nan":
+        jacobian[0, 0, 0] = np.nan
+    elif corruption == "zero":
+        jacobian[:] = 0
+    else:
+        jacobian = None
+    with pytest.raises(AssertionError):
+        assert_independent_jacobian(jacobian, derivative, 3)
+
+
+@pytest.mark.parametrize("jacobian", [None, 0.0, [2.0], np.nan])
+def test_independent_jacobian_rejects_incorrect_scalar(assert_independent_jacobian, jacobian):
+    """Enabling batches must preserve the scalar derivative contract."""
+    with pytest.raises(AssertionError):
+        assert_independent_jacobian(jacobian, 2.0, None)
+
+
 def test_hbar_fixture_precedence_and_restoration(pytester, monkeypatch):
     """Exercise the real fixture through pytest, including failing test teardown."""
     fixture_path = Path(__file__).resolve().parents[1] / "conftest.py"
@@ -229,3 +308,102 @@ def test_density_oracle_rejects_corruption(assert_fock_density, cutoff, modes, c
     state = SimpleNamespace(reduced_dm=lambda *args, **kwargs: density)
     with pytest.raises(AssertionError):
         assert_fock_density(state, ket)
+
+
+@pytest.mark.parametrize("backend", ["gaussian", "bosonic"])
+@pytest.mark.parametrize("modes", [1, 2, 4])
+@pytest.mark.parametrize("corruption", [None, "shape", "nonfinite", "normalization"])
+def test_finite_density_trace(state_trace, cutoff, tol, monkeypatch, backend, modes, corruption):
+    """Interleaved ket/bra axes must preserve trace and expose lost population."""
+    state = sf.Engine(backend).run(sf.Program(modes)).state
+    ket = np.arange(1, cutoff**modes + 1).reshape((cutoff,) * modes).astype(complex)
+    ket *= np.exp(0.31j * ket.real)
+    ket /= np.linalg.norm(ket)
+    density = np.outer(ket, ket.conj()).reshape((cutoff,) * (2 * modes))
+    interleaved = [axis for mode in range(modes) for axis in (mode, mode + modes)]
+    density = density.transpose(interleaved)
+    if corruption == "shape":
+        density = density[0]
+    elif corruption == "nonfinite":
+        density.flat[0] = np.nan
+    elif corruption == "normalization":
+        density *= 0.9
+
+    def reduced_dm(selected, cutoff):
+        assert selected == list(range(modes))
+        assert cutoff == ket.shape[0]
+        return density
+
+    monkeypatch.setattr(state, "reduced_dm", reduced_dm)
+    if corruption is None:
+        assert np.allclose(state_trace(state), 1, atol=tol, rtol=0)
+    else:
+        with pytest.raises(AssertionError):
+            assert np.allclose(state_trace(state), 1, atol=tol, rtol=0)
+
+
+@pytest.mark.parametrize("corruption", [None, "row", "column", "shape", "nonfinite"])
+def test_bosonic_parity_roundoff_bound(assert_bosonic_even, monkeypatch, corruption):
+    """Accept cancellation roundoff but reject a small nonzero odd component."""
+    state = sf.Engine("bosonic").run(sf.Program(1)).state
+    density = np.zeros((10, 10), dtype=complex)
+    density[0, 0] = 1
+    density[1, 1] = np.finfo(np.float64).eps
+    if corruption == "row":
+        density[1, 0] = 1e-6
+    elif corruption == "column":
+        density[0, 1] = 1e-6
+    elif corruption == "shape":
+        density = density[0]
+    elif corruption == "nonfinite":
+        density[0, 0] = np.nan
+
+    def reduced_dm(selected, cutoff):
+        assert selected == [0] and cutoff == 10
+        return density
+
+    monkeypatch.setattr(state, "reduced_dm", reduced_dm)
+    if corruption is None:
+        assert_bosonic_even(state)
+    else:
+        with pytest.raises(AssertionError):
+            assert_bosonic_even(state)
+
+
+@pytest.mark.parametrize("modes,vectorize", [(1, False), (2, False), (2, True)])
+@pytest.mark.parametrize("representation", ["choi", "liouville", "kraus"])
+@pytest.mark.parametrize("corruption", [None, "duplicate_member", "missing_batch"])
+def test_channel_assertions_check_every_batch(modes, vectorize, representation, corruption):
+    """The real channel tests must reject duplicated values and broadcastable shapes."""
+    path = Path(__file__).resolve().parents[1] / "integration" / "test_utils_integration.py"
+    spec = importlib.util.spec_from_file_location("channel_assertions", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    cutoff = 3
+    ket = np.zeros((2,) + (cutoff,) * modes, dtype=complex)
+    ket.reshape(2, -1)[0, :2] = [np.sqrt(0.7), 1j * np.sqrt(0.3)]
+    ket.reshape(2, -1)[1, :2] = [np.sqrt(0.2), -1j * np.sqrt(0.8)]
+    density = (
+        np.einsum("bi,bj->bij", ket, ket.conj())
+        if modes == 1
+        else np.einsum("bij,bkl->bikjl", ket, ket.conj())
+    )
+    reference = density.copy()
+    if corruption == "duplicate_member":
+        reference[1] = reference[0]
+    elif corruption == "missing_batch":
+        reference = reference[0]
+    program = sf.Program(modes)
+    with program.context as q:
+        ops.LossChannel(1.0) | q[0]
+    instance = (
+        module.TestExtractChannelOneMode() if modes == 1 else module.TestExtractChannelTwoMode()
+    )
+    suffix = "_vectorize" if vectorize else ""
+    check = getattr(instance, f"test_extract_{representation}_channel{suffix}")
+    arguments = ((program, reference, density), cutoff, 1e-3)
+    if corruption is None:
+        check(*arguments)
+    else:
+        with pytest.raises(AssertionError):
+            check(*arguments)
