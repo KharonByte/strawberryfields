@@ -409,6 +409,12 @@ for function in ("test_coherent", "test_squeezed", "test_displaced_squeezed"):
     BATCH_CAPABLE_REQUIRED[contract] = {"tf": 1}
     if "squeezed" in function:
         REQUIRED_CUTOFFS[contract] = 8
+GRAPH_EMBEDDING = (
+    "integration.test_measurement_integration.TestPostselection",
+    "test_embed_graph",
+)
+UNBATCHED_REQUIRED[GRAPH_EMBEDDING] = {"gaussian": 1, "fock": 1}
+REQUIRED_CUTOFFS[GRAPH_EMBEDDING] = 48
 # A mixed density matrix has no ket accessor. Other gradients require both stores.
 REQUIRED_STATES = {
     ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"}
@@ -418,6 +424,7 @@ CONFIGURATION_REQUIRED = (
     | set(SOFTWARE_ONLY_UNBATCHED)
     | set(BATCH_CAPABLE_REQUIRED)
     | set(DENSITY_ADAPTER_UNBATCHED)
+    | {GRAPH_EMBEDDING}
 )
 PARAMETRIZED_UNITS = {
     "integration.test_hbar_integration.TestIntegration": {0.5, 1.0},

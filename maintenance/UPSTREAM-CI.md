@@ -133,6 +133,14 @@ BATCHED=0 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 python maintenance/check_required_tests.py tests.xml all-backends
 ```
 
+The two Fock graph-embedding checks retain the original two-mode input and
+photon-number tolerance, using finite-density moments at cutoff 48. The guard
+requires pure and mixed Fock storage plus the existing Gaussian controls, and
+rejects missing, skipped, duplicated or incorrectly configured cases. Independent
+regressions reject errors smaller than the general 0.001 test tolerance.
+TensorFlow graph variants retain their exclusions; no precision default or
+simulator code changes are included.
+
 The first complete [hosted run](https://github.com/KharonByte/strawberryfields/actions/runs/38256686910)
 passed all seven configurations and the `core-tests` gate at commit `d3cd5fc`
 on 12 October 2026. Latest-commit results are recorded in setup PR #2.

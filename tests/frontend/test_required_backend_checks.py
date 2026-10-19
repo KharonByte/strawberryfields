@@ -147,6 +147,13 @@ INITIAL_REQUIREMENTS = {
     for function in INITIAL_CASES
 }
 INITIAL_PARAMETERS = {key: module.REQUIRED_PARAMETERS[key] for key in INITIAL_REQUIREMENTS}
+GRAPH_EMBEDDING = (
+    "integration.test_measurement_integration.TestPostselection",
+    "test_embed_graph",
+)
+GRAPH_REQUIREMENT = deepcopy(module.UNBATCHED_REQUIRED[GRAPH_EMBEDDING])
+GRAPH_CONFIGURED = GRAPH_EMBEDDING in module.CONFIGURATION_REQUIRED
+GRAPH_BATCH_REQUIREMENT = module.BATCH_CAPABLE_REQUIRED.get(GRAPH_EMBEDDING)
 INITIAL_CUTOFFS = {
     (classname, function): cutoff
     for classname, functions, cutoff in (
@@ -849,7 +856,7 @@ def test_per_test_cutoff_is_required(tmp_path, monkeypatch, contract, cutoff, pr
     path = tmp_path / "per-test-cutoff.xml"
     ET.ElementTree(root).write(path)
     assert verify(path, profile) == len(states)
-    for wrong in {"6", "8", "12", "16", "18", "invalid", ""} - {str(cutoff)}:
+    for wrong in {"6", "8", "12", "16", "18", "48", "invalid", ""} - {str(cutoff)}:
         cutoffs[0].set("value", wrong)
         ET.ElementTree(root).write(path)
         with pytest.raises(ValueError, match="incorrect setup configuration"):
@@ -863,8 +870,95 @@ def test_per_test_cutoff_is_required(tmp_path, monkeypatch, contract, cutoff, pr
 
 def test_only_audited_tests_override_cutoff():
     assert module.REQUIRED_CUTOFFS == {
-        key: value for key, value in {**OPTICS_CUTOFFS, **INITIAL_CUTOFFS}.items() if value != 6
+        key: value
+        for key, value in {**OPTICS_CUTOFFS, **INITIAL_CUTOFFS, GRAPH_EMBEDDING: 48}.items()
+        if value != 6
     }
+
+
+@pytest.fixture
+def graph_report(tmp_path, monkeypatch):
+    """Both Fock storage modes and the Gaussian controls require cutoff 48."""
+    assert GRAPH_REQUIREMENT == {"gaussian": 1, "fock": 1}
+    assert GRAPH_CONFIGURED
+    assert GRAPH_BATCH_REQUIREMENT is None
+    assert module.REQUIRED_CUTOFFS[GRAPH_EMBEDDING] == 48
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {GRAPH_EMBEDDING: GRAPH_REQUIREMENT})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {GRAPH_EMBEDDING})
+    root = ET.Element("testsuite")
+    for backend in ("gaussian", "fock", "tf", "bosonic"):
+        for pure in (True, False):
+            case = ET.SubElement(
+                root,
+                "testcase",
+                classname=GRAPH_EMBEDDING[0],
+                name=f"test_embed_graph[{backend}-{pure}-48]",
+            )
+            if backend not in GRAPH_REQUIREMENT:
+                ET.SubElement(case, "skipped")
+            properties = ET.SubElement(case, "properties")
+            for name, value in (("setup_hbar", "1.7"), ("cutoff", "48"), ("batch_size", "None")):
+                ET.SubElement(properties, "property", name=name, value=value)
+
+    def save():
+        path = tmp_path / "graph-embedding.xml"
+        ET.ElementTree(root).write(path)
+        return path
+
+    return root, save
+
+
+@pytest.mark.parametrize(
+    "profile",
+    ["all-backends", "non-tensorflow", "local-without-cloud", "fock", "frontend-apps-api-gaussian"],
+)
+def test_graph_guard_requires_each_storage_and_configuration(graph_report, profile):
+    root, save = graph_report
+    selected = module.MATRIX[profile] & GRAPH_REQUIREMENT.keys()
+    assert verify(save(), profile) == 2 * len(selected)
+    for case in list(root):
+        if not any(f"[{backend}-" in case.get("name") for backend in selected):
+            continue
+        root.remove(case)
+        with pytest.raises(ValueError, match="Missing:"):
+            verify(save(), profile)
+        root.append(case)
+        skipped = ET.SubElement(case, "skipped")
+        with pytest.raises(ValueError, match="Did not pass:"):
+            verify(save(), profile)
+        case.remove(skipped)
+        duplicate = deepcopy(case)
+        duplicate.set("name", duplicate.get("name")[:-1] + "-copy]")
+        root.append(duplicate)
+        with pytest.raises(ValueError, match="Expected 1 cases"):
+            verify(save(), profile)
+        root.remove(duplicate)
+        properties = case.find("properties")
+        for name, wrong_values in (
+            ("cutoff", ("6", "8", "12", "16", "40", "56", "invalid", "")),
+            ("setup_hbar", ("2.0",)),
+            ("batch_size", ("2",)),
+        ):
+            prop = properties.find(f"property[@name='{name}']")
+            correct = prop.get("value")
+            for wrong in wrong_values:
+                prop.set("value", wrong)
+                with pytest.raises(ValueError, match="[Ii]ncorrect setup"):
+                    verify(save(), profile)
+            prop.set("value", correct)
+            properties.remove(prop)
+            with pytest.raises(ValueError, match="incorrect setup configuration"):
+                verify(save(), profile)
+            properties.append(prop)
+
+
+@pytest.mark.parametrize(
+    "profile", ["tensorflow", "tensorflow-batched-pure", "tensorflow-batched-mixed", "bosonic"]
+)
+def test_graph_guard_preserves_unsupported_exclusions(graph_report, profile):
+    _, save = graph_report
+    assert verify(save(), profile) == 0
 
 
 @pytest.mark.parametrize(
