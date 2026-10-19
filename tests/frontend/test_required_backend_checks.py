@@ -134,6 +134,54 @@ GRADIENT_CATALOG = {
 
 PASSIVE_CONTROL = ("integration.test_decomposition_controls", "test_distinct_passive_inputs")
 PASSIVE_REQUIREMENT = deepcopy(module.BATCH_CAPABLE_REQUIRED[PASSIVE_CONTROL])
+PASSIVE_PARAMETERS = module.REQUIRED_PARAMETERS[PASSIVE_CONTROL]
+INITIAL_CLASS = "integration.test_utils_integration.TestInitialStatesAgreeGaussian"
+INITIAL_CASES = {
+    "test_vacuum": ((), 1, 6),
+    "test_coherent": (("a",), 4, 6),
+    "test_squeezed": (("r", "phi"), 4, 8),
+    "test_displaced_squeezed": (("a", "r", "phi"), 4, 8),
+}
+INITIAL_REQUIREMENTS = {
+    (INITIAL_CLASS, function): deepcopy(module.BATCH_CAPABLE_REQUIRED[(INITIAL_CLASS, function)])
+    for function in INITIAL_CASES
+}
+INITIAL_PARAMETERS = {key: module.REQUIRED_PARAMETERS[key] for key in INITIAL_REQUIREMENTS}
+INITIAL_CUTOFFS = {
+    (classname, function): cutoff
+    for classname, functions, cutoff in (
+        (INITIAL_CLASS, ("test_vacuum", "test_coherent"), 6),
+        (INITIAL_CLASS, ("test_squeezed", "test_displaced_squeezed"), 8),
+        (
+            "integration.test_initial_state_controls.TestDistinctInitialMoments",
+            ("test_coherent",),
+            6,
+        ),
+        (
+            "integration.test_initial_state_controls.TestDistinctInitialMoments",
+            ("test_squeezed", "test_displaced_squeezed"),
+            8,
+        ),
+    )
+    for function in functions
+}
+ADAPTER_CASES += [
+    (contract, "tf", profile)
+    for contract in INITIAL_CUTOFFS
+    if contract[0] != INITIAL_CLASS
+    for profile in (
+        "all-backends",
+        "tensorflow-batched-pure",
+        "tensorflow-batched-mixed",
+    )
+]
+ADAPTER_CATALOG.update(
+    {
+        contract: ({}, deepcopy(module.BATCH_CAPABLE_REQUIRED[contract]))
+        for contract in INITIAL_CUTOFFS
+        if contract[0] != INITIAL_CLASS
+    }
+)
 
 pytestmark = pytest.mark.frontend
 
@@ -144,6 +192,7 @@ def isolate_unbatched_contracts(monkeypatch):
     monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
     monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {})
     monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", set())
+    monkeypatch.setattr(module, "REQUIRED_PARAMETERS", {})
 
 
 @pytest.fixture
@@ -627,7 +676,7 @@ def test_density_adapters_cannot_disappear(tmp_path, monkeypatch, contract, back
             properties = ET.SubElement(case, "properties")
             for name, value in (
                 ("setup_hbar", "1.7"),
-                ("cutoff", str(OPTICS_CUTOFFS.get(contract, 6))),
+                ("cutoff", str({**OPTICS_CUTOFFS, **INITIAL_CUTOFFS}.get(contract, 6))),
                 ("batch_size", "2" if batched else "None"),
             ):
                 ET.SubElement(properties, "property", name=name, value=value)
@@ -766,6 +815,7 @@ def test_gradient_guards_allow_missing_optional_tensorflow(gradient_report, prof
 @pytest.mark.parametrize(
     "contract,cutoff",
     list(OPTICS_CUTOFFS.items())
+    + list(INITIAL_CUTOFFS.items())
     + [
         (
             (
@@ -799,7 +849,7 @@ def test_per_test_cutoff_is_required(tmp_path, monkeypatch, contract, cutoff, pr
     path = tmp_path / "per-test-cutoff.xml"
     ET.ElementTree(root).write(path)
     assert verify(path, profile) == len(states)
-    for wrong in {"6", "12", "16", "18", "invalid", ""} - {str(cutoff)}:
+    for wrong in {"6", "8", "12", "16", "18", "invalid", ""} - {str(cutoff)}:
         cutoffs[0].set("value", wrong)
         ET.ElementTree(root).write(path)
         with pytest.raises(ValueError, match="incorrect setup configuration"):
@@ -813,7 +863,7 @@ def test_per_test_cutoff_is_required(tmp_path, monkeypatch, contract, cutoff, pr
 
 def test_only_audited_tests_override_cutoff():
     assert module.REQUIRED_CUTOFFS == {
-        key: value for key, value in OPTICS_CUTOFFS.items() if value != 6
+        key: value for key, value in {**OPTICS_CUTOFFS, **INITIAL_CUTOFFS}.items() if value != 6
     }
 
 
@@ -825,6 +875,8 @@ def test_each_passive_mesh_is_required(tmp_path, monkeypatch, profile):
     monkeypatch.setattr(module, "REQUIRED", {})
     monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {PASSIVE_CONTROL: PASSIVE_REQUIREMENT})
     monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {PASSIVE_CONTROL})
+    monkeypatch.setattr(module, "REQUIRED_PARAMETERS", {PASSIVE_CONTROL: PASSIVE_PARAMETERS})
+    assert PASSIVE_PARAMETERS == ("mesh",)
     states = [True, False] if profile == "all-backends" else [profile.endswith("pure")]
     root = ET.Element("testsuite")
     for state in states:
@@ -846,6 +898,7 @@ def test_each_passive_mesh_is_required(tmp_path, monkeypatch, profile):
                 ("setup_hbar", "1.7"),
                 ("cutoff", "6"),
                 ("batch_size", "None" if profile == "all-backends" else "2"),
+                ("parameter_mesh", mesh),
             ):
                 ET.SubElement(props, "property", name=name, value=value)
     path = tmp_path / "distinct-meshes.xml"
@@ -862,3 +915,110 @@ def test_each_passive_mesh_is_required(tmp_path, monkeypatch, profile):
         with pytest.raises(ValueError, match="Did not pass"):
             verify(path, profile)
         case.remove(skipped)
+        original_name = case.get("name")
+        mesh_property = case.find("./properties/property[@name='parameter_mesh']")
+        original_mesh = mesh_property.get("value")
+        other = next(
+            c
+            for c in root
+            if c.get("name").endswith(original_name.rsplit("-", 1)[1]) and c is not case
+        )
+        other_name = other.get("name")
+        duplicate = other.find("./properties/property[@name='parameter_mesh']").get("value")
+        # Pytest disambiguates repeated values with 0/1 suffixes, so their IDs differ.
+        other.set("name", other_name.replace(f"[{duplicate}-", f"[{duplicate}0-"))
+        case.set("name", other_name.replace(f"[{duplicate}-", f"[{duplicate}1-"))
+        mesh_property.set("value", duplicate)
+        ET.ElementTree(root).write(path)
+        with pytest.raises(ValueError, match="Incorrect mesh coverage"):
+            verify(path, profile)
+        other.set("name", other_name)
+        case.set("name", original_name)
+        mesh_property.set("value", "unknown_mesh")
+        ET.ElementTree(root).write(path)
+        with pytest.raises(ValueError, match="Incorrect mesh coverage"):
+            verify(path, profile)
+        mesh_property.set("value", original_mesh)
+        props = case.find("properties")
+        props.remove(mesh_property)
+        ET.ElementTree(root).write(path)
+        with pytest.raises(ValueError, match="Missing or ambiguous parameter mesh"):
+            verify(path, profile)
+        props.append(mesh_property)
+        duplicate_property = deepcopy(mesh_property)
+        props.append(duplicate_property)
+        ET.ElementTree(root).write(path)
+        with pytest.raises(ValueError, match="Missing or ambiguous parameter mesh"):
+            verify(path, profile)
+        props.remove(duplicate_property)
+
+
+@pytest.mark.parametrize("function", INITIAL_CASES)
+@pytest.mark.parametrize(
+    "backend,profile",
+    [(backend, "all-backends") for backend in ("gaussian", "bosonic", "fock", "tf")]
+    + [("tf", "tensorflow-batched-pure"), ("tf", "tensorflow-batched-mixed")],
+)
+def test_every_initial_moment_case_is_required(tmp_path, monkeypatch, function, backend, profile):
+    """Keep every new and native case; duplicate parameter values cannot replace one."""
+    contract = INITIAL_CLASS, function
+    parameters, count, cutoff = INITIAL_CASES[function]
+    assert INITIAL_REQUIREMENTS[contract] == {b: count for b in module.BACKENDS}
+    assert INITIAL_PARAMETERS[contract] == parameters
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {contract: {backend: count}})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {contract})
+    monkeypatch.setattr(module, "REQUIRED_PARAMETERS", {contract: parameters})
+    states = [True, False] if profile == "all-backends" else [profile.endswith("pure")]
+    root = ET.Element("testsuite")
+    for state in states:
+        for index in range(count):
+            case = ET.SubElement(
+                root,
+                "testcase",
+                classname=INITIAL_CLASS,
+                name=f"{function}[{backend}-{state}-{index}]",
+            )
+            props = ET.SubElement(case, "properties")
+            for name, value in (
+                ("setup_hbar", "1.7"),
+                ("cutoff", str(cutoff)),
+                ("batch_size", "None" if profile == "all-backends" else "2"),
+            ):
+                ET.SubElement(props, "property", name=name, value=value)
+            for parameter in parameters:
+                ET.SubElement(props, "property", name="parameter_" + parameter, value=str(index))
+    path = tmp_path / "initial-moments.xml"
+
+    def save():
+        ET.ElementTree(root).write(path)
+        return path
+
+    assert verify(save(), profile) == count * len(states)
+    for case in list(root):
+        root.remove(case)
+        with pytest.raises(ValueError, match="Missing:|Expected .* cases"):
+            verify(save(), profile)
+        root.append(case)
+        skipped = ET.SubElement(case, "skipped")
+        with pytest.raises(ValueError, match="Did not pass"):
+            verify(save(), profile)
+        case.remove(skipped)
+        for parameter in parameters:
+            props = case.find("properties")
+            prop = props.find(f"property[@name='parameter_{parameter}']")
+            props.remove(prop)
+            with pytest.raises(ValueError, match="Missing or ambiguous parameter"):
+                verify(save(), profile)
+            props.append(prop)
+        if parameters:
+            values = case.findall("./properties/property")
+            original = [
+                (p, p.get("value")) for p in values if p.get("name").startswith("parameter_")
+            ]
+            for prop, value in original:
+                prop.set("value", str((int(value) + 1) % count))
+            with pytest.raises(ValueError, match="Missing or repeated parameter values"):
+                verify(save(), profile)
+            for prop, value in original:
+                prop.set("value", value)

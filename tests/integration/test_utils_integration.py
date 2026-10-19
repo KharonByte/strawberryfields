@@ -43,12 +43,12 @@ PHI = np.linspace(0, 1.43, 4)
 # ===================================================================================
 
 
-@pytest.mark.backends("gaussian", "bosonic")
+@pytest.mark.backends("gaussian", "bosonic", "fock", "tf")
 class TestInitialStatesAgreeGaussian:
     """Test that the initial state functions in utils match
-    the result returned by the Gaussian backends."""
+    the Gaussian moments returned by each backend."""
 
-    def test_vacuum(self, setup_eng, hbar, tol):
+    def test_vacuum(self, setup_eng, hbar, tol, assert_finite_gaussian_moments):
         """Test vacuum function matches Gaussian backends"""
         eng, prog = setup_eng(1)
 
@@ -70,10 +70,10 @@ class TestInitialStatesAgreeGaussian:
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
 
         else:
-            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
+            assert_finite_gaussian_moments(state, mu, cov)
 
     @pytest.mark.parametrize("a", ALPHA)
-    def test_coherent(self, a, setup_eng, hbar, tol):
+    def test_coherent(self, a, setup_eng, hbar, tol, assert_finite_gaussian_moments):
         """Test coherent function matches Gaussian backends"""
         eng, prog = setup_eng(1)
 
@@ -95,10 +95,11 @@ class TestInitialStatesAgreeGaussian:
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
 
         else:
-            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
+            assert_finite_gaussian_moments(state, mu, cov)
 
     @pytest.mark.parametrize("r, phi", zip(R, PHI))
-    def test_squeezed(self, r, phi, setup_eng, hbar, tol):
+    @pytest.mark.parametrize("cutoff", [8], indirect=True)
+    def test_squeezed(self, r, phi, setup_eng, hbar, tol, assert_finite_gaussian_moments):
         """Test squeezed function matches Gaussian backends"""
         eng, prog = setup_eng(1)
 
@@ -120,10 +121,13 @@ class TestInitialStatesAgreeGaussian:
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
 
         else:
-            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
+            assert_finite_gaussian_moments(state, mu, cov)
 
     @pytest.mark.parametrize("a, r, phi", zip(ALPHA, R, PHI))
-    def test_displaced_squeezed(self, a, r, phi, setup_eng, hbar, tol):
+    @pytest.mark.parametrize("cutoff", [8], indirect=True)
+    def test_displaced_squeezed(
+        self, a, r, phi, setup_eng, hbar, tol, assert_finite_gaussian_moments
+    ):
         """Test displaced squeezed function matches Gaussian backends"""
         eng, prog = setup_eng(1)
 
@@ -148,7 +152,7 @@ class TestInitialStatesAgreeGaussian:
             assert np.allclose(np.expand_dims(cov, axis=0), cov_exp, atol=tol, rtol=0)
 
         else:
-            pytest.fail(f"Initial-state comparison missing for {eng.backend_name}")
+            assert_finite_gaussian_moments(state, mu, cov)
 
 
 @pytest.fixture

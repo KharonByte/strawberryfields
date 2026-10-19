@@ -34,15 +34,25 @@ Rotated-squeezed references use phase `2 * phi` and check complex density entrie
 normalization and fidelity. Separate low-energy TF controls cover distinct batch
 inputs and actual pure/mixed storage for all five passive decompositions.
 
-The remaining inventory contains **2,973 unbatched skips, 287 TensorFlow pure
-batch skips and 292 mixed batch skips**. These are configuration rows,
+Another **78 Gaussian-utility moment comparisons** are enabled: 52 unbatched
+Fock/TF cases and 13 in each TF batch profile. The existing Gaussian/Bosonic
+comparisons remain. Vacuum and coherent states retain cutoff 6; the two squeezed
+state tests use cutoff 8 with their original inputs and 0.001 tolerance. At
+cutoff 6, 12 cases exceed that tolerance. At cutoff 8, their maximum covariance
+error is 0.0000617, falling to 0.00000353 at cutoff 10. Independent controls
+check units, complex moments, normalization and distinct TF batch members.
+The guard requires every mesh value and distinct utility parameter tuples,
+so pytest's numbered IDs for duplicated values cannot replace missing coverage.
+
+The remaining inventory contains **2,921 unbatched skips, 274 TensorFlow pure
+batch skips and 279 mixed batch skips**. These are configuration rows,
 not distinct unsupported features. Eight existing expected
 failures are separate from these totals.
 
 | Remaining classification | Configurations |
 | --- | ---: |
 | Backend API or compiler restriction | 1,982 |
-| Representation-specific or duplicate contract | 1,323 |
+| Representation-specific or duplicate contract | 1,245 |
 | Parameter or execution precondition | 59 |
 | Correct dependency-profile exclusion | 1 |
 | Investigated contracts still requiring follow-up test work (below) | 88 |

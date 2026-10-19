@@ -247,6 +247,24 @@ def state_moments(cutoff, hbar, tol):
 
 
 @pytest.fixture
+def assert_finite_gaussian_moments(state_moments, batch_size, tol):
+    """Compare finite-state moments with the full expected batch and covariance."""
+
+    def check(state, expected_means, expected_covariance):
+        means, covariance = state_moments(state, batch_size)
+        batch = () if batch_size is None else (batch_size,)
+        dimension = 2 * state.num_modes
+        expected_means = np.broadcast_to(expected_means, batch + (dimension,))
+        expected_covariance = np.broadcast_to(expected_covariance, batch + (dimension, dimension))
+        assert means.shape == expected_means.shape
+        assert covariance.shape == expected_covariance.shape
+        np.testing.assert_allclose(means, expected_means, atol=tol, rtol=0)
+        np.testing.assert_allclose(covariance, expected_covariance, atol=tol, rtol=0)
+
+    return check
+
+
+@pytest.fixture
 def assert_passive_moments(tol):
     """Require analytic moments as well as agreement between two simulated states."""
 
@@ -453,6 +471,13 @@ def pytest_runtest_call(item):
         parameters = getattr(getattr(item, "callspec", None), "params", {})
         if "hbar" in parameters:
             item.user_properties.append(("requested_hbar", str(parameters["hbar"])))
+        recorded = {"mesh"}
+        if "assert_finite_gaussian_moments" in item.fixturenames:
+            recorded.update(("a", "r", "phi"))
+        item.user_properties.extend(
+            ("parameter_" + name, str(parameters[name]))
+            for name in sorted(recorded & parameters.keys())
+        )
 
 
 def pytest_runtest_setup(item):

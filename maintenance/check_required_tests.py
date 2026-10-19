@@ -347,7 +347,7 @@ BATCH_CAPABLE_REQUIRED.update(
         for function in functions
     }
 )
-# Only these six tests need larger finite-state spaces; all other guarded
+# Larger finite-state spaces are explicit per-test contracts; other guarded
 # configurations retain cutoff 6.
 REQUIRED_CUTOFFS = {
     ("integration.test_decompositions_integration.TestGaussianBackendDecompositions", function): 16
@@ -377,6 +377,38 @@ BATCH_CAPABLE_REQUIRED[
 BATCH_CAPABLE_REQUIRED[
     ("integration.test_decomposition_controls", "test_distinct_passive_inputs")
 ] = {"tf": 5}
+REQUIRED_MESHES = {
+    "passive",
+    "rectangular",
+    "rectangular_compact",
+    "triangular_compact",
+    "sun_compact",
+}
+REQUIRED_PARAMETERS = {
+    ("integration.test_decomposition_controls", "test_distinct_passive_inputs"): ("mesh",),
+}
+for function, parameters, count in (
+    ("test_vacuum", (), 1),
+    ("test_coherent", ("a",), 4),
+    ("test_squeezed", ("r", "phi"), 4),
+    ("test_displaced_squeezed", ("a", "r", "phi"), 4),
+):
+    contract = (
+        "integration.test_utils_integration.TestInitialStatesAgreeGaussian",
+        function,
+    )
+    BATCH_CAPABLE_REQUIRED[contract] = {backend: count for backend in BACKENDS}
+    REQUIRED_PARAMETERS[contract] = parameters
+    if "squeezed" in function:
+        REQUIRED_CUTOFFS[contract] = 8
+for function in ("test_coherent", "test_squeezed", "test_displaced_squeezed"):
+    contract = (
+        "integration.test_initial_state_controls.TestDistinctInitialMoments",
+        function,
+    )
+    BATCH_CAPABLE_REQUIRED[contract] = {"tf": 1}
+    if "squeezed" in function:
+        REQUIRED_CUTOFFS[contract] = 8
 # A mixed density matrix has no ket accessor. Other gradients require both stores.
 REQUIRED_STATES = {
     ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"}
@@ -508,6 +540,8 @@ def verify(report, configuration):
                         errors.append(f"Did not pass: {label}: {case.get('name')}")
                 if (classname, function) in CONFIGURATION_REQUIRED:
                     units = Counter()
+                    parameter_values = Counter()
+                    required_parameters = REQUIRED_PARAMETERS.get((classname, function))
                     for case in matching:
                         properties = {
                             prop.get("name"): prop.get("value")
@@ -526,6 +560,29 @@ def verify(report, configuration):
                             errors.append(
                                 f"Missing or incorrect setup configuration: {label}: {case.get('name')}"
                             )
+                        if required_parameters is not None:
+                            values = []
+                            for parameter in required_parameters:
+                                recorded = case.findall(
+                                    f"./properties/property[@name='parameter_{parameter}']"
+                                )
+                                if len(recorded) != 1 or not recorded[0].get("value"):
+                                    errors.append(
+                                        f"Missing or ambiguous parameter {parameter}: {label}"
+                                    )
+                                values.append(
+                                    recorded[0].get("value") if len(recorded) == 1 else None
+                                )
+                            parameter_values[tuple(values)] += 1
+                    if required_parameters is not None:
+                        if len(parameter_values) != expected or any(
+                            count != 1 for count in parameter_values.values()
+                        ):
+                            errors.append(f"Missing or repeated parameter values: {label}")
+                        if required_parameters == ("mesh",) and set(parameter_values) != {
+                            (mesh,) for mesh in REQUIRED_MESHES
+                        }:
+                            errors.append(f"Incorrect mesh coverage: {label}")
                     expected_units = PARAMETRIZED_UNITS.get(classname, {1.7})
                     if matching and set(units) != expected_units:
                         errors.append(
