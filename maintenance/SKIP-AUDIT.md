@@ -52,7 +52,18 @@ controls reject biased photon counts, lost normalization, incorrect units,
 displacement and malformed densities. The guard requires both storage modes
 and the existing Gaussian controls at the explicit cutoff.
 
-The remaining inventory contains **2,919 unbatched skips, 274 TensorFlow pure
+Another **one pure-Fock three-mode graph check** is enabled at cutoff 72.
+A ket-only moment adapter avoids constructing the full density matrix and
+retains the original complex graph, matrix-block assertions and tolerance.
+Independent covariance, zero-mean and normalization checks prevent a correct
+graph ratio from hiding truncation loss. Covariance error falls from 0.0001253
+at cutoff 72 to 0.0000351 at 80. Regression controls cover boundary terms,
+complex phases, units, mode order, storage and malformed states. The guard
+requires pure Fock and both Gaussian controls, with no new TF requirements.
+Mixed Fock remains excluded before execution: its density matrix at cutoff 72
+alone would require about 2,076 GiB. No simulator code or default cutoff changes.
+
+The remaining inventory contains **2,918 unbatched skips, 274 TensorFlow pure
 batch skips and 279 mixed batch skips**. These are configuration rows,
 not distinct unsupported features. Eight existing expected
 failures are separate from these totals.
@@ -63,7 +74,7 @@ failures are separate from these totals.
 | Representation-specific or duplicate contract | 1,245 |
 | Parameter or execution precondition | 59 |
 | Correct dependency-profile exclusion | 1 |
-| Investigated contracts still requiring follow-up test work (below) | 82 |
+| Investigated contracts still requiring follow-up test work (below) | 81 |
 | Families blocked by reproduced failures, accuracy gaps or empty-state questions | 91 |
 | Resource-sensitive cases with a Gaussian-only oracle | 12 |
 
@@ -93,17 +104,18 @@ or relaxing the original tolerances:
   and resource budgets. The two Gaussian rotated-squeezed cases now use the
   corrected ket phase and full complex-density assertions; the old fidelity-only
   check accepted a density error of 0.0162.
-- **68 phase-space cases, 32 now enabled:** passive transformations and four
+- **68 phase-space cases, 33 now enabled:** passive transformations and four
   interferometer meshes use finite-density moments at cutoff 16. Cutoff 12 can
   pass the comparison between two simulated covariances while missing the
   independent analytic answer; the maintained tests require both. Random active
-  transforms, graph embedding, teleportation and 500-shot cloning still need
+  transforms, other graph configurations, teleportation and 500-shot cloning still need
   separate precision/statistical budgets. Matching clone marginals alone hides
   severe normalization loss (observed traces 0.2200 to 0.8999); those six
   configurations remain excluded pending convergence checks. Two Fock graph
   photon-number checks now use cutoff 48; the four TF variants remain excluded
   because of the separate precision failure below. Bosonic rejects
-  `GraphEmbed` at compilation in two configurations.
+  `GraphEmbed` at compilation in two configurations. The pure-Fock three-mode
+  graph check now uses direct ket moments at cutoff 72.
 - **18 P/CX/CZ gate cases:** the original assertions have no Fock/TF branch.
   Full moment comparisons expose severe truncation at squeezing 3 and cutoff 6;
   removing the skip alone gives false confidence. Meaningful finite-Fock
@@ -111,7 +123,7 @@ or relaxing the original tolerances:
   Bounded-input Fock and mixed/batched TF controls pass at cutoff 12 with the
   original 0.001 tolerance.
 
-The remaining 82 diagnostic configurations need follow-up tests, coverage
+The remaining 81 diagnostic configurations need follow-up tests, coverage
 guards and cross-platform validation. Existing batch photon
 statistics also need stronger shape and independent-member assertions.
 
@@ -126,6 +138,9 @@ The missing-TensorFlow import test belongs to the no-TensorFlow CI profile.
   with an error of about 0.000672. All four TF variants pass with explicit
   complex128 at cutoffs 48 and 56. This does not resolve the default-precision
   failure; those configurations stay excluded and are not counted as restored.
+  For the three-mode graph, pure TF (including batching) passes at cutoff 72
+  but covariance error grows to about 0.01185 at 80, above its 0.001 tolerance.
+  Those exclusions remain; passing a lower cutoff alone does not certify support.
 - **Bosonic continuation:** displacement 0.3 followed by a separate identity-loss
   program changes mean photon number from 0.09 to zero. Gaussian, Fock and TF
   controls preserve it. This blocks 72 thermal-moment configurations.

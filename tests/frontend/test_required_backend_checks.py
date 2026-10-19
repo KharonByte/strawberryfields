@@ -154,6 +154,13 @@ GRAPH_EMBEDDING = (
 GRAPH_REQUIREMENT = deepcopy(module.UNBATCHED_REQUIRED[GRAPH_EMBEDDING])
 GRAPH_CONFIGURED = GRAPH_EMBEDDING in module.CONFIGURATION_REQUIRED
 GRAPH_BATCH_REQUIREMENT = module.BATCH_CAPABLE_REQUIRED.get(GRAPH_EMBEDDING)
+THREE_MODE_GRAPH = (
+    "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+    "test_graph_embed",
+)
+THREE_MODE_GRAPH_REQUIREMENT = deepcopy(module.UNBATCHED_REQUIRED[THREE_MODE_GRAPH])
+THREE_MODE_GRAPH_CONFIGURED = THREE_MODE_GRAPH in module.CONFIGURATION_REQUIRED
+THREE_MODE_GRAPH_BATCH = module.BATCH_CAPABLE_REQUIRED.get(THREE_MODE_GRAPH)
 INITIAL_CUTOFFS = {
     (classname, function): cutoff
     for classname, functions, cutoff in (
@@ -805,10 +812,11 @@ def test_gradient_guards_require_every_supported_case(gradient_report, function,
             verify(save(), profile)
 
 
-def test_only_ket_gradient_has_storage_exemption():
+def test_only_ket_contracts_have_storage_exemptions():
     """The ket exception must not suppress mixed-state coverage elsewhere."""
     assert module.REQUIRED_STATES == {
-        (GRADIENT_CLASS, "test_coherent_ket_gradient", "tf"): {"True"}
+        (GRADIENT_CLASS, "test_coherent_ket_gradient", "tf"): {"True"},
+        (*THREE_MODE_GRAPH, "fock"): {"True"},
     }
 
 
@@ -856,7 +864,7 @@ def test_per_test_cutoff_is_required(tmp_path, monkeypatch, contract, cutoff, pr
     path = tmp_path / "per-test-cutoff.xml"
     ET.ElementTree(root).write(path)
     assert verify(path, profile) == len(states)
-    for wrong in {"6", "8", "12", "16", "18", "48", "invalid", ""} - {str(cutoff)}:
+    for wrong in {"6", "8", "12", "16", "18", "48", "72", "invalid", ""} - {str(cutoff)}:
         cutoffs[0].set("value", wrong)
         ET.ElementTree(root).write(path)
         with pytest.raises(ValueError, match="incorrect setup configuration"):
@@ -871,7 +879,12 @@ def test_per_test_cutoff_is_required(tmp_path, monkeypatch, contract, cutoff, pr
 def test_only_audited_tests_override_cutoff():
     assert module.REQUIRED_CUTOFFS == {
         key: value
-        for key, value in {**OPTICS_CUTOFFS, **INITIAL_CUTOFFS, GRAPH_EMBEDDING: 48}.items()
+        for key, value in {
+            **OPTICS_CUTOFFS,
+            **INITIAL_CUTOFFS,
+            GRAPH_EMBEDDING: 48,
+            THREE_MODE_GRAPH: 72,
+        }.items()
         if value != 6
     }
 
@@ -959,6 +972,80 @@ def test_graph_guard_requires_each_storage_and_configuration(graph_report, profi
 def test_graph_guard_preserves_unsupported_exclusions(graph_report, profile):
     _, save = graph_report
     assert verify(save(), profile) == 0
+
+
+@pytest.mark.parametrize("profile", sorted(module.MATRIX))
+def test_three_mode_graph_guard(tmp_path, monkeypatch, profile):
+    """Require pure Fock and both Gaussian controls; preserve the other exclusions."""
+    assert THREE_MODE_GRAPH_REQUIREMENT == {"gaussian": 1, "fock": 1}
+    assert THREE_MODE_GRAPH_CONFIGURED and THREE_MODE_GRAPH_BATCH is None
+    assert module.REQUIRED_CUTOFFS[THREE_MODE_GRAPH] == 72
+    assert module.REQUIRED_STATES[(*THREE_MODE_GRAPH, "fock")] == {"True"}
+    assert (*THREE_MODE_GRAPH, "gaussian") not in module.REQUIRED_STATES
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(
+        module, "UNBATCHED_REQUIRED", {THREE_MODE_GRAPH: THREE_MODE_GRAPH_REQUIREMENT}
+    )
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", {THREE_MODE_GRAPH})
+    root = ET.Element("testsuite")
+    for backend in ("gaussian", "fock", "tf", "bosonic"):
+        for pure in (True, False):
+            case = ET.SubElement(
+                root,
+                "testcase",
+                classname=THREE_MODE_GRAPH[0],
+                name=f"test_graph_embed[{backend}-{pure}-72]",
+            )
+            if backend != "gaussian" and (backend != "fock" or not pure):
+                ET.SubElement(case, "skipped")
+            properties = ET.SubElement(case, "properties")
+            for name, value in (("setup_hbar", "1.7"), ("cutoff", "72"), ("batch_size", "None")):
+                ET.SubElement(properties, "property", name=name, value=value)
+    path = tmp_path / "three-mode-graph.xml"
+
+    def save():
+        ET.ElementTree(root).write(path)
+        return path
+
+    selected = module.MATRIX[profile] & THREE_MODE_GRAPH_REQUIREMENT.keys()
+    expected = (2 if "gaussian" in selected else 0) + (1 if "fock" in selected else 0)
+    assert verify(save(), profile) == expected
+    for case in list(root):
+        if case.find("skipped") is not None or not any(
+            f"[{backend}-" in case.get("name") for backend in selected
+        ):
+            continue
+        root.remove(case)
+        with pytest.raises(ValueError, match="Missing:"):
+            verify(save(), profile)
+        root.append(case)
+        skipped = ET.SubElement(case, "skipped")
+        with pytest.raises(ValueError, match="Did not pass:"):
+            verify(save(), profile)
+        case.remove(skipped)
+        duplicate = deepcopy(case)
+        duplicate.set("name", duplicate.get("name")[:-1] + "-copy]")
+        root.append(duplicate)
+        with pytest.raises(ValueError, match="Expected 1 cases"):
+            verify(save(), profile)
+        root.remove(duplicate)
+        properties = case.find("properties")
+        for name, wrong_values in (
+            ("cutoff", ("6", "48", "64", "80", "invalid", "")),
+            ("setup_hbar", ("2.0",)),
+            ("batch_size", ("2",)),
+        ):
+            prop = properties.find(f"property[@name='{name}']")
+            correct = prop.get("value")
+            for wrong in wrong_values:
+                prop.set("value", wrong)
+                with pytest.raises(ValueError, match="[Ii]ncorrect setup"):
+                    verify(save(), profile)
+            prop.set("value", correct)
+            properties.remove(prop)
+            with pytest.raises(ValueError, match="incorrect setup configuration"):
+                verify(save(), profile)
+            properties.append(prop)
 
 
 @pytest.mark.parametrize(

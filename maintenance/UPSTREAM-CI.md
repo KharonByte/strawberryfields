@@ -141,6 +141,14 @@ regressions reject errors smaller than the general 0.001 test tolerance.
 TensorFlow graph variants retain their exclusions; no precision default or
 simulator code changes are included.
 
+The pure-Fock three-mode graph check uses cutoff 72 and computes moments
+directly from its ket, preserving the cutoff boundary without allocating a
+full density matrix. It retains the original graph assertions and adds an
+independent covariance reference. Regressions exercise complex phases, mode
+order, units, normalization and storage; the guard requires this case and
+both existing Gaussian controls. Mixed Fock stays excluded before execution,
+and the separate TensorFlow precision issue does not change TF coverage.
+
 The first complete [hosted run](https://github.com/KharonByte/strawberryfields/actions/runs/38256686910)
 passed all seven configurations and the `core-tests` gate at commit `d3cd5fc`
 on 12 October 2026. Latest-commit results are recorded in setup PR #2.

@@ -415,16 +415,23 @@ GRAPH_EMBEDDING = (
 )
 UNBATCHED_REQUIRED[GRAPH_EMBEDDING] = {"gaussian": 1, "fock": 1}
 REQUIRED_CUTOFFS[GRAPH_EMBEDDING] = 48
+THREE_MODE_GRAPH_EMBEDDING = (
+    "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+    "test_graph_embed",
+)
+UNBATCHED_REQUIRED[THREE_MODE_GRAPH_EMBEDDING] = {"gaussian": 1, "fock": 1}
+REQUIRED_CUTOFFS[THREE_MODE_GRAPH_EMBEDDING] = 72
 # A mixed density matrix has no ket accessor. Other gradients require both stores.
 REQUIRED_STATES = {
-    ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"}
+    ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"},
+    (*THREE_MODE_GRAPH_EMBEDDING, "fock"): {"True"},
 }
 CONFIGURATION_REQUIRED = (
     set(EXPANDED_UNBATCHED)
     | set(SOFTWARE_ONLY_UNBATCHED)
     | set(BATCH_CAPABLE_REQUIRED)
     | set(DENSITY_ADAPTER_UNBATCHED)
-    | {GRAPH_EMBEDDING}
+    | {GRAPH_EMBEDDING, THREE_MODE_GRAPH_EMBEDDING}
 )
 PARAMETRIZED_UNITS = {
     "integration.test_hbar_integration.TestIntegration": {0.5, 1.0},

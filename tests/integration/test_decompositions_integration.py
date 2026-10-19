@@ -17,6 +17,7 @@ import pytest
 
 import numpy as np
 from scipy.linalg import qr, block_diag
+from scipy.optimize import brentq
 
 from thewalrus.symplectic import rotation as rot
 from thewalrus.symplectic import xpxp_to_xxpp, xxpp_to_xpxp
@@ -98,6 +99,38 @@ Abp = np.array(
 )
 
 
+@pytest.fixture
+def graph_ket_moments(cutoff, hbar, tol):
+    """Three-mode xxpp moments without expanding a pure ket into a density matrix."""
+
+    def moments(state):
+        assert state.is_pure and state.num_modes == 3
+        assert state.hbar == hbar
+        ket = np.asarray(state.ket(), dtype=np.complex128)
+        assert ket.shape == (cutoff,) * 3
+        assert np.all(np.isfinite(ket))
+        np.testing.assert_allclose(np.vdot(ket, ket).real, 1, atol=tol, rtol=0)
+        # Retain the raised top level when taking inner products of x|psi> and p|psi>.
+        padded = np.pad(ket, [(0, 1)] * 3)
+        vectors = []
+        factors = np.sqrt(np.arange(1, cutoff + 1))[:, None, None]
+        for quadrature in ("x", "p"):
+            for mode in range(3):
+                moved = np.moveaxis(padded, mode, 0)
+                lower, upper = np.zeros_like(moved), np.zeros_like(moved)
+                lower[:-1] = factors * moved[1:]
+                upper[1:] = factors * moved[:-1]
+                action = lower + upper if quadrature == "x" else -1j * (lower - upper)
+                vectors.append(np.moveaxis(action, 0, mode) * np.sqrt(hbar / 2))
+        means = np.array([np.vdot(padded, vector).real for vector in vectors])
+        second = np.array([[np.vdot(left, right).real for right in vectors] for left in vectors])
+        covariance = second - np.outer(means, means)
+        assert np.all(np.isfinite(means)) and np.all(np.isfinite(covariance))
+        return means, covariance
+
+    return moments
+
+
 @pytest.mark.backends("gaussian")
 class TestGaussianBackendDecompositions:
     """Test that the frontend decompositions work on the Gaussian backend"""
@@ -112,18 +145,57 @@ class TestGaussianBackendDecompositions:
         state = eng.run(prog).state
         assert np.allclose(state.cov(), S @ S.T * hbar / 2, atol=tol)
 
-    def test_graph_embed(self, setup_eng, tol):
+    @pytest.mark.backends("gaussian", "fock")
+    @pytest.mark.parametrize("cutoff", [72], indirect=True)
+    def test_graph_embed(self, setup_eng, tol, pure, hbar, graph_ket_moments):
         """Test that embedding a traceless adjacency matrix A
         results in the property Amat/A = c J, where c is a real constant,
         and J is the all ones matrix"""
         N = 3
         eng, prog = setup_eng(3)
+        if eng.backend_name == "fock" and not pure:
+            pytest.skip(
+                "Three-mode graph check requires a pure Fock ket; mixed storage exceeds CI memory"
+            )
 
         with prog.context as q:
             ops.GraphEmbed(A) | q
 
         state = eng.run(prog).state
-        Amat = eng.backend.circuit.Amat()
+        if eng.backend_name == "gaussian":
+            Amat = eng.backend.circuit.Amat()
+        else:
+            assert eng.backend_name == "fock" and state.is_pure
+            means, cov = graph_ket_moments(state)
+            # Independently scale the original graph to one photon per mode.
+            # No simulator decomposition or Walrus conversion supplies this reference.
+            singular_values = np.linalg.svd(A, compute_uv=False)
+            scale = brentq(
+                lambda c: np.sum((c * singular_values) ** 2 / (1 - (c * singular_values) ** 2)) - N,
+                0,
+                (1 - 1e-9) / singular_values.max(),
+            )
+            B = scale * A
+            identity = np.eye(N)
+            Qexpected = np.linalg.inv(np.block([[identity, -B], [-B.conj(), identity]]))
+            inverse = np.sqrt(hbar / 2) * np.block(
+                [[identity, identity], [-1j * identity, 1j * identity]]
+            )
+            expected = inverse @ (Qexpected - np.eye(2 * N) / 2) @ inverse.conj().T
+            np.testing.assert_allclose(expected.imag, 0, atol=1e-12, rtol=0)
+            np.testing.assert_allclose(means, 0, atol=1e-8, rtol=0)
+            np.testing.assert_allclose(cov, expected.real, atol=tol, rtol=0)
+            photons = (np.trace(cov) / (hbar / 2) - 2 * N) / 4
+            np.testing.assert_allclose(photons, N, atol=tol, rtol=0)
+
+            transform = np.block([[identity, 1j * identity], [identity, -1j * identity]]) / np.sqrt(
+                2 * hbar
+            )
+            Qactual = transform @ cov @ transform.conj().T + np.eye(2 * N) / 2
+            exchange = np.block(
+                [[np.zeros_like(identity), identity], [identity, np.zeros_like(identity)]]
+            )
+            Amat = exchange @ (np.eye(2 * N) - np.linalg.inv(Qactual))
 
         # check that the matrix Amat is constructed to be of the form
         # Amat = [[B^\dagger, 0], [0, B]]
