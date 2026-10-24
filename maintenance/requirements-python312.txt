@@ -1,7 +1,7 @@
 # Validated CPU test environment: Linux x86-64, Python 3.12.3.
 # Strawberry Fields is loaded directly from the source checkout.
 antlr4-python3-runtime==4.9.2
-certifi==2026.7.22
+certifi==2026.10.19
 charset-normalizer==3.5.2
 click==8.5.0
 cloudpickle==3.1.2
