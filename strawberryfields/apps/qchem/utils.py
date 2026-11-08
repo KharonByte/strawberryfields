@@ -144,6 +144,10 @@ def read_gamess(
     Returns:
         tuple[array, array, array, array]: atomic coordinates, atomic masses, normal mode
         frequencies, normal modes
+
+    Raises:
+        ValueError: if required molecular data is missing or a frequency header ends before
+            its blank separator
     """
     with open(file, "r", encoding="utf-8") as f:
 
@@ -170,8 +174,11 @@ def read_gamess(
                 n_mode = len(line) - 1
                 w.append(np.array(line[-n_mode:], float))
 
-                while f.readline() != "\n":
-                    pass
+                for line in f:
+                    if not line.strip():
+                        break
+                else:
+                    raise ValueError("Unexpected end of file in vibrational frequency header")
 
                 d = []
                 for _ in range(len(r) * 3):
