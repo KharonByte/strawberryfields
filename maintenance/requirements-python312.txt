@@ -28,7 +28,7 @@ quantum-blackbird==0.5.0
 quantum-xir==0.2.2
 requests==2.34.2
 scipy==1.17.1
-setuptools==80.9.0
+setuptools==84.1.0
 six==1.17.0
 sympy==1.14.0
 thewalrus==0.21.0
