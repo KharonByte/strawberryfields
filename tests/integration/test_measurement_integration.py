@@ -302,3 +302,89 @@ class TestDarkCounts:
                 match="Post-selection cannot be used together with dark counts",
             ):
                 ops.MeasureFock(select=1, dark_counts=2) | q
+
+
+@pytest.mark.gaussian
+@pytest.mark.parametrize("select", [None, 0, 1, [0], [1]])
+@pytest.mark.parametrize("shots", [1, 2])
+def test_gaussian_threshold_selection_contract(monkeypatch, select, shots):
+    """Reject unsupported selection before sampling; retain unselected dispatch.
+
+    Scalar frontend selections are supported and normalized to sequences before
+    backend dispatch, including zero-valued selections.
+    This controlled sampler checks the API, not the detector distribution.
+    """
+    import warnings
+
+    import strawberryfields as sf
+    from strawberryfields import ops
+    from strawberryfields.backends.gaussianbackend import backend as gaussian
+
+    monkeypatch.setattr(sf, "hbar", 1.7)
+    preparation = sf.Program(2)
+    with preparation.context as q:
+        ops.Sgate(0.2, 0.3) | q[0]
+        ops.Sgate(0.1, -0.4) | q[1]
+        ops.Dgate(0.23, 0.4) | q[0]
+        ops.Dgate(0.17, -0.2) | q[1]
+        ops.BSgate(0.31, 0.27) | (q[0], q[1])
+    engine = sf.Engine("gaussian")
+    engine.run(preparation)
+    backend = engine.backend
+    modes = [1, 0] if select is None else [1]
+    indices = modes + [m + 2 for m in modes]
+    expected_mean = backend.circuit.smeanxp()[indices]
+    expected_cov = backend.circuit.scovmatxp()[np.ix_(indices, indices)]
+    value = select[0] if isinstance(select, list) else select
+    output = (
+        np.array([[0, 1], [1, 0]])[:shots]
+        if select is None
+        else np.full((shots, 1), 1 - value, dtype=int)
+    )
+    calls = []
+
+    def sampler(**kwargs):
+        calls.append(kwargs)
+        return output.copy()
+
+    def snapshot():
+        state = backend.state()
+        return [
+            backend.circuit.mean.copy(),
+            backend.circuit.nmat.copy(),
+            backend.circuit.mmat.copy(),
+            np.array(backend.circuit.active),
+            state.means().copy(),
+            state.cov().copy(),
+        ]
+
+    monkeypatch.setattr(gaussian, "torontonian_sample_state", sampler)
+    before = snapshot()
+    program = sf.Program(preparation)
+    with program.context as q:
+        ops.MeasureThreshold(select=select) | tuple(q[m] for m in modes)
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        if select is not None:
+            with pytest.raises(
+                NotImplementedError, match="Post-selection|has not been implemented"
+            ):
+                engine.run(program, shots=shots).samples
+            assert not calls
+            assert not caught
+        else:
+            result = engine.run(program, shots=shots).samples
+            np.testing.assert_array_equal(result, output[:, ::-1])
+            assert len(calls) == 1
+            assert calls[0]["samples"] == shots
+            np.testing.assert_array_equal(calls[0]["mu"], expected_mean)
+            np.testing.assert_array_equal(calls[0]["cov"], expected_cov)
+            assert len(caught) == (shots == 2)
+            if shots == 2:
+                assert str(caught[0].message) == (
+                    "Cannot simulate non-Gaussian states. "
+                    "Conditional state after Threshold measurement has not been updated."
+                )
+    for initial, final in zip(before, snapshot()):
+        np.testing.assert_array_equal(final, initial)
+    assert sf.hbar == backend.state().hbar == 1.7
