@@ -48,8 +48,11 @@ when a test changes them again or fails. State-reduction tests use this same
 fixture for all three unit settings (1.0, 1.7 and 2.0) and check the returned
 state's units. Homodyne variance is checked
 per batch member using a two-sided chi-square interval with false-rejection
-probability 1e-6 for Gaussian samples, replacing the absolute tolerance that
-accepted a constant sampler. Regression tests reject zero/incorrectly scaled
+probability 1e-6 per sample column under the independent, identically
+distributed Gaussian model, replacing the absolute tolerance that accepted a
+constant sampler. This is a rejection check, not a variance-equivalence test
+or a family-wide false-rejection guarantee. Passing it does not establish
+normality, independence or accuracy within a specified relative error. Regression tests reject zero/incorrectly scaled
 samples, lost coherences, missing configurations and mislabeled unit values.
 The CI guard requires the expanded counts and setup configuration: `setup_hbar`,
 cutoff and batch size, with per-unit counts and agreement between requested and
@@ -62,8 +65,11 @@ Non-vacuum TensorFlow fidelity remains a separate numerical defect.
 Another 704 previously skipped configurations are enabled: 689 unbatched and
 15 TensorFlow batched. Gaussian/Bosonic normalization uses finite-cutoff density
 tensors with explicit ket/bra ordering and the existing tolerance. Bosonic
-squeezed-state parity retains cutoff 10 and permits only cancellation roundoff
-(`100 * float64.eps`); other backends retain exact-zero assertions. TensorFlow
+squeezed-state parity retains cutoff 10 and checks odd-index density entries
+against the regression threshold `100 * float64.eps`, with zero relative
+tolerance. This threshold is not a demonstrated bound on conversion or
+cancellation error for every input or environment; other backends retain
+exact-zero assertions. TensorFlow
 probability, density-matrix and unitary-reference comparisons check complete
 batch shapes and distinct inputs. Channel extraction still uses Fock internally;
 the added coverage compares its output with independently executed TF circuits.

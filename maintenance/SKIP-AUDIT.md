@@ -1,10 +1,26 @@
 # Software-only coverage audit
 
+## Evidence scope
+
+The numerical error values and diagnostic outcomes below are historical audit
+reports, not newly reproduced results. Their complete original input arrays,
+environment receipts and execution logs are not retained with this document,
+so they remain unverified here. In particular, random-input covariance maxima
+must not be interpreted as bounds over all inputs. Fixed cutoffs and passing
+assertions do not establish convergence or general scientific accuracy. The
+maintained tests and guard specify the current checks; validating a quoted
+measurement requires its exact inputs, source/environment versions and retained
+results. This documentation correction changes no test or acceptance threshold.
+
+## Enabled configurations
+
 The first 704 enabled configurations comprise 584 Gaussian/Bosonic normalization
 checks, 60 Bosonic squeezed-state parity checks, and 60 TensorFlow/edge cases.
 They need no physical quantum hardware. Original numerical tolerances are
-preserved; the new Bosonic parity assertion explicitly bounds floating-point
-cancellation without weakening the exact-zero checks for other backends.
+preserved; the new Bosonic parity assertion checks odd-index density entries
+at cutoff 10 against `100 * float64.eps`, with zero relative tolerance. This
+is a regression threshold, not a proven general bound on floating-point
+cancellation or conversion error. Other backends retain exact-zero checks.
 
 Another **42 configurations** are enabled: 18 TF batch channel-reference
 comparisons, 16 Gaussian/Bosonic utility-state density comparisons, two Gaussian
@@ -26,9 +42,10 @@ cutoff loss; analytic controls cover complex correlations and the cutoff boundar
 Another **38 configurations** are enabled: six thermal decompositions, 30
 passive-optics decompositions and two Gaussian rotated-squeezed projections.
 Thermal tests use cutoff 12; the five passive-optics tests use cutoff 16. All
-other tests retain their own cutoff, with the default still 6. At these cutoffs,
-the audited covariance errors were at most 0.00000653 and 0.000124 respectively,
-below the unchanged 0.001 tolerance. Passive tests check the analytic initial
+other tests retain their own cutoff, with the default still 6. The historical audit reported covariance errors of at most 0.00000653 and
+0.000124 respectively for its sampled inputs, below the unchanged 0.001
+tolerance. These reported maxima are not established bounds for the randomly
+generated inputs in later runs. Passive tests check the analytic initial
 and final covariance as well as propagation of the simulated covariance.
 Rotated-squeezed references use phase `2 * phi` and check complex density entries,
 normalization and fidelity. Separate low-energy TF controls cover distinct batch
@@ -37,17 +54,19 @@ inputs and actual pure/mixed storage for all five passive decompositions.
 Another **78 Gaussian-utility moment comparisons** are enabled: 52 unbatched
 Fock/TF cases and 13 in each TF batch profile. The existing Gaussian/Bosonic
 comparisons remain. Vacuum and coherent states retain cutoff 6; the two squeezed
-state tests use cutoff 8 with their original inputs and 0.001 tolerance. At
-cutoff 6, 12 cases exceed that tolerance. At cutoff 8, their maximum covariance
-error is 0.0000617, falling to 0.00000353 at cutoff 10. Independent controls
+state tests use cutoff 8 with their original inputs and 0.001 tolerance. The historical audit reported 12 cases exceeding that tolerance at cutoff 6,
+a maximum covariance error of 0.0000617 at cutoff 8, and 0.00000353 at cutoff
+10. These measurements remain subject to the evidence limits above. Independent controls
 check units, complex moments, normalization and distinct TF batch members.
 The guard requires every mesh value and distinct utility parameter tuples,
 so pytest's numbered IDs for duplicated values cannot replace missing coverage.
 
 Another **two Fock graph-embedding configurations** are enabled, covering pure
 and mixed storage. The two-mode graph and photon-number tolerance are unchanged.
-Finite-density moments use cutoff 48: the total photon-number error falls from
-0.0000146 at cutoff 40 to 0.000000985 at 48 and 0.0000000660 at 56. Regression
+Finite-density moments use cutoff 48. The historical audit reported total
+photon-number errors of 0.0000146 at cutoff 40, 0.000000985 at 48 and
+0.0000000660 at 56; those measurements have not been independently reproduced
+for this documentation correction. Regression
 controls reject biased photon counts, lost normalization, incorrect units,
 displacement and malformed densities. The guard requires both storage modes
 and the existing Gaussian controls at the explicit cutoff.
@@ -56,8 +75,9 @@ Another **one pure-Fock three-mode graph check** is enabled at cutoff 72.
 A ket-only moment adapter avoids constructing the full density matrix and
 retains the original complex graph, matrix-block assertions and tolerance.
 Independent covariance, zero-mean and normalization checks prevent a correct
-graph ratio from hiding truncation loss. Covariance error falls from 0.0001253
-at cutoff 72 to 0.0000351 at 80. Regression controls cover boundary terms,
+graph ratio from hiding truncation loss. The historical audit reported covariance errors of 0.0001253 at cutoff 72
+and 0.0000351 at 80. These are unverified reported observations, not a
+convergence guarantee. Regression controls cover boundary terms,
 complex phases, units, mode order, storage and malformed states. The guard
 requires pure Fock and both Gaussian controls, with no new TF requirements.
 Mixed Fock remains excluded before execution: its density matrix at cutoff 72
