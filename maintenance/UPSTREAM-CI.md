@@ -48,8 +48,11 @@ when a test changes them again or fails. State-reduction tests use this same
 fixture for all three unit settings (1.0, 1.7 and 2.0) and check the returned
 state's units. Homodyne variance is checked
 per batch member using a two-sided chi-square interval with false-rejection
-probability 1e-6 for Gaussian samples, replacing the absolute tolerance that
-accepted a constant sampler. Regression tests reject zero/incorrectly scaled
+probability 1e-6 per sample column under the independent, identically
+distributed Gaussian model, replacing the absolute tolerance that accepted a
+constant sampler. This is a rejection check, not a variance-equivalence test
+or a family-wide false-rejection guarantee. Passing it does not establish
+normality, independence or accuracy within a specified relative error. Regression tests reject zero/incorrectly scaled
 samples, lost coherences, missing configurations and mislabeled unit values.
 The CI guard requires the expanded counts and setup configuration: `setup_hbar`,
 cutoff and batch size, with per-unit counts and agreement between requested and
