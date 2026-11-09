@@ -882,6 +882,7 @@ def test_only_audited_tests_override_cutoff():
         for key, value in {
             **OPTICS_CUTOFFS,
             **INITIAL_CUTOFFS,
+            **{key: 20 for key in module.BOUNDED_GATE_CONTRACTS},
             GRAPH_EMBEDDING: 48,
             THREE_MODE_GRAPH: 72,
         }.items()
@@ -1203,3 +1204,108 @@ def test_every_initial_moment_case_is_required(tmp_path, monkeypatch, function, 
                 verify(save(), profile)
             for prop, value in original:
                 prop.set("value", value)
+
+
+@pytest.fixture
+def bounded_gate_report(tmp_path, monkeypatch):
+    """Keep the new gate guard independently exercised with complete metadata."""
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
+    contracts = set(module.BOUNDED_GATE_CONTRACTS)
+    monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {key: {"tf": 6} for key in contracts})
+    monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", contracts)
+    monkeypatch.setattr(
+        module, "REQUIRED_PARAMETERS", {key: ("strength", "hbar") for key in contracts}
+    )
+    root = ET.Element("testsuites")
+    suite = ET.SubElement(root, "testsuite")
+    for classname, function in sorted(contracts):
+        for strength, hbar in sorted(module.BOUNDED_GATE_PARAMETERS):
+            case = ET.SubElement(
+                suite,
+                "testcase",
+                classname=classname,
+                name=f"{function}[tf-True-{strength}-{hbar}-20]",
+            )
+            props = ET.SubElement(case, "properties")
+            for key, value in {
+                "setup_hbar": hbar,
+                "requested_hbar": hbar,
+                "cutoff": "20",
+                "batch_size": "2",
+                "parameter_strength": strength,
+                "parameter_hbar": hbar,
+            }.items():
+                ET.SubElement(props, "property", name=key, value=value)
+    path = tmp_path / "bounded-gates.xml"
+    return root, path
+
+
+@pytest.mark.parametrize(
+    "corruption",
+    [
+        None,
+        "missing",
+        "skipped",
+        "duplicate",
+        "cutoff",
+        "units",
+        "strength",
+        "parameter_duplicate",
+        "unit_relabel",
+        "setup_duplicate",
+        "request_duplicate",
+        "cutoff_duplicate",
+        "batch_duplicate",
+        "batch",
+    ],
+)
+def test_bounded_gate_coverage_guard(bounded_gate_report, corruption):
+    root, path = bounded_gate_report
+    suite = root.find("testsuite")
+    case = suite.find("testcase")
+    if corruption == "missing":
+        suite.remove(case)
+    elif corruption == "skipped":
+        ET.SubElement(case, "skipped")
+    elif corruption == "duplicate":
+        suite.append(deepcopy(case))
+    elif corruption in ("cutoff", "units", "strength", "batch"):
+        field = {
+            "cutoff": "cutoff",
+            "units": "setup_hbar",
+            "strength": "parameter_strength",
+            "batch": "batch_size",
+        }[corruption]
+        case.find(f"./properties/property[@name='{field}']").set("value", "99")
+    elif corruption == "unit_relabel":
+        # Global unit/parameter counts stay unchanged, but rows no longer agree.
+        first, second = suite.findall("testcase")[:2]
+        for item, unit in ((first, "2.0"), (second, "1.0")):
+            for field in ("setup_hbar", "requested_hbar"):
+                item.find(f"./properties/property[@name='{field}']").set("value", unit)
+    elif corruption in (
+        "setup_duplicate",
+        "request_duplicate",
+        "cutoff_duplicate",
+        "batch_duplicate",
+    ):
+        field = {
+            "setup_duplicate": "setup_hbar",
+            "request_duplicate": "requested_hbar",
+            "cutoff_duplicate": "cutoff",
+            "batch_duplicate": "batch_size",
+        }[corruption]
+        case.find("properties").append(
+            deepcopy(case.find(f"./properties/property[@name='{field}']"))
+        )
+    elif corruption == "parameter_duplicate":
+        case.find("properties").append(
+            deepcopy(case.find("./properties/property[@name='parameter_strength']"))
+        )
+    ET.ElementTree(root).write(path)
+    if corruption is None:
+        assert verify(path, "tensorflow-batched-pure") == 18
+    else:
+        with pytest.raises(ValueError):
+            verify(path, "tensorflow-batched-pure")
