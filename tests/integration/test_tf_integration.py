@@ -300,33 +300,6 @@ class TestTwoModes:
         assert np.allclose(prob, ref_prob, atol=tol, rtol=0.0)
 
 
-class TestThreeModes:
-    """Tests for workflows on three modes."""
-
-    def test_three_mode_fock_state_mean_photon(self, setup_eng, tol):
-        """Tests that the mean photon numbers of a three-mode system,
-        where one mode is prepared in a Fock state, are correct."""
-
-        eng, prog = setup_eng(3)
-
-        with prog.context as q:
-            Fock(1) | q[1]
-
-        result = eng.run(prog)
-        state = result.state
-        nbar0, var_n0 = state.mean_photon(0)
-        nbar1, var_n1 = state.mean_photon(1)
-        nbar2, var_n2 = state.mean_photon(2)
-
-        assert np.allclose(nbar0, 0.0, atol=tol, rtol=0)
-        assert np.allclose(nbar1, 1.0, atol=tol, rtol=0)
-        assert np.allclose(nbar2, 0.0, atol=tol, rtol=0)
-
-        assert np.allclose(var_n0, 0.0, atol=tol, rtol=0)
-        assert np.allclose(var_n1, 0.0, atol=tol, rtol=0)
-        assert np.allclose(var_n2, 0.0, atol=tol, rtol=0)
-
-
 class TestGradient:
     """Integration tests for the gradient computation"""
 

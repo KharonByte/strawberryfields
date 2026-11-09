@@ -557,6 +557,7 @@ class TestFockBackendDecomposeState:
     """Test decomposing several Gaussian states for the Fock backends,
     by measuring the fidelities."""
 
+    @pytest.mark.backends("fock", "tf", "gaussian")
     def test_vacuum(self, setup_eng, hbar, tol):
         eng, prog = setup_eng(3)
 
