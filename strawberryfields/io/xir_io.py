@@ -39,7 +39,28 @@ def get_expanded_statements(prog: xir.Program) -> Sequence[xir.Statement]:
 
     Returns:
         list[xir.Statement]: list of expanded XIR statements
+
+    Raises:
+        ValueError: if a reachable gate definition is recursive
     """
+    # Check only reachable definitions, before expansion. Use an explicit stack so
+    # even a cycle behind a long chain is rejected without Python recursion.
+    active = set()
+    completed = set()
+    stack = [(None, iter(prog.statements))]
+    while stack:
+        name, statements = stack[-1]
+        op = next(statements, None)
+        if op is None:
+            stack.pop()
+            if name is not None:
+                active.remove(name)
+                completed.add(name)
+        elif op.name in active:
+            raise ValueError(f"Recursive XIR gate definition detected: {op.name!r}.")
+        elif op.name in prog.gates and op.name not in completed:
+            active.add(op.name)
+            stack.append((op.name, iter(prog.gates[op.name])))
 
     def expand_statements(statements: Sequence[xir.Statement]) -> Sequence[xir.Statement]:
         flattened_statements = []
@@ -72,7 +93,8 @@ def from_xir(xir_prog: xir.Program) -> Program:
         Program: corresponding Strawberry Fields program
 
     Raises:
-        ValueError: if the XIR program is empty
+        ValueError: if the XIR program is empty, contains a reachable recursive gate
+            definition, or applies the unsupported serialized operation New
     """
     # only script-level statements are part of `xir_prog.statements`, which can only have integer
     # wires, leading to `xir_prog.wires` only containing integer wire labels
@@ -89,6 +111,8 @@ def from_xir(xir_prog: xir.Program) -> Program:
     # append the quantum operations
     with prog.context as q:
         for op in get_expanded_statements(xir_prog):
+            if op.name == "New":
+                raise ValueError("New is not supported in serialized programs.")
             # check if operation name is in the list of
             # defined StrawberryFields operations.
             # This is used by checking against the ops.py __all__
@@ -145,7 +169,8 @@ def from_xir_to_tdm(xir_prog: xir.Program) -> TDMProgram:
         TDMProgram: corresponding ``TDMProgram``
 
     Raises:
-        ValueError: if the number of modes 'N' is missing from the XIR program options
+        ValueError: if the number of modes 'N' is missing, a reachable gate definition
+            is recursive, or the program applies the unsupported serialized operation New
         NameError: if an applied quantum operation is not defined in Strawberry Fields
     """
     N = xir_prog.options.get("N")
@@ -168,6 +193,8 @@ def from_xir_to_tdm(xir_prog: xir.Program) -> TDMProgram:
     # append the quantum operations
     with prog.context(*args) as (p, q):
         for op in get_expanded_statements(xir_prog):
+            if op.name == "New":
+                raise ValueError("New is not supported in serialized programs.")
             # check if operation name is in the list of
             # defined StrawberryFields operations.
             # This is used by checking against the ops.py __all__
