@@ -17,6 +17,7 @@ import pytest
 
 import numpy as np
 from scipy.linalg import qr, block_diag
+from scipy.optimize import brentq
 
 from thewalrus.symplectic import rotation as rot
 from thewalrus.symplectic import xpxp_to_xxpp, xxpp_to_xpxp
@@ -98,6 +99,38 @@ Abp = np.array(
 )
 
 
+@pytest.fixture
+def graph_ket_moments(cutoff, hbar, tol):
+    """Three-mode xxpp moments without expanding a pure ket into a density matrix."""
+
+    def moments(state):
+        assert state.is_pure and state.num_modes == 3
+        assert state.hbar == hbar
+        ket = np.asarray(state.ket(), dtype=np.complex128)
+        assert ket.shape == (cutoff,) * 3
+        assert np.all(np.isfinite(ket))
+        np.testing.assert_allclose(np.vdot(ket, ket).real, 1, atol=tol, rtol=0)
+        # Retain the raised top level when taking inner products of x|psi> and p|psi>.
+        padded = np.pad(ket, [(0, 1)] * 3)
+        vectors = []
+        factors = np.sqrt(np.arange(1, cutoff + 1))[:, None, None]
+        for quadrature in ("x", "p"):
+            for mode in range(3):
+                moved = np.moveaxis(padded, mode, 0)
+                lower, upper = np.zeros_like(moved), np.zeros_like(moved)
+                lower[:-1] = factors * moved[1:]
+                upper[1:] = factors * moved[:-1]
+                action = lower + upper if quadrature == "x" else -1j * (lower - upper)
+                vectors.append(np.moveaxis(action, 0, mode) * np.sqrt(hbar / 2))
+        means = np.array([np.vdot(padded, vector).real for vector in vectors])
+        second = np.array([[np.vdot(left, right).real for right in vectors] for left in vectors])
+        covariance = second - np.outer(means, means)
+        assert np.all(np.isfinite(means)) and np.all(np.isfinite(covariance))
+        return means, covariance
+
+    return moments
+
+
 @pytest.mark.backends("gaussian")
 class TestGaussianBackendDecompositions:
     """Test that the frontend decompositions work on the Gaussian backend"""
@@ -112,18 +145,57 @@ class TestGaussianBackendDecompositions:
         state = eng.run(prog).state
         assert np.allclose(state.cov(), S @ S.T * hbar / 2, atol=tol)
 
-    def test_graph_embed(self, setup_eng, tol):
+    @pytest.mark.backends("gaussian", "fock")
+    @pytest.mark.parametrize("cutoff", [72], indirect=True)
+    def test_graph_embed(self, setup_eng, tol, pure, hbar, graph_ket_moments):
         """Test that embedding a traceless adjacency matrix A
         results in the property Amat/A = c J, where c is a real constant,
         and J is the all ones matrix"""
         N = 3
         eng, prog = setup_eng(3)
+        if eng.backend_name == "fock" and not pure:
+            pytest.skip(
+                "Three-mode graph check requires a pure Fock ket; mixed storage exceeds CI memory"
+            )
 
         with prog.context as q:
             ops.GraphEmbed(A) | q
 
         state = eng.run(prog).state
-        Amat = eng.backend.circuit.Amat()
+        if eng.backend_name == "gaussian":
+            Amat = eng.backend.circuit.Amat()
+        else:
+            assert eng.backend_name == "fock" and state.is_pure
+            means, cov = graph_ket_moments(state)
+            # Independently scale the original graph to one photon per mode.
+            # No simulator decomposition or Walrus conversion supplies this reference.
+            singular_values = np.linalg.svd(A, compute_uv=False)
+            scale = brentq(
+                lambda c: np.sum((c * singular_values) ** 2 / (1 - (c * singular_values) ** 2)) - N,
+                0,
+                (1 - 1e-9) / singular_values.max(),
+            )
+            B = scale * A
+            identity = np.eye(N)
+            Qexpected = np.linalg.inv(np.block([[identity, -B], [-B.conj(), identity]]))
+            inverse = np.sqrt(hbar / 2) * np.block(
+                [[identity, identity], [-1j * identity, 1j * identity]]
+            )
+            expected = inverse @ (Qexpected - np.eye(2 * N) / 2) @ inverse.conj().T
+            np.testing.assert_allclose(expected.imag, 0, atol=1e-12, rtol=0)
+            np.testing.assert_allclose(means, 0, atol=1e-8, rtol=0)
+            np.testing.assert_allclose(cov, expected.real, atol=tol, rtol=0)
+            photons = (np.trace(cov) / (hbar / 2) - 2 * N) / 4
+            np.testing.assert_allclose(photons, N, atol=tol, rtol=0)
+
+            transform = np.block([[identity, 1j * identity], [identity, -1j * identity]]) / np.sqrt(
+                2 * hbar
+            )
+            Qactual = transform @ cov @ transform.conj().T + np.eye(2 * N) / 2
+            exchange = np.block(
+                [[np.zeros_like(identity), identity], [identity, np.zeros_like(identity)]]
+            )
+            Amat = exchange @ (np.eye(2 * N) - np.linalg.inv(Qactual))
 
         # check that the matrix Amat is constructed to be of the form
         # Amat = [[B^\dagger, 0], [0, B]]
@@ -201,7 +273,11 @@ class TestGaussianBackendDecompositions:
         ratio /= ratio[0, 0]
         assert np.allclose(ratio, np.ones([n, n]), atol=tol)
 
-    def test_passive_gaussian_transform(self, setup_eng, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    @pytest.mark.parametrize("cutoff", [16], indirect=True)
+    def test_passive_gaussian_transform(
+        self, setup_eng, hbar, tol, state_moments, assert_passive_moments, batch_size
+    ):
         """Test applying a passive Gaussian symplectic transform,
         which is simply an interferometer"""
         eng, p1 = setup_eng(3)
@@ -216,7 +292,14 @@ class TestGaussianBackendDecompositions:
             ops.GaussianTransform(O) | q
 
         state = eng.run(p2).state
-        assert np.allclose(state.cov(), O @ init.cov() @ O.T, atol=tol)
+        assert_passive_moments(
+            state_moments(init, batch_size),
+            state_moments(state, batch_size),
+            O,
+            np.zeros(6),
+            (hbar / 2) * np.diag([np.exp(-1)] * 3 + [np.exp(1)] * 3),
+            batch_size,
+        )
 
     def test_active_gaussian_transform_on_vacuum(self, setup_eng, hbar, tol):
         """Test applying a passive Gaussian symplectic transform,
@@ -229,7 +312,11 @@ class TestGaussianBackendDecompositions:
         state = eng.run(prog).state
         assert np.allclose(state.cov(), S @ S.T * hbar / 2, atol=tol)
 
-    def test_interferometer(self, setup_eng, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    @pytest.mark.parametrize("cutoff", [16], indirect=True)
+    def test_interferometer(
+        self, setup_eng, hbar, tol, state_moments, assert_passive_moments, batch_size
+    ):
         """Test applying an interferometer"""
         eng, p1 = setup_eng(3)
 
@@ -243,9 +330,20 @@ class TestGaussianBackendDecompositions:
 
         state = eng.run(p2).state
         O = np.vstack([np.hstack([u1.real, -u1.imag]), np.hstack([u1.imag, u1.real])])
-        assert np.allclose(state.cov(), O @ init.cov() @ O.T, atol=tol)
+        assert_passive_moments(
+            state_moments(init, batch_size),
+            state_moments(state, batch_size),
+            O,
+            np.zeros(6),
+            (hbar / 2) * np.diag([np.exp(-1)] * 3 + [np.exp(1)] * 3),
+            batch_size,
+        )
 
-    def test_interferometer_rectangular_compact(self, setup_eng, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    @pytest.mark.parametrize("cutoff", [16], indirect=True)
+    def test_interferometer_rectangular_compact(
+        self, setup_eng, hbar, tol, state_moments, assert_passive_moments, batch_size
+    ):
         """Test applying an interferometer using rectangular compact mesh"""
         eng, p1 = setup_eng(3)
 
@@ -259,9 +357,20 @@ class TestGaussianBackendDecompositions:
 
         state = eng.run(p2).state
         O = np.vstack([np.hstack([u1.real, -u1.imag]), np.hstack([u1.imag, u1.real])])
-        assert np.allclose(state.cov(), O @ init.cov() @ O.T, atol=tol)
+        assert_passive_moments(
+            state_moments(init, batch_size),
+            state_moments(state, batch_size),
+            O,
+            np.zeros(6),
+            (hbar / 2) * np.diag([np.exp(-1)] * 3 + [np.exp(1)] * 3),
+            batch_size,
+        )
 
-    def test_interferometer_triangular_compact(self, setup_eng, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    @pytest.mark.parametrize("cutoff", [16], indirect=True)
+    def test_interferometer_triangular_compact(
+        self, setup_eng, hbar, tol, state_moments, assert_passive_moments, batch_size
+    ):
         """Test applying an interferometer using triangular compact mesh"""
         eng, p1 = setup_eng(3)
 
@@ -275,9 +384,20 @@ class TestGaussianBackendDecompositions:
 
         state = eng.run(p2).state
         O = np.vstack([np.hstack([u1.real, -u1.imag]), np.hstack([u1.imag, u1.real])])
-        assert np.allclose(state.cov(), O @ init.cov() @ O.T, atol=tol)
+        assert_passive_moments(
+            state_moments(init, batch_size),
+            state_moments(state, batch_size),
+            O,
+            np.zeros(6),
+            (hbar / 2) * np.diag([np.exp(-1)] * 3 + [np.exp(1)] * 3),
+            batch_size,
+        )
 
-    def test_interferometer_sun_compact(self, setup_eng, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    @pytest.mark.parametrize("cutoff", [16], indirect=True)
+    def test_interferometer_sun_compact(
+        self, setup_eng, hbar, tol, state_moments, assert_passive_moments, batch_size
+    ):
         """Test applying an interferometer using SU(n) compact mesh"""
         eng, p1 = setup_eng(3)
 
@@ -291,7 +411,14 @@ class TestGaussianBackendDecompositions:
 
         state = eng.run(p2).state
         O = np.vstack([np.hstack([u1.real, -u1.imag]), np.hstack([u1.imag, u1.real])])
-        assert np.allclose(state.cov(), O @ init.cov() @ O.T, atol=tol)
+        assert_passive_moments(
+            state_moments(init, batch_size),
+            state_moments(state, batch_size),
+            O,
+            np.zeros(6),
+            (hbar / 2) * np.diag([np.exp(-1)] * 3 + [np.exp(1)] * 3),
+            batch_size,
+        )
 
     def test_identity_interferometer(self, setup_eng, tol):
         """Test that applying an identity interferometer does nothing"""
@@ -462,7 +589,8 @@ class TestBosonicBackendPrepareState:
 class TestGaussianBackendDecomposeState:
     """Test decomposing several Gaussian states for the Gaussian backend."""
 
-    def test_vacuum(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_vacuum(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed vacuum state"""
         eng, prog = setup_eng(3)
         cov = (hbar / 2) * np.identity(6)
@@ -470,12 +598,14 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
-        assert np.all(state.means() == np.zeros([6]))
+        actual_means, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
+        assert np.all(actual_means == 0)
         assert np.allclose(state.fidelity_vacuum(), 1, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_squeezed(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_squeezed(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed squeezed state"""
         eng, prog = setup_eng(3)
         cov = (hbar / 2) * np.diag([np.exp(-0.1)] * 3 + [np.exp(0.1)] * 3)
@@ -484,10 +614,12 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
+        _, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_displaced_squeezed(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_displaced_squeezed(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed displaced squeezed state"""
         eng, prog = setup_eng(3)
         cov = (hbar / 2) * np.diag([np.exp(-0.1)] * 3 + [np.exp(0.1)] * 3)
@@ -497,11 +629,14 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov, means) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
-        assert np.allclose(state.means(), means, atol=tol)
+        actual_means, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
+        assert np.allclose(actual_means, means, atol=tol)
         assert len(eng.run_progs[-1]) == 7
 
-    def test_thermal(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    @pytest.mark.parametrize("cutoff", [12], indirect=True)
+    def test_thermal(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed thermal state"""
         eng, prog = setup_eng(3)
         cov = np.diag(hbar * (np.array([0.3, 0.4, 0.2] * 2) + 0.5))
@@ -510,10 +645,13 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
+        actual_means, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
+        assert np.allclose(actual_means, 0, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_rotated_squeezed(self, setup_eng, hbar, tol):
+    @pytest.mark.backends("gaussian", "fock", "tf")
+    def test_rotated_squeezed(self, setup_eng, hbar, tol, state_moments, batch_size):
         """Testing decomposed rotated squeezed state"""
         eng, prog = setup_eng(3)
 
@@ -526,7 +664,8 @@ class TestGaussianBackendDecomposeState:
             ops.Gaussian(cov) | q
 
         state = eng.run(prog).state
-        assert np.allclose(state.cov(), cov, atol=tol)
+        _, actual_cov = state_moments(state, batch_size)
+        assert np.allclose(actual_cov, cov, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
     def test_random_state_mixed(self, setup_eng, V_mixed, r_means, tol):
@@ -568,7 +707,8 @@ class TestFockBackendDecomposeState:
         assert np.allclose(state.fidelity_vacuum(), 1, atol=tol)
         assert len(eng.run_progs[-1]) == 3
 
-    def test_squeezed(self, setup_eng, cutoff, hbar, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian")
+    def test_squeezed(self, setup_eng, cutoff, hbar, tol, batch_size):
         eng, prog = setup_eng(3)
         r = 0.05
         phi = 0
@@ -582,14 +722,27 @@ class TestFockBackendDecomposeState:
         assert len(eng.run_progs[-1]) == 3
 
         for n in range(3):
-            assert np.allclose(state.fidelity(in_state, n), 1, atol=tol)
+            if eng.backend_name == "gaussian":
+                density = np.asarray(state.reduced_dm([n], cutoff=cutoff))
+                assert density.shape == (cutoff, cutoff)
+                np.testing.assert_allclose(
+                    density, np.outer(in_state, in_state.conj()), atol=tol, rtol=0
+                )
+                fidelity = np.vdot(in_state, density @ in_state).real
+            else:
+                fidelity = np.asarray(state.fidelity(in_state, n))
+            assert np.shape(fidelity) == (() if batch_size is None else (batch_size,))
+            assert np.allclose(fidelity, 1, atol=tol)
 
-    def test_rotated_squeezed(self, setup_eng, cutoff, hbar, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian")
+    def test_rotated_squeezed(
+        self, setup_eng, cutoff, hbar, tol, batch_size, assert_marginal_fidelity
+    ):
         eng, prog = setup_eng(3)
 
         r = 0.1
         phi = 0.2312
-        in_state = squeezed_state(r, phi, basis="fock", fock_dim=cutoff)
+        in_state = squeezed_state(r, 2 * phi, basis="fock", fock_dim=cutoff)
 
         v1 = (hbar / 2) * np.diag([np.exp(-2 * r), np.exp(2 * r)])
         cov = xpxp_to_xxpp(block_diag(*[rot(phi) @ v1 @ rot(phi).T] * 3))
@@ -601,7 +754,11 @@ class TestFockBackendDecomposeState:
         assert len(eng.run_progs[-1]) == 3
 
         for n in range(3):
-            assert np.allclose(state.fidelity(in_state, n), 1, atol=tol)
+            assert_marginal_fidelity(state, n, in_state, batch_size)
+            if eng.backend_name != "gaussian":
+                fidelity = np.asarray(state.fidelity(in_state, n))
+                assert fidelity.shape == (() if batch_size is None else (batch_size,))
+                assert np.allclose(fidelity, 1, atol=tol)
 
 
 class TestDecompositionsGaussianGates:

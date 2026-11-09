@@ -66,7 +66,8 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("r", MAG)
     @pytest.mark.parametrize("p", PHASE)
-    def test_normalized_squeezed_state(self, setup_backend, r, p, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_squeezed_state(self, setup_backend, r, p, tol, state_trace):
         """Tests if a range of alpha-displaced states have the correct fidelity
         with the corresponding coherent state.
         """
@@ -75,12 +76,12 @@ class TestFockRepresentation:
         backend = setup_backend(1)
         backend.squeeze(np.abs(z), np.angle(z), 0)
         state = backend.state()
-        assert np.allclose(state.trace(), 1, atol=tol, rtol=0)
+        assert np.allclose(state_trace(state), 1, atol=tol, rtol=0)
 
     @pytest.mark.parametrize("r", MAG)
     @pytest.mark.parametrize("p", PHASE)
-    @pytest.mark.backends("fock", "tf", "gaussian")
-    def test_no_odd_fock(self, setup_backend, r, p, batch_size):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_no_odd_fock(self, setup_backend, r, p, batch_size, assert_bosonic_even):
         """Tests if a range of squeezed vacuum states have
         only nonzero entries for even Fock states."""
         z = r * np.exp(1j * p)
@@ -88,6 +89,10 @@ class TestFockRepresentation:
         backend = setup_backend(1)
         backend.squeeze(np.abs(z), np.angle(z), 0)
         state = backend.state()
+
+        if backend.short_name == "bosonic":
+            assert_bosonic_even(state)
+            return
 
         if state.is_pure:
             num_state = state.ket()

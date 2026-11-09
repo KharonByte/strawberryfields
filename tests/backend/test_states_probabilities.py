@@ -104,31 +104,24 @@ class TestAllFockProbs:
     def test_two_mode_gaussian(self, a, phi, setup_backend, batch_size, cutoff, tol):
         """Tests that the numeric probabilities in the full Fock basis are
         correct for a two-mode gaussian state."""
-        if a == 0.0:
-            pytest.skip("Test only runs for states with non-zero displacement")
-
         backend = setup_backend(2)
 
         alpha = a * np.exp(1j * phi)
+        if backend.short_name == "tf" and batch_size is not None:
+            alpha = alpha * np.linspace(1, 0.5, batch_size)
+        alpha = np.asarray(alpha)[..., None]
 
         n = np.arange(cutoff)
         ref_state1 = np.exp(-0.5 * np.abs(alpha) ** 2) * alpha**n / np.sqrt(fac(n))
         ref_state2 = np.exp(-0.5 * np.abs(-alpha) ** 2) * (-alpha) ** n / np.sqrt(fac(n))
 
-        ref_state = np.outer(ref_state1, ref_state2)
-        ref_probs = np.abs(np.reshape(ref_state**2, -1))
+        ref_state = ref_state1[..., :, None] * ref_state2[..., None, :]
+        ref_probs = np.abs(ref_state) ** 2
 
-        if batch_size is not None:
-            ref_probs = np.tile(ref_probs, batch_size)
-
-        backend.prepare_coherent_state(np.abs(alpha), np.angle(alpha), 0)
-        backend.prepare_coherent_state(np.abs(alpha), np.angle(alpha) + np.pi, 1)
+        backend.prepare_coherent_state(np.abs(alpha[..., 0]), np.angle(alpha[..., 0]), 0)
+        backend.prepare_coherent_state(np.abs(alpha[..., 0]), np.angle(alpha[..., 0]) + np.pi, 1)
         state = backend.state()
 
-        for n in range(cutoff):
-            for m in range(cutoff):
-                probs = state.all_fock_probs(cutoff=cutoff)
-                if tf_available and isinstance(probs, tf.Tensor):
-                    probs = probs.numpy()
-
-                assert np.allclose(probs.flatten(), ref_probs, atol=tol, rtol=0)
+        probs = np.asarray(state.all_fock_probs(cutoff=cutoff))
+        assert probs.shape == ref_probs.shape
+        assert np.allclose(probs, ref_probs, atol=tol, rtol=0)

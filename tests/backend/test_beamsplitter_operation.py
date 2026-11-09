@@ -77,7 +77,8 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("t", T_VALUES)
     @pytest.mark.parametrize("r_phi", PHASE_R)
-    def test_normalized_beamsplitter_output(self, setup_backend, t, r_phi, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_beamsplitter_output(self, setup_backend, t, r_phi, tol, state_trace):
         """Tests if a range of beamsplitter outputs states are normalized."""
 
         backend = setup_backend(2)
@@ -85,7 +86,7 @@ class TestFockRepresentation:
         backend.displacement(ALPHA, np.pi / 3, 1)
         backend.beamsplitter(np.arccos(t), r_phi, 0, 1)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1, atol=tol, rtol=0)
 
     @pytest.mark.parametrize("t", T_VALUES)

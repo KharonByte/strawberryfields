@@ -41,7 +41,8 @@ class TestFockRepresentation:
     """Tests that make use of the Fock basis representation."""
 
     @pytest.mark.parametrize("theta", SHIFT_THETAS)
-    def test_normalized_rotated_coherent_states(self, setup_backend, theta, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_rotated_coherent_states(self, setup_backend, theta, tol, state_trace):
         """Tests if a range of phase-shifted coherent states are normalized."""
         r = 1.0
         backend = setup_backend(1)
@@ -50,7 +51,7 @@ class TestFockRepresentation:
         backend.rotation(theta, 0)
 
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1.0, atol=tol, rtol=0.0)
 
     @pytest.mark.parametrize("theta", SHIFT_THETAS)

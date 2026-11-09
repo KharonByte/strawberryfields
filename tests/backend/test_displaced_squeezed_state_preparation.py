@@ -66,8 +66,9 @@ class TestFockRepresentation:
     @pytest.mark.parametrize("phase_alpha", PHASE_ALPHAS)
     @pytest.mark.parametrize("r", SQZ_R)
     @pytest.mark.parametrize("phi", SQZ_PHI)
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_normalized_displaced_squeezed_state(
-        self, setup_backend, mag_alpha, phase_alpha, r, phi, tol
+        self, setup_backend, mag_alpha, phase_alpha, r, phi, tol, state_trace
     ):
         """Tests if a range of squeezed vacuum states are normalized."""
         # alpha = mag_alpha * np.exp(1j * phase_alpha)
@@ -75,7 +76,7 @@ class TestFockRepresentation:
 
         backend.prepare_displaced_squeezed_state(mag_alpha, phase_alpha, r, phi, 0)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1, atol=tol, rtol=0)
 
     @pytest.mark.parametrize("r", SQZ_R)
