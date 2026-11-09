@@ -15,6 +15,7 @@ r"""
 Tests for strawberryfields.apps.qchem.utils
 """
 
+import io
 import os
 
 import numpy as np
@@ -146,6 +147,61 @@ class TestReadGAMESS:
         file, ri, mi, wi, li = params
 
         r, m, w, l = utils.read_gamess(os.path.join(dir_path, file))
+
+        assert np.allclose(r, ri)
+        assert np.allclose(m, mi)
+        assert np.allclose(w, wi)
+        assert np.allclose(l, li)
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "FREQUENCY 1",
+            "FREQUENCY 1\n",
+            "FREQUENCY 1\nSYMMETRY A",
+            "FREQUENCY 1\nSYMMETRY A\nREDUCED MASS 1.0\n",
+        ],
+    )
+    def test_truncated_frequency_header(self, text, mocker):
+        """Reject EOF before the separator without allowing a regression to hang the suite."""
+
+        class BoundedFile(io.StringIO):
+            """Fail if the parser keeps reading after the first EOF result."""
+
+            eof_seen = False
+
+            def readline(self, *args, **kwargs):
+                assert not self.eof_seen, "Parser continued reading after EOF"
+                line = super().readline(*args, **kwargs)
+                self.eof_seen = line == ""
+                return line
+
+        mocker.patch("builtins.open", return_value=BoundedFile(text))
+
+        with pytest.raises(
+            ValueError, match="Unexpected end of file in vibrational frequency header"
+        ):
+            utils.read_gamess("truncated.out")
+
+    @pytest.mark.parametrize("params", [p1, p2])
+    @pytest.mark.parametrize("separator", [" \n", "\t\n", " \t \n"])
+    def test_whitespace_separator(self, params, separator, tmp_path):
+        """Accept whitespace-only separators without changing the parsed molecular data."""
+        file, ri, mi, wi, li = params
+        with open(os.path.join(dir_path, file), encoding="utf-8") as source:
+            lines = source.readlines()
+
+        in_header = False
+        for index, line in enumerate(lines):
+            if "FREQUENCY" in line:
+                in_header = True
+            elif in_header and line == "\n":
+                lines[index] = separator
+                in_header = False
+
+        output = tmp_path / file
+        output.write_text("".join(lines), encoding="utf-8")
+        r, m, w, l = utils.read_gamess(output)
 
         assert np.allclose(r, ri)
         assert np.allclose(m, mi)
