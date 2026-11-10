@@ -421,6 +421,16 @@ THREE_MODE_GRAPH_EMBEDDING = (
 )
 UNBATCHED_REQUIRED[THREE_MODE_GRAPH_EMBEDDING] = {"gaussian": 1, "fock": 1}
 REQUIRED_CUTOFFS[THREE_MODE_GRAPH_EMBEDDING] = 72
+# Bounded companions retain the separate high-squeezing exclusions.
+BOUNDED_GATE_CLASS = "integration.test_bounded_gaussian_gates.TestBoundedGaussianGates"
+BOUNDED_GATE_CONTRACTS = {
+    (BOUNDED_GATE_CLASS, function) for function in ("test_Pgate", "test_CXgate", "test_CZgate")
+}
+BOUNDED_GATE_PARAMETERS = {(str(s), str(h)) for s in (-0.25, 0.0, 0.25) for h in (1.0, 2.0)}
+for contract in BOUNDED_GATE_CONTRACTS:
+    BATCH_CAPABLE_REQUIRED[contract] = {"fock": 6, "tf": 6}
+    REQUIRED_CUTOFFS[contract] = 20
+    REQUIRED_PARAMETERS[contract] = ("strength", "hbar")
 # A mixed density matrix has no ket accessor. Other gradients require both stores.
 REQUIRED_STATES = {
     ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"},
@@ -434,6 +444,7 @@ CONFIGURATION_REQUIRED = (
     | {GRAPH_EMBEDDING, THREE_MODE_GRAPH_EMBEDDING}
 )
 PARAMETRIZED_UNITS = {
+    BOUNDED_GATE_CLASS: {1.0, 2.0},
     "integration.test_hbar_integration.TestIntegration": {0.5, 1.0},
     "backend.test_state_reduction.TestStateReduction": {1.0, 1.7, 2.0},
 }
@@ -629,6 +640,18 @@ def verify(report, configuration):
                             units[setup_hbar] += 1
                             if classname in PARAMETRIZED_UNITS:
                                 assert setup_hbar == float(properties["requested_hbar"])
+                            if (classname, function) in BOUNDED_GATE_CONTRACTS:
+                                for field in (
+                                    "setup_hbar",
+                                    "requested_hbar",
+                                    "cutoff",
+                                    "batch_size",
+                                ):
+                                    assert (
+                                        len(case.findall(f"./properties/property[@name='{field}']"))
+                                        == 1
+                                    )
+                                assert setup_hbar == float(properties["parameter_hbar"])
                             assert int(properties["cutoff"]) == REQUIRED_CUTOFFS.get(
                                 (classname, function), 6
                             )
@@ -656,6 +679,10 @@ def verify(report, configuration):
                             count != 1 for count in parameter_values.values()
                         ):
                             errors.append(f"Missing or repeated parameter values: {label}")
+                        if (classname, function) in BOUNDED_GATE_CONTRACTS and set(
+                            parameter_values
+                        ) != BOUNDED_GATE_PARAMETERS:
+                            errors.append(f"Incorrect bounded gate parameter coverage: {label}")
                         if required_parameters == ("mesh",) and set(parameter_values) != {
                             (mesh,) for mesh in REQUIRED_MESHES
                         }:
