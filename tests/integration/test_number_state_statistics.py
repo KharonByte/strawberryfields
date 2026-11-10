@@ -28,9 +28,7 @@ def assert_number_state_moments(state, occupations, atol):
         assert np.all(np.isfinite(variance))
         # N_j |n_0,n_1,n_2> = n_j |n_0,n_1,n_2>, hence Var(N_j) = 0.
         np.testing.assert_allclose(mean, expected[..., mode], atol=atol, rtol=0)
-        np.testing.assert_allclose(
-            variance, np.zeros(expected_shape), atol=atol, rtol=0
-        )
+        np.testing.assert_allclose(variance, np.zeros(expected_shape), atol=atol, rtol=0)
         maximum_error = max(
             maximum_error,
             float(np.max(np.abs(mean - expected[..., mode]))),
@@ -51,9 +49,7 @@ def assert_number_state_moments(state, occupations, atol):
 )
 @pytest.mark.parametrize("cutoff", [3, 4], indirect=True)
 @pytest.mark.parametrize("hbar", [1.0, 1.7], indirect=True)
-def test_distinct_number_state_moments(
-    backend_name, occupations, cutoff, hbar, pure, request
-):
+def test_distinct_number_state_moments(backend_name, occupations, cutoff, hbar, pure, request):
     """Both storage forms retain each mode/member, with no cutoff tail or unit dependence.
 
     Zero number-state variances do not detect copying a correct zero variance
@@ -71,9 +67,7 @@ def test_distinct_number_state_moments(
     data_shape = leading_shape + (cutoff,) * (3 if pure else 6)
     reference = np.zeros(data_shape, dtype=np.complex128)
     for member, numbers in enumerate(members):
-        indices = (
-            tuple(numbers) if pure else tuple(n for n in numbers for _ in range(2))
-        )
+        indices = tuple(numbers) if pure else tuple(n for n in numbers for _ in range(2))
         reference[((member,) if batched else ()) + indices] = 1
 
     engine = sf.Engine(
@@ -140,9 +134,7 @@ def test_number_state_moment_oracle_accepts_reference(occupations):
 @pytest.mark.parametrize("shape_error", ["scalar", "extra_axis", "unbatched_vector"])
 def test_number_state_moment_oracle_rejects_shape(observable, shape_error):
     """Independently corrupt either observable's shape without changing its values."""
-    expected = np.asarray(
-        OCCUPATIONS[0] if shape_error == "unbatched_vector" else OCCUPATIONS
-    )
+    expected = np.asarray(OCCUPATIONS[0] if shape_error == "unbatched_vector" else OCCUPATIONS)
 
     def mean_photon(mode):
         results = [expected[..., mode], np.zeros(expected.shape[:-1])]
@@ -155,14 +147,10 @@ def test_number_state_moment_oracle_rejects_shape(observable, shape_error):
         return results
 
     with pytest.raises(AssertionError, match=observable + " shape"):
-        assert_number_state_moments(
-            SimpleNamespace(mean_photon=mean_photon), expected, 1e-15
-        )
+        assert_number_state_moments(SimpleNamespace(mean_photon=mean_photon), expected, 1e-15)
 
 
-@pytest.mark.parametrize(
-    "error", ["copied_member", "reordered_members", "wrong_mode", "variance"]
-)
+@pytest.mark.parametrize("error", ["copied_member", "reordered_members", "wrong_mode", "variance"])
 def test_number_state_moment_oracle_rejects_values(error):
     """Correct shapes cannot hide copied/reordered means or an erroneous variance."""
     expected = np.asarray(OCCUPATIONS)
@@ -181,6 +169,4 @@ def test_number_state_moment_oracle_rejects_values(error):
         return mean, variance
 
     with pytest.raises(AssertionError):
-        assert_number_state_moments(
-            SimpleNamespace(mean_photon=mean_photon), expected, 1e-15
-        )
+        assert_number_state_moments(SimpleNamespace(mean_photon=mean_photon), expected, 1e-15)
