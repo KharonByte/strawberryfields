@@ -590,7 +590,7 @@ def verify(report, configuration):
         if identity in seen:
             errors.append(f"Duplicate test case: {identity[0]}::{identity[1]}")
         seen.add(identity)
-    checked = 0
+    checked = verify_gaussian_preparation(cases, selected, states, batched, errors)
     for (classname, function), supported in required.items():
         if batched and function in UNBATCHED_ONLY:
             continue
@@ -700,7 +700,6 @@ def verify(report, configuration):
                                 f"Incorrect setup units counts for {label}: {dict(units)}"
                             )
                 checked += len(matching)
-    checked += verify_gaussian_preparation(cases, selected, states, batched, errors)
     if errors:
         raise ValueError(
             "Required backend checks were not executed successfully:\n" + "\n".join(errors)
