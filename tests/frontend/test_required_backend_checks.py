@@ -207,6 +207,7 @@ def isolate_unbatched_contracts(monkeypatch):
     monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {})
     monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", set())
     monkeypatch.setattr(module, "REQUIRED_PARAMETERS", {})
+    monkeypatch.setattr(module, "GAUSSIAN_PREPARATION_REQUIRED", {})
 
 
 @pytest.fixture
