@@ -146,8 +146,9 @@ class TestPostselection:
             else:
                 assert np.all(photons_out == total_photons)
 
-    @pytest.mark.backends("gaussian")
-    def test_embed_graph(self, setup_eng, hbar):
+    @pytest.mark.backends("gaussian", "fock")
+    @pytest.mark.parametrize("cutoff", [48], indirect=True)
+    def test_embed_graph(self, setup_eng, hbar, state_moments):
         """Test that an embedded graph has the right total mean photon number."""
 
         eng, prog = setup_eng(2)
@@ -157,7 +158,12 @@ class TestPostselection:
             ops.GraphEmbed(A, n_mean_per_mode) | (q[0], q[1])
 
         state = eng.run(prog).state
-        cov = state.cov()
+        if eng.backend_name == "gaussian":
+            cov = state.cov()
+        else:
+            assert bool(state.is_pure) == eng.backend_options["pure"]
+            means, cov = state_moments(state)
+            np.testing.assert_allclose(means, 0, atol=1e-8, rtol=0)
         n_mean_tot = np.trace(cov / (hbar / 2) - np.identity(4)) / 4
         expected = 2 * n_mean_per_mode
         assert np.allclose(n_mean_tot, expected)
@@ -179,9 +185,8 @@ class TestPostselection:
 
 class TestDarkCounts:
     @pytest.mark.backends("fock", "tf")
-    @pytest.mark.usefixtures("skip_tf_batch")
     @pytest.mark.parametrize("dark_counts", [[4, 2], [3, 0], [0, 6]])
-    def test_fock_darkcounts_two_modes(self, dark_counts, setup_eng, monkeypatch):
+    def test_fock_darkcounts_two_modes(self, dark_counts, setup_eng, monkeypatch, batch_size):
         """Test Fock measurements return expected results with dark counts on all detectors"""
         with monkeypatch.context() as m:
             # add the number of dark counts instead of sampling from a poisson distribution
@@ -195,14 +200,21 @@ class TestDarkCounts:
                 ops.Fock(n[1]) | q[1]
                 ops.MeasureFock(dark_counts=dark_counts) | q
 
-            eng.run(prog)
-            assert q[0].val == n[0] + dark_counts[0]
-            assert q[1].val == n[1] + dark_counts[1]
+            result = eng.run(prog)
+            expected = np.array([[n[0] + dark_counts[0], n[1] + dark_counts[1]]])
+            if batch_size:
+                expected = np.broadcast_to(expected, (batch_size, 1, 2))
+            np.testing.assert_array_equal(result.samples, expected)
+            np.testing.assert_array_equal(
+                np.asarray(q[0].val).reshape(-1), expected[..., 0].reshape(-1)
+            )
+            np.testing.assert_array_equal(
+                np.asarray(q[1].val).reshape(-1), expected[..., 1].reshape(-1)
+            )
 
     @pytest.mark.backends("fock", "tf")
-    @pytest.mark.usefixtures("skip_tf_batch")
     @pytest.mark.parametrize("dark_counts", [[4], 6, 0, [0]])
-    def test_fock_darkcounts_single_mode(self, dark_counts, setup_eng, monkeypatch):
+    def test_fock_darkcounts_single_mode(self, dark_counts, setup_eng, monkeypatch, batch_size):
         """Test Fock measurements return expected results with dark counts on one detector"""
         with monkeypatch.context() as m:
             m.setattr(np.random, "poisson", lambda dc, shape: dc * np.ones(shape, dtype=int))
@@ -216,15 +228,47 @@ class TestDarkCounts:
                 ops.MeasureFock(dark_counts=dark_counts) | q[0]
                 ops.MeasureFock() | q[1]
 
-            eng.run(prog)
+            result = eng.run(prog)
 
             if isinstance(dark_counts, int):
                 dark_counts = [dark_counts]
 
-            assert q[0].val == n[0] + dark_counts[0]
-            assert q[1].val == n[1]
+            expected = np.array([[n[0] + dark_counts[0], n[1]]])
+            if batch_size:
+                expected = np.broadcast_to(expected, (batch_size, 1, 2))
+            np.testing.assert_array_equal(result.samples, expected)
+            np.testing.assert_array_equal(
+                np.asarray(q[0].val).reshape(-1), expected[..., 0].reshape(-1)
+            )
+            np.testing.assert_array_equal(
+                np.asarray(q[1].val).reshape(-1), expected[..., 1].reshape(-1)
+            )
 
-    @pytest.mark.backends("fock")
+    @pytest.mark.backends("fock", "tf")
+    def test_distinct_fock_inputs_dark_counts(self, setup_eng, batch_size, monkeypatch):
+        """Detector results must not be copied from one batch member into another."""
+        count = batch_size or 1
+        n0 = np.arange(count) % 3 + 1
+        n1 = np.arange(count)[::-1] % 3 + 1
+        monkeypatch.setattr(np.random, "poisson", lambda dc, shape: dc * np.ones(shape, dtype=int))
+        eng, prog = setup_eng(2)
+        with prog.context as q:
+            ops.Fock(n0 if batch_size else n0[0]) | q[0]
+            ops.Fock(n1 if batch_size else n1[0]) | q[1]
+            ops.MeasureFock(dark_counts=[2, 0]) | q
+        result = eng.run(prog)
+        expected = np.stack([n0 + 2, n1], axis=-1)[:, None, :]
+        if not batch_size:
+            expected = expected[0]
+        np.testing.assert_array_equal(result.samples, expected)
+        np.testing.assert_array_equal(
+            np.asarray(q[0].val).reshape(-1), expected[..., 0].reshape(-1)
+        )
+        np.testing.assert_array_equal(
+            np.asarray(q[1].val).reshape(-1), expected[..., 1].reshape(-1)
+        )
+
+    @pytest.mark.backends("fock", "tf")
     @pytest.mark.parametrize("dark_counts", [[3], 6, [4, 2, 1]])
     def test_fock_darkcounts_errors(self, dark_counts, setup_eng):
         """Test Fock measurements errors when applying dark counts to more/less detectors than measured"""

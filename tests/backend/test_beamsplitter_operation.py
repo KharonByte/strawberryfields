@@ -77,7 +77,8 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("t", T_VALUES)
     @pytest.mark.parametrize("r_phi", PHASE_R)
-    def test_normalized_beamsplitter_output(self, setup_backend, t, r_phi, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_beamsplitter_output(self, setup_backend, t, r_phi, tol, state_trace):
         """Tests if a range of beamsplitter outputs states are normalized."""
 
         backend = setup_backend(2)
@@ -85,14 +86,15 @@ class TestFockRepresentation:
         backend.displacement(ALPHA, np.pi / 3, 1)
         backend.beamsplitter(np.arccos(t), r_phi, 0, 1)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1, atol=tol, rtol=0)
 
     @pytest.mark.parametrize("t", T_VALUES)
     @pytest.mark.parametrize("mag_alpha", MAG_ALPHAS[1:])
     @pytest.mark.parametrize("r_phi", PHASE_R)
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_coherent_vacuum_interfered_fock_elements(
-        self, setup_backend, mag_alpha, t, r_phi, cutoff, pure, tol
+        self, setup_backend, mag_alpha, t, r_phi, cutoff, pure, tol, assert_fock_density
     ):
         r"""Tests if a range of beamsplitter output states (formed from a coherent state interfering with vacuum)
         have the correct Fock basis elements.
@@ -109,11 +111,6 @@ class TestFockRepresentation:
         backend.beamsplitter(np.arccos(t), r_phi, 0, 1)
         state = backend.state()
 
-        if state.is_pure:
-            numer_state = state.ket()
-        else:
-            numer_state = state.dm()
-
         alpha_outA = t * alpha
         alpha_outB = r * alpha
 
@@ -122,6 +119,14 @@ class TestFockRepresentation:
         ref_stateB = np.exp(-0.5 * np.abs(alpha_outB) ** 2) * alpha_outB**n / np.sqrt(factorial(n))
 
         ref_state = np.einsum("i,j->ij", ref_stateA, ref_stateB)
+        if backend.short_name in ("gaussian", "bosonic"):
+            assert_fock_density(state, ref_state)
+            return
+
+        if state.is_pure:
+            numer_state = state.ket()
+        else:
+            numer_state = state.dm()
 
         if not pure:
             ref_state = np.einsum(

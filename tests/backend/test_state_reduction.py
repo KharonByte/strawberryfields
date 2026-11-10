@@ -8,14 +8,7 @@ import numpy as np
 import pytest
 from scipy.special import factorial
 
-import strawberryfields as sf
 from strawberryfields import ops
-
-
-@pytest.fixture(params=[1.0, 1.7, 2.0])
-def quadrature_units(request, monkeypatch):
-    """Photon probabilities and density tensors do not depend on quadrature units."""
-    monkeypatch.setattr(sf, "hbar", request.param)
 
 
 def coherent_density(alpha, cutoff):
@@ -36,30 +29,32 @@ def assert_density(actual, expected, state):
     np.testing.assert_allclose(actual, expected, atol=tolerance, rtol=0)
 
 
-@pytest.mark.usefixtures("quadrature_units")
+@pytest.mark.parametrize("hbar", [1.0, 1.7, 2.0], indirect=True)
 class TestStateReduction:
     """Exercise the same public circuits on Gaussian, bosonic, Fock and TF."""
 
     @pytest.mark.parametrize("squeezing", [0.0, 0.4, 0.8])
     @pytest.mark.parametrize("mode", [0, 1])
-    def test_entangled_marginal_is_thermal(self, setup_eng, cutoff, squeezing, mode):
+    def test_entangled_marginal_is_thermal(self, setup_eng, cutoff, squeezing, mode, hbar):
         """Tracing either half of a squeezed pair gives a thermal distribution."""
         engine, program = setup_eng(2)
         with program.context as q:
             ops.S2gate(squeezing, 0.37) | (q[0], q[1])
         state = engine.run(program).state
+        assert state.hbar == hbar
         nbar = np.sinh(squeezing) ** 2
         expected = np.diag(nbar ** np.arange(cutoff) / (1 + nbar) ** (np.arange(cutoff) + 1))
         assert_density(state.reduced_dm(mode, cutoff=cutoff), expected, state)
 
     @pytest.mark.parametrize("modes", [[0, 1], [0, 2]])
-    def test_retained_entangled_pair_tensor(self, setup_eng, cutoff, modes):
+    def test_retained_entangled_pair_tensor(self, setup_eng, cutoff, modes, hbar):
         """A complete pure pair keeps its coherences and one ket/bra pair per mode."""
         engine, program = setup_eng(max(modes) + 1)
         squeezing, phase = 0.25, 0.37
         with program.context as q:
             ops.S2gate(squeezing, phase) | tuple(q[m] for m in modes)
         state = engine.run(program).state
+        assert state.hbar == hbar
         coefficients = (np.exp(1j * phase) * np.tanh(squeezing)) ** np.arange(cutoff)
         ket = np.diag(coefficients / np.cosh(squeezing))
         expected = np.einsum("ab,cd->acbd", ket, ket.conj())
@@ -68,7 +63,7 @@ class TestStateReduction:
             assert_density(state.dm(cutoff=cutoff), expected, state)
 
     @pytest.mark.parametrize("modes", [[0, 1], [1, 2]])
-    def test_mixed_marginal_with_coherent_spectator(self, setup_eng, cutoff, modes):
+    def test_mixed_marginal_with_coherent_spectator(self, setup_eng, cutoff, modes, hbar):
         """Keep one half of a pair and an independent coherent mode, in index order."""
         engine, program = setup_eng(3)
         squeezing, alpha = 0.25, 0.2 + 0.15j
@@ -76,6 +71,7 @@ class TestStateReduction:
             ops.S2gate(squeezing, 0.37) | (q[0], q[2])
             ops.Dgate(abs(alpha), np.angle(alpha)) | q[1]
         state = engine.run(program).state
+        assert state.hbar == hbar
         nbar = np.sinh(squeezing) ** 2
         thermal = np.diag(nbar ** np.arange(cutoff) / (1 + nbar) ** (np.arange(cutoff) + 1))
         coherent = coherent_density(alpha, cutoff)
@@ -83,7 +79,7 @@ class TestStateReduction:
         expected = np.einsum("ab,cd->abcd", first, second)
         assert_density(state.reduced_dm(modes, cutoff=cutoff), expected, state)
 
-    def test_mixed_parent_can_have_pure_subsystem(self, setup_eng, cutoff):
+    def test_mixed_parent_can_have_pure_subsystem(self, setup_eng, cutoff, hbar):
         """A discarded thermal mode must not mix the independent retained modes."""
         engine, program = setup_eng(3)
         nbar, alpha = 0.3, 0.2 + 0.15j
@@ -91,6 +87,7 @@ class TestStateReduction:
             ops.Thermal(nbar) | q[0]
             ops.Dgate(abs(alpha), np.angle(alpha)) | q[2]
         state = engine.run(program).state
+        assert state.hbar == hbar
         vacuum = np.zeros((cutoff, cutoff))
         vacuum[0, 0] = 1
         expected = np.einsum("ab,cd->abcd", vacuum, coherent_density(alpha, cutoff))
@@ -99,13 +96,14 @@ class TestStateReduction:
             expected *= 1 - (nbar / (1 + nbar)) ** cutoff
         assert_density(state.reduced_dm([1, 2], cutoff=cutoff), expected, state)
 
-    def test_photon_probabilities_of_squeezed_pair(self, setup_eng):
+    def test_photon_probabilities_of_squeezed_pair(self, setup_eng, hbar):
         """The same quadrature ordering must be used for matrix elements and probabilities."""
         engine, program = setup_eng(2)
         squeezing = 0.25
         with program.context as q:
             ops.S2gate(squeezing, 0.37) | (q[0], q[1])
         state = engine.run(program).state
+        assert state.hbar == hbar
         tolerance = 5e-7 if engine.backend.short_name == "tf" else 1e-10
         np.testing.assert_allclose(
             state.fock_prob([1, 1]),
@@ -115,13 +113,14 @@ class TestStateReduction:
         )
         np.testing.assert_allclose(state.fock_prob([1, 0]), 0, atol=tolerance, rtol=0)
 
-    def test_coherent_marginal_retains_cutoff_tail(self, setup_eng, cutoff):
+    def test_coherent_marginal_retains_cutoff_tail(self, setup_eng, cutoff, hbar):
         """A truncated density matrix must not be silently renormalised to trace one."""
         engine, program = setup_eng(2)
         alpha = 1.1 + 0.4j
         with program.context as q:
             ops.Dgate(abs(alpha), np.angle(alpha)) | q[0]
         state = engine.run(program).state
+        assert state.hbar == hbar
         expected = coherent_density(alpha, cutoff)
         assert np.trace(expected).real < 0.999
         assert_density(state.reduced_dm([0], cutoff=cutoff), expected, state)

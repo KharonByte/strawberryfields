@@ -38,6 +38,7 @@ def from_blackbird(bb: blackbird.BlackbirdProgram) -> Program:
         Program: corresponding Strawberry Fields program
 
     Raises:
+        ValueError: if the program applies the unsupported serialized operation New
         NameError: if an applied quantum operation is not defined in Strawberry Fields
     """
     # create a SF program
@@ -46,6 +47,8 @@ def from_blackbird(bb: blackbird.BlackbirdProgram) -> Program:
     # append the quantum operations
     with prog.context as q:
         for op in bb.operations:
+            if op["op"] == "New":
+                raise ValueError("New is not supported in serialized programs.")
             # check if operation name is in the list of
             # defined StrawberryFields operations.
             # This is used by checking against the ops.py __all__
@@ -97,6 +100,7 @@ def from_blackbird_to_tdm(bb: blackbird.BlackbirdProgram) -> TDMProgram:
         TDMProgram: corresponding ``TDMProgram``
 
     Raises:
+        ValueError: if the program applies the unsupported serialized operation New
         NameError: if an applied quantum operation is not defined in Strawberry Fields
     """
     prog = TDMProgram(max(bb.modes) + 1, name=bb.name)
@@ -115,6 +119,8 @@ def from_blackbird_to_tdm(bb: blackbird.BlackbirdProgram) -> TDMProgram:
     # append the quantum operations
     with prog.context(*args) as (p, q):
         for op in bb.operations:
+            if op["op"] == "New":
+                raise ValueError("New is not supported in serialized programs.")
             # check if operation name is in the list of
             # defined StrawberryFields operations.
             # This is used by checking against the ops.py __all__

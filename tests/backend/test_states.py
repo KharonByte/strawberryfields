@@ -824,6 +824,7 @@ class TestBosonicState:
         assert np.allclose(purity1, 1, atol=tol, rtol=0)
         assert purity2 < 1
 
+    @pytest.mark.backends("gaussian", "bosonic")
     def test_displacement(self, setup_backend, tol):
         """Tests average displacement calculation."""
         backend = setup_backend(1)
@@ -831,19 +832,30 @@ class TestBosonicState:
         disp = backend.state().displacement(0)
         assert np.allclose(r * np.cos(phi) + 1j * r * np.sin(phi), disp)
 
-    def test_density_matrix(self, setup_backend, tol):
+    @pytest.mark.backends("gaussian", "bosonic", "fock", "tf")
+    def test_density_matrix(self, setup_backend, tol, cutoff, batch_size):
         """Tests vacuum density matrix."""
         backend = setup_backend(1)
         backend.prepare_vacuum_state(0)
-        dm = backend.state().dm()
-        dm_compare = np.zeros((10, 10))
+        dm = np.asarray(backend.state().dm())
+        dimension = 10 if backend.short_name in ("gaussian", "bosonic") else cutoff
+        dm_compare = np.zeros((dimension, dimension))
         dm_compare[0, 0] = 1
+        if backend.short_name == "tf" and batch_size is not None:
+            dm_compare = np.broadcast_to(dm_compare, (batch_size, dimension, dimension))
+        assert dm.shape == dm_compare.shape
         assert np.allclose(dm, dm_compare)
 
-    def test_is_vacuum(self, setup_backend):
+    @pytest.mark.backends("gaussian", "bosonic", "tf")
+    def test_is_vacuum(self, setup_backend, batch_size):
         """Tests fidelity_vacuum method in BaseBosonicState."""
         backend = setup_backend(1)
         backend.prepare_vacuum_state(0)
-        assert np.allclose(backend.state().fidelity_vacuum(), 1)
+        expected_shape = (batch_size,) if batch_size else ()
+        fidelity = np.asarray(backend.state().fidelity_vacuum())
+        assert fidelity.shape == expected_shape
+        np.testing.assert_allclose(fidelity, 1)
         backend.del_mode(0)
-        assert np.allclose(backend.state().fidelity_vacuum(), 1)
+        fidelity = np.asarray(backend.state().fidelity_vacuum())
+        assert fidelity.shape == expected_shape
+        np.testing.assert_allclose(fidelity, 1)

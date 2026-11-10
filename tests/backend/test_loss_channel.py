@@ -145,8 +145,9 @@ class TestFockRepresentation:
     @pytest.mark.parametrize("T", LOSS_TS)
     @pytest.mark.parametrize("mag_alpha", MAG_ALPHAS)
     @pytest.mark.parametrize("phase_alpha", PHASE_ALPHAS)
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_normalized_after_loss_channel_on_coherent_state(
-        self, setup_backend, T, mag_alpha, phase_alpha, tol
+        self, setup_backend, T, mag_alpha, phase_alpha, tol, state_trace
     ):
         """Tests if a range of loss states are normalized."""
         backend = setup_backend(1)
@@ -154,7 +155,7 @@ class TestFockRepresentation:
         backend.prepare_coherent_state(mag_alpha, phase_alpha, 0)
         backend.loss(T, 0)
         state = backend.state()
-        tr = state.trace()
+        tr = state_trace(state)
         assert np.allclose(tr, 1.0, atol=tol, rtol=0.0)
 
     @pytest.mark.parametrize("T", LOSS_TS)
@@ -184,8 +185,9 @@ class TestFockRepresentation:
     @pytest.mark.parametrize("T", LOSS_TS)
     @pytest.mark.parametrize("mag_alpha", MAG_ALPHAS)
     @pytest.mark.parametrize("phase_alpha", PHASE_ALPHAS)
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
     def test_loss_channel_on_coherent_states(
-        self, setup_backend, T, mag_alpha, phase_alpha, cutoff, tol
+        self, setup_backend, T, mag_alpha, phase_alpha, cutoff, tol, assert_fock_density
     ):
         """Tests various loss channels on coherent states (result should be coherent state with amplitude weighted by sqrt(T)."""
 
@@ -196,11 +198,15 @@ class TestFockRepresentation:
         backend.prepare_coherent_state(mag_alpha, phase_alpha, 0)
         backend.loss(T, 0)
         s = backend.state()
+        n = np.arange(cutoff)
+        ref_state = np.exp(-0.5 * np.abs(rootT_alpha) ** 2) * rootT_alpha**n / np.sqrt(factorial(n))
+        if backend.short_name in ("gaussian", "bosonic"):
+            assert_fock_density(s, ref_state)
+            return
+
         if s.is_pure:
             numer_state = s.ket()
         else:
             numer_state = s.dm()
-        n = np.arange(cutoff)
-        ref_state = np.exp(-0.5 * np.abs(rootT_alpha) ** 2) * rootT_alpha**n / np.sqrt(factorial(n))
         ref_state = np.outer(ref_state, np.conj(ref_state))
         assert np.allclose(numer_state, ref_state, atol=tol, rtol=0.0)

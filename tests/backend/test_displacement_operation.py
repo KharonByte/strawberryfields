@@ -60,18 +60,22 @@ class TestFockRepresentation:
 
     @pytest.mark.parametrize("r", MAG_ALPHAS)
     @pytest.mark.parametrize("p", PHASE_ALPHAS)
-    def test_normalized_displaced_state(self, setup_backend, r, p, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_normalized_displaced_state(self, setup_backend, r, p, tol, state_trace):
         """Tests if a range of displaced states are normalized."""
 
         backend = setup_backend(1)
         backend.displacement(r, p, 0)
         state = backend.state()
 
-        assert np.allclose(state.trace(), 1, atol=tol, rtol=0)
+        assert np.allclose(state_trace(state), 1, atol=tol, rtol=0)
 
     @pytest.mark.parametrize("r", MAG_ALPHAS)
     @pytest.mark.parametrize("p", PHASE_ALPHAS)
-    def test_coherent_state_fock_elements(self, setup_backend, r, p, cutoff, pure, tol):
+    @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")
+    def test_coherent_state_fock_elements(
+        self, setup_backend, r, p, cutoff, pure, tol, assert_fock_density
+    ):
         r"""Tests if a range of alpha-displaced states have the correct Fock basis elements:
         |\alpha> = exp(-0.5 |\alpha|^2) \sum_n \alpha^n / \sqrt{n!} |n>
         """
@@ -80,13 +84,16 @@ class TestFockRepresentation:
         backend.displacement(r, p, 0)
         state = backend.state()
 
+        n = np.arange(cutoff)
+        ref_state = np.exp(-0.5 * r**2) * (r * np.exp(1j * p)) ** n / np.sqrt(fac(n))
+        if backend.short_name in ("gaussian", "bosonic"):
+            assert_fock_density(state, ref_state)
+            return
+
         if state.is_pure:
             numer_state = state.ket()
         else:
             numer_state = state.dm()
-
-        n = np.arange(cutoff)
-        ref_state = np.exp(-0.5 * r**2) * (r * np.exp(1j * p)) ** n / np.sqrt(fac(n))
 
         if not pure:
             ref_state = np.outer(ref_state, np.conj(ref_state))

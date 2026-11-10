@@ -4,6 +4,7 @@
 """Reject missing or skipped checks for the maintained backend contracts."""
 
 import argparse
+from collections import Counter
 import re
 import xml.etree.ElementTree as ET
 
@@ -28,7 +29,10 @@ REQUIRED = {
         "backend.test_twomode_squeezing_operation.TestTwomodeSqueezing",
         "test_squeezing_on_mode_subset",
     ): {"fock", "tf"},
-    ("backend.test_heterodyne.TestHeterodyne", "test_mode_reset_vacuum"): {"gaussian", "bosonic"},
+    ("backend.test_heterodyne.TestHeterodyne", "test_mode_reset_vacuum"): {
+        "gaussian",
+        "bosonic",
+    },
     (
         "integration.test_engine_integration.TestProperExecution",
         "test_measurefock_shots_exception",
@@ -40,7 +44,10 @@ REQUIRED = {
 }
 REQUIRED.update(
     {
-        ("backend.test_mzgate_operation.TestFockRepresentation", function): {"fock", "tf"}
+        ("backend.test_mzgate_operation.TestFockRepresentation", function): {
+            "fock",
+            "tf",
+        }
         for function in (
             "test_mzgate_two_photon_input",
             "test_mzgate_operation_equals_decomposition",
@@ -51,18 +58,24 @@ REQUIRED.update(
 # Their TensorFlow assertions and APIs are verified only in unbatched mode.
 UNBATCHED_REQUIRED = {
     ("backend.test_squeeze_operation.TestFockRepresentation", "test_no_odd_fock"): {"gaussian": 15},
-    ("backend.test_squeezed_state_preparation.TestFockRepresentation", "test_no_odd_fock"): {
-        "gaussian": 15
-    },
+    (
+        "backend.test_squeezed_state_preparation.TestFockRepresentation",
+        "test_no_odd_fock",
+    ): {"gaussian": 15},
     ("backend.test_states.TestBaseFockKetDensityMatrix", "test_rdm"): {"bosonic": 1},
-    ("backend.test_states.TestBaseFockKetDensityMatrix", "test_density_matrix_thermal_state"): {
-        "bosonic": 1
-    },
+    (
+        "backend.test_states.TestBaseFockKetDensityMatrix",
+        "test_density_matrix_thermal_state",
+    ): {"bosonic": 1},
     ("backend.test_states.TestFidelities", "test_vacuum"): {"bosonic": 1},
-    ("backend.test_states.TestNumberExpectation", "test_number_expectation_four_modes"): {
-        "gaussian": 1
+    (
+        "backend.test_states.TestNumberExpectation",
+        "test_number_expectation_four_modes",
+    ): {"gaussian": 1},
+    ("backend.test_states.TestParityExpectation", "test_thermal"): {
+        "gaussian": 1,
+        "bosonic": 1,
     },
-    ("backend.test_states.TestParityExpectation", "test_thermal"): {"gaussian": 1, "bosonic": 1},
     (
         "backend.test_states_polyquad.TestMultiModePolyQuadratureExpectations",
         "test_three_mode_arbitrary",
@@ -82,9 +95,10 @@ UNBATCHED_REQUIRED = {
 }
 UNBATCHED_REQUIRED.update(
     {
-        ("backend.test_states_polyquad.TestSingleModePolyQuadratureExpectations", function): {
-            "tf": 1
-        }
+        (
+            "backend.test_states_polyquad.TestSingleModePolyQuadratureExpectations",
+            function,
+        ): {"tf": 1}
         for function in (
             "test_no_expectation",
             "test_constant",
@@ -104,6 +118,336 @@ UNBATCHED_REQUIRED.update(
         )
     }
 )
+# These assertions check full batch shapes and every member's values.
+BATCH_CAPABLE_REQUIRED = {
+    key: UNBATCHED_REQUIRED.pop(key)
+    for key in (
+        (
+            "backend.test_twomode_squeezing_operation.TestTwomodeSqueezing",
+            "test_two_mode_squeezing",
+        ),
+        (
+            "integration.test_measurement_integration.TestDarkCounts",
+            "test_fock_darkcounts_single_mode",
+        ),
+        (
+            "integration.test_measurement_integration.TestDarkCounts",
+            "test_fock_darkcounts_two_modes",
+        ),
+    )
+}
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("integration.test_engine_integration.TestEngineReset", "test_eng_reset"): {
+            "fock": 1,
+            "tf": 1,
+        },
+        ("backend.test_states.TestBosonicState", "test_is_vacuum"): {
+            "gaussian": 1,
+            "bosonic": 1,
+            "tf": 1,
+        },
+        (
+            "integration.test_engine_integration.TestPhotonStatistics",
+            "test_three_mode_fock_state_mean_photon",
+        ): {"fock": 1, "tf": 1},
+        (
+            "backend.test_twomode_squeezing_operation.TestTwomodeSqueezing",
+            "test_distinct_squeezing_inputs",
+        ): {"fock": 1, "tf": 1},
+        (
+            "integration.test_measurement_integration.TestDarkCounts",
+            "test_distinct_fock_inputs_dark_counts",
+        ): {"fock": 1, "tf": 1},
+        (
+            "integration.test_hbar_integration.TestIntegration",
+            "test_squeeze_variance_frontend",
+        ): {backend: 2 for backend in BACKENDS},
+    }
+)
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("integration.test_hbar_integration.TestIntegration", function): {
+            backend: 2 for backend in BACKENDS
+        }
+        for function in ("test_x_displacement", "test_z_displacement")
+    }
+)
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("backend.test_state_reduction.TestStateReduction", function): {
+            backend: count for backend in BACKENDS
+        }
+        for function, count in (
+            ("test_entangled_marginal_is_thermal", 18),
+            ("test_retained_entangled_pair_tensor", 6),
+            ("test_mixed_marginal_with_coherent_spectator", 6),
+            ("test_mixed_parent_can_have_pure_subsystem", 3),
+            ("test_photon_probabilities_of_squeezed_pair", 3),
+            ("test_coherent_marginal_retains_cutoff_tail", 3),
+        )
+    }
+)
+EXPANDED_UNBATCHED = {
+    (
+        "backend.test_displacement_operation.TestFockRepresentation",
+        "test_coherent_state_fock_elements",
+    ): {"gaussian": 28, "bosonic": 28},
+    (
+        "backend.test_loss_channel.TestFockRepresentation",
+        "test_loss_channel_on_coherent_states",
+    ): {"gaussian": 27, "bosonic": 27},
+    (
+        "backend.test_beamsplitter_operation.TestFockRepresentation",
+        "test_coherent_vacuum_interfered_fock_elements",
+    ): {"gaussian": 18, "bosonic": 18},
+    (
+        "backend.test_squeeze_operation.TestFockRepresentation",
+        "test_reference_squeezed_vacuum",
+    ): {"gaussian": 15, "bosonic": 15},
+    (
+        "backend.test_squeezed_state_preparation.TestFockRepresentation",
+        "test_reference_squeezed_states",
+    ): {"gaussian": 15, "bosonic": 15},
+    (
+        "backend.test_displaced_squeezed_state_preparation.TestFockRepresentation",
+        "test_displaced_squeezed_with_no_displacement",
+    ): {"gaussian": 4, "bosonic": 4},
+    ("integration.test_algorithms", "test_gaussian_boson_sampling_fock_probs"): {"bosonic": 1},
+    (
+        "integration.test_decompositions_integration.TestFockBackendDecomposeState",
+        "test_vacuum",
+    ): {"gaussian": 1},
+    ("backend.test_states.TestBosonicState", "test_displacement"): {"gaussian": 1},
+    ("backend.test_states.TestBosonicState", "test_density_matrix"): {"gaussian": 1},
+}
+UNBATCHED_REQUIRED.update(EXPANDED_UNBATCHED)
+SOFTWARE_ONLY_UNBATCHED = {
+    (f"backend.{module}.TestFockRepresentation", function): {"gaussian": count, "bosonic": count}
+    for module, function, count in (
+        ("test_squeezed_state_preparation", "test_normalized_squeezed_state", 15),
+        ("test_squeeze_operation", "test_normalized_squeezed_state", 15),
+        ("test_state_preparations", "test_normalized_coherent_state", 28),
+        ("test_state_preparations", "test_normalized_prepare_vac", 1),
+        ("test_beamsplitter_operation", "test_normalized_beamsplitter_output", 9),
+        ("test_loss_channel", "test_normalized_after_loss_channel_on_coherent_state", 27),
+        ("test_displacement_operation", "test_normalized_displaced_state", 28),
+        ("test_rotation_operation", "test_normalized_rotated_coherent_states", 7),
+        (
+            "test_displaced_squeezed_state_preparation",
+            "test_normalized_displaced_squeezed_state",
+            16,
+        ),
+    )
+}
+SOFTWARE_ONLY_UNBATCHED.update(
+    {
+        (f"backend.{module}.TestFockRepresentation", "test_no_odd_fock"): {"bosonic": 15}
+        for module in ("test_squeezed_state_preparation", "test_squeeze_operation")
+    }
+)
+SOFTWARE_ONLY_UNBATCHED.update(
+    {
+        (f"integration.test_utils_integration.{classname}", function): {"tf": 1}
+        for classname in ("TestExtractChannelOneMode", "TestExtractChannelTwoMode")
+        for function in (
+            "test_extract_choi_channel",
+            "test_extract_liouville_channel",
+            "test_extract_kraus_channel",
+        )
+    }
+)
+SOFTWARE_ONLY_UNBATCHED.update(
+    {
+        ("integration.test_utils_integration.TestExtractChannelTwoMode", function): {"tf": 1}
+        for function in (
+            "test_extract_choi_channel_vectorize",
+            "test_extract_liouville_channel_vectorize",
+            "test_extract_kraus_channel_vectorize",
+        )
+    }
+)
+for contract, counts in SOFTWARE_ONLY_UNBATCHED.items():
+    UNBATCHED_REQUIRED[contract] = {**UNBATCHED_REQUIRED.get(contract, {}), **counts}
+# Density adapters preserve the original finite-cutoff assertions. Channel
+# extraction remains unbatched; its reference circuit now checks each TF batch.
+DENSITY_ADAPTER_UNBATCHED = {
+    ("integration.test_utils_integration.TestInitialStatesAgreeFock", function): {
+        "gaussian": 1,
+        "bosonic": 1,
+    }
+    for function in ("test_vacuum", "test_coherent", "test_squeezed", "test_displaced_squeezed")
+}
+DENSITY_ADAPTER_UNBATCHED[
+    ("backend.test_modes.TestFockRepresentation", "test_normalized_add_mode")
+] = {"gaussian": 1}
+UNBATCHED_REQUIRED.update(DENSITY_ADAPTER_UNBATCHED)
+for contract in tuple(SOFTWARE_ONLY_UNBATCHED):
+    if contract[0].startswith("integration.test_utils_integration.TestExtractChannel"):
+        BATCH_CAPABLE_REQUIRED[contract] = UNBATCHED_REQUIRED.pop(contract)
+DENSITY_ADAPTER_BATCH = ("backend.test_states.TestBosonicState", "test_density_matrix")
+BATCH_CAPABLE_REQUIRED[DENSITY_ADAPTER_BATCH] = {
+    **UNBATCHED_REQUIRED.pop(DENSITY_ADAPTER_BATCH),
+    "bosonic": 1,
+    "fock": 1,
+    "tf": 1,
+}
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("backend.test_states_probabilities.TestAllFockProbs", "test_two_mode_gaussian"): {
+            "fock": 9,
+            "tf": 9,
+            "gaussian": 9,
+        },
+        (
+            "integration.test_measurement_integration.TestDarkCounts",
+            "test_fock_darkcounts_errors",
+        ): {"fock": 3, "tf": 3},
+        (
+            "integration.test_utils_integration.TestExtractUnitary",
+            "test_extract_arbitrary_unitary_two_modes_not_vectorized",
+        ): {"fock": 1, "tf": 1},
+        ("integration.test_tf_integration.TestOneMode", "test_eng_run_state_dm"): {"tf": 1},
+    }
+)
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("integration.test_tf_integration.TestGradient", function): {"tf": 1}
+        for function in (
+            "test_displacement_mean_photon_gradient",
+            "test_displaced_thermal_mean_photon_gradient",
+            "test_coherent_ket_gradient",
+            "test_coherent_dm_gradient",
+            "test_displaced_squeezed_mean_photon_gradient",
+            "test_BS_state_gradients",
+            "test_MZ_state_gradients",
+            "test_2mode_squeezed_vacuum_gradients",
+        )
+    }
+)
+BATCH_CAPABLE_REQUIRED.update(
+    {
+        ("integration.test_decompositions_integration." + classname, function): {
+            "gaussian": 1,
+            "fock": 1,
+            "tf": 1,
+        }
+        for classname, functions in (
+            (
+                "TestGaussianBackendDecomposeState",
+                (
+                    "test_vacuum",
+                    "test_squeezed",
+                    "test_displaced_squeezed",
+                    "test_rotated_squeezed",
+                ),
+            ),
+            ("TestFockBackendDecomposeState", ("test_squeezed",)),
+        )
+        for function in functions
+    }
+)
+# Larger finite-state spaces are explicit per-test contracts; other guarded
+# configurations retain cutoff 6.
+REQUIRED_CUTOFFS = {
+    ("integration.test_decompositions_integration.TestGaussianBackendDecompositions", function): 16
+    for function in (
+        "test_passive_gaussian_transform",
+        "test_interferometer",
+        "test_interferometer_rectangular_compact",
+        "test_interferometer_triangular_compact",
+        "test_interferometer_sun_compact",
+    )
+}
+REQUIRED_CUTOFFS[
+    (
+        "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "test_thermal",
+    )
+] = 12
+BATCH_CAPABLE_REQUIRED.update(
+    {contract: {"gaussian": 1, "fock": 1, "tf": 1} for contract in REQUIRED_CUTOFFS}
+)
+BATCH_CAPABLE_REQUIRED[
+    (
+        "integration.test_decompositions_integration.TestFockBackendDecomposeState",
+        "test_rotated_squeezed",
+    )
+] = {"gaussian": 1, "fock": 1, "tf": 1}
+BATCH_CAPABLE_REQUIRED[
+    ("integration.test_decomposition_controls", "test_distinct_passive_inputs")
+] = {"tf": 5}
+REQUIRED_MESHES = {
+    "passive",
+    "rectangular",
+    "rectangular_compact",
+    "triangular_compact",
+    "sun_compact",
+}
+REQUIRED_PARAMETERS = {
+    ("integration.test_decomposition_controls", "test_distinct_passive_inputs"): ("mesh",),
+}
+for function, parameters, count in (
+    ("test_vacuum", (), 1),
+    ("test_coherent", ("a",), 4),
+    ("test_squeezed", ("r", "phi"), 4),
+    ("test_displaced_squeezed", ("a", "r", "phi"), 4),
+):
+    contract = (
+        "integration.test_utils_integration.TestInitialStatesAgreeGaussian",
+        function,
+    )
+    BATCH_CAPABLE_REQUIRED[contract] = {backend: count for backend in BACKENDS}
+    REQUIRED_PARAMETERS[contract] = parameters
+    if "squeezed" in function:
+        REQUIRED_CUTOFFS[contract] = 8
+for function in ("test_coherent", "test_squeezed", "test_displaced_squeezed"):
+    contract = (
+        "integration.test_initial_state_controls.TestDistinctInitialMoments",
+        function,
+    )
+    BATCH_CAPABLE_REQUIRED[contract] = {"tf": 1}
+    if "squeezed" in function:
+        REQUIRED_CUTOFFS[contract] = 8
+GRAPH_EMBEDDING = (
+    "integration.test_measurement_integration.TestPostselection",
+    "test_embed_graph",
+)
+UNBATCHED_REQUIRED[GRAPH_EMBEDDING] = {"gaussian": 1, "fock": 1}
+REQUIRED_CUTOFFS[GRAPH_EMBEDDING] = 48
+THREE_MODE_GRAPH_EMBEDDING = (
+    "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+    "test_graph_embed",
+)
+UNBATCHED_REQUIRED[THREE_MODE_GRAPH_EMBEDDING] = {"gaussian": 1, "fock": 1}
+REQUIRED_CUTOFFS[THREE_MODE_GRAPH_EMBEDDING] = 72
+# Bounded companions retain the separate high-squeezing exclusions.
+BOUNDED_GATE_CLASS = "integration.test_bounded_gaussian_gates.TestBoundedGaussianGates"
+BOUNDED_GATE_CONTRACTS = {
+    (BOUNDED_GATE_CLASS, function) for function in ("test_Pgate", "test_CXgate", "test_CZgate")
+}
+BOUNDED_GATE_PARAMETERS = {(str(s), str(h)) for s in (-0.25, 0.0, 0.25) for h in (1.0, 2.0)}
+for contract in BOUNDED_GATE_CONTRACTS:
+    BATCH_CAPABLE_REQUIRED[contract] = {"fock": 6, "tf": 6}
+    REQUIRED_CUTOFFS[contract] = 20
+    REQUIRED_PARAMETERS[contract] = ("strength", "hbar")
+# A mixed density matrix has no ket accessor. Other gradients require both stores.
+REQUIRED_STATES = {
+    ("integration.test_tf_integration.TestGradient", "test_coherent_ket_gradient", "tf"): {"True"},
+    (*THREE_MODE_GRAPH_EMBEDDING, "fock"): {"True"},
+}
+CONFIGURATION_REQUIRED = (
+    set(EXPANDED_UNBATCHED)
+    | set(SOFTWARE_ONLY_UNBATCHED)
+    | set(BATCH_CAPABLE_REQUIRED)
+    | set(DENSITY_ADAPTER_UNBATCHED)
+    | {GRAPH_EMBEDDING, THREE_MODE_GRAPH_EMBEDDING}
+)
+PARAMETRIZED_UNITS = {
+    BOUNDED_GATE_CLASS: {1.0, 2.0},
+    "integration.test_hbar_integration.TestIntegration": {0.5, 1.0},
+    "backend.test_state_reduction.TestStateReduction": {1.0, 1.7, 2.0},
+}
 REQUIRED.update(
     {
         ("backend.test_states.TestBaseStateMeanPhotonNumber", function): BACKENDS
@@ -124,7 +468,10 @@ REQUIRED.update(
 )
 REQUIRED.update(
     {
-        ("integration.test_utils_integration.TestInitialStatesAgreeGaussian", function): {
+        (
+            "integration.test_utils_integration.TestInitialStatesAgreeGaussian",
+            function,
+        ): {
             "gaussian",
             "bosonic",
         }
@@ -149,8 +496,12 @@ LABELS = {
     "TFBackend": "tf",
 }
 PARAMETERS = re.compile(
-    r"(?:\[|-)(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
-    r"-(True|False)(?:-|\])"
+    r"(?=(?:\[|-)(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
+    r"-(True|False)(?:-|\]))"
+)
+STATE_FIRST_PARAMETERS = re.compile(
+    r"(?=(?:\[|-)(True|False)-(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
+    r"(?:-|\]))"
 )
 
 
@@ -159,9 +510,11 @@ def verify(report, configuration):
     selected = MATRIX[configuration]
     batched = configuration.startswith("tensorflow-batched-")
     required = dict(REQUIRED)
+    counts_required = dict(BATCH_CAPABLE_REQUIRED)
     if not batched:
-        for key, counts in UNBATCHED_REQUIRED.items():
-            required[key] = required.get(key, set()) | counts.keys()
+        counts_required.update(UNBATCHED_REQUIRED)
+    for key, counts in counts_required.items():
+        required[key] = required.get(key, set()) | counts.keys()
     states = {"True", "False"}
     if batched:
         states = {"True" if configuration.endswith("pure") else "False"}
@@ -182,22 +535,106 @@ def verify(report, configuration):
             name = case.get("name", "")
             if case.get("classname") != classname or name.split("[")[0] != function:
                 continue
-            match = PARAMETERS.search(name)
-            if match:
-                backend, pure = match.groups()
-                found.setdefault((LABELS.get(backend, backend), pure), []).append(case)
+            # Lookaheads retain overlapping pairs, including shared '-' boundaries.
+            labels = {
+                (LABELS.get(backend, backend), pure) for backend, pure in PARAMETERS.findall(name)
+            }
+            labels.update(
+                (LABELS.get(backend, backend), pure)
+                for pure, backend in STATE_FIRST_PARAMETERS.findall(name)
+            )
+            if len(labels) > 1:
+                errors.append(f"Ambiguous backend/state labels: {classname}::{name}")
+                continue
+            if labels:
+                found.setdefault(labels.pop(), []).append(case)
         for backend in sorted(supported & selected):
-            for pure in sorted(states):
+            supported_states = REQUIRED_STATES.get(
+                (classname, function, backend), {"True", "False"}
+            )
+            for pure in sorted(states & supported_states):
                 matching = found.get((backend, pure), [])
                 label = f"{function}/{backend}/pure={pure}"
                 if not matching:
                     errors.append(f"Missing: {label}")
-                expected = UNBATCHED_REQUIRED.get((classname, function), {}).get(backend)
-                if not batched and expected is not None and len(matching) != expected:
+                expected = counts_required.get((classname, function), {}).get(backend)
+                if expected is not None and len(matching) != expected:
                     errors.append(f"Expected {expected} cases for {label}, found {len(matching)}")
                 for case in matching:
                     if any(case.find(tag) is not None for tag in ("skipped", "failure", "error")):
                         errors.append(f"Did not pass: {label}: {case.get('name')}")
+                if (classname, function) in CONFIGURATION_REQUIRED:
+                    units = Counter()
+                    parameter_values = Counter()
+                    required_parameters = REQUIRED_PARAMETERS.get((classname, function))
+                    for case in matching:
+                        properties = {
+                            prop.get("name"): prop.get("value")
+                            for prop in case.findall("./properties/property")
+                        }
+                        try:
+                            setup_hbar = float(properties["setup_hbar"])
+                            units[setup_hbar] += 1
+                            if classname in PARAMETRIZED_UNITS:
+                                assert setup_hbar == float(properties["requested_hbar"])
+                            if (classname, function) in BOUNDED_GATE_CONTRACTS:
+                                for field in (
+                                    "setup_hbar",
+                                    "requested_hbar",
+                                    "cutoff",
+                                    "batch_size",
+                                ):
+                                    assert (
+                                        len(case.findall(f"./properties/property[@name='{field}']"))
+                                        == 1
+                                    )
+                                assert setup_hbar == float(properties["parameter_hbar"])
+                            assert int(properties["cutoff"]) == REQUIRED_CUTOFFS.get(
+                                (classname, function), 6
+                            )
+                            assert properties["batch_size"] == ("2" if batched else "None")
+                        except (KeyError, ValueError, AssertionError):
+                            errors.append(
+                                f"Missing or incorrect setup configuration: {label}: {case.get('name')}"
+                            )
+                        if required_parameters is not None:
+                            values = []
+                            for parameter in required_parameters:
+                                recorded = case.findall(
+                                    f"./properties/property[@name='parameter_{parameter}']"
+                                )
+                                if len(recorded) != 1 or not recorded[0].get("value"):
+                                    errors.append(
+                                        f"Missing or ambiguous parameter {parameter}: {label}"
+                                    )
+                                values.append(
+                                    recorded[0].get("value") if len(recorded) == 1 else None
+                                )
+                            parameter_values[tuple(values)] += 1
+                    if required_parameters is not None:
+                        if len(parameter_values) != expected or any(
+                            count != 1 for count in parameter_values.values()
+                        ):
+                            errors.append(f"Missing or repeated parameter values: {label}")
+                        if (classname, function) in BOUNDED_GATE_CONTRACTS and set(
+                            parameter_values
+                        ) != BOUNDED_GATE_PARAMETERS:
+                            errors.append(f"Incorrect bounded gate parameter coverage: {label}")
+                        if required_parameters == ("mesh",) and set(parameter_values) != {
+                            (mesh,) for mesh in REQUIRED_MESHES
+                        }:
+                            errors.append(f"Incorrect mesh coverage: {label}")
+                    expected_units = PARAMETRIZED_UNITS.get(classname, {1.7})
+                    if matching and set(units) != expected_units:
+                        errors.append(
+                            f"Incorrect setup units for {label}: expected {sorted(expected_units)}, found {sorted(units)}"
+                        )
+                    if expected is not None and matching:
+                        per_unit, remainder = divmod(expected, len(expected_units))
+                        if remainder or units != {unit: per_unit for unit in expected_units}:
+                            errors.append(
+                                f"Incorrect setup units counts for {label}: {dict(units)}"
+                            )
                 checked += len(matching)
     if errors:
         raise ValueError(
