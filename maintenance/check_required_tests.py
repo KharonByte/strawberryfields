@@ -502,10 +502,24 @@ def verify_number_state_cases(cases, selected, states, errors):
     """Require the exact finite-support matrix and its effective configuration."""
     classname = "integration.test_number_state_statistics"
     function = "test_distinct_number_state_moments"
+    if not selected & NUMBER_STATE_REQUIRED.keys():
+        return 0
+    # Known unselected cases may appear in optional-dependency reports, but an
+    # unknown/renamed parameter must not hide behind a complete required matrix.
+    known = {
+        f"{function}[{pure}-{unit}-{cutoff}-{backend}-{inputs}]"
+        for backend, profiles in NUMBER_STATE_REQUIRED.items()
+        for inputs in profiles
+        for pure in ("True", "False")
+        for unit in ("1.0", "1.7")
+        for cutoff in ("3", "4")
+    }
     found = {}
     for case in cases:
         name = case.get("name", "")
         if case.get("classname") == classname and name.split("[")[0] == function:
+            if name not in known:
+                errors.append(f"Unknown number-state case: {name}")
             found.setdefault(name, []).append(case)
     checked = 0
     for backend in sorted(selected & NUMBER_STATE_REQUIRED.keys()):

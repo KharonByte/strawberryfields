@@ -1334,3 +1334,27 @@ def test_number_state_guard_requires_effective_configuration(
             with pytest.raises(ValueError, match="Missing or incorrect number-state configuration"):
                 verify(save(), profile)
             props[:] = list(original)
+
+
+@pytest.mark.parametrize("profile,count", NUMBER_STATE_PROFILES[:7])
+@pytest.mark.parametrize("outcome", [None, "skipped", "failure", "error"])
+def test_number_state_guard_rejects_unknown_extra_with_complete_matrix(
+    number_state_report, profile, count, outcome
+):
+    root, save = number_state_report(profile)
+    assert verify(save(), profile) == count
+    extra = deepcopy(root[0])
+    extra.set("name", extra.get("name")[:-1] + "-duplicate]")
+    if outcome is not None:
+        ET.SubElement(extra, outcome)
+    root.append(extra)
+    with pytest.raises(ValueError, match="Unknown number-state case"):
+        verify(save(), profile)
+
+
+def test_number_state_guard_allows_known_unselected_optional_cases(number_state_report):
+    root, save = number_state_report("all-backends")
+    for case in root:
+        if "-tf-" in case.get("name"):
+            ET.SubElement(case, "skipped")
+    assert verify(save(), "non-tensorflow") == 16
