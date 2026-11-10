@@ -397,3 +397,56 @@ def test_gaussian_density_diagnostic_controls(field):
     )
     with pytest.raises(AssertionError):
         assert_density_diagnostics(values, True)
+
+
+@pytest.mark.frontend
+@pytest.mark.parametrize("batch", [None, 2])
+@pytest.mark.parametrize(
+    "corruption", [None, "first", "second", "cross", "trace", "imaginary_trace", "negative"]
+)
+def test_gaussian_raw_density_controls(batch, corruption):
+    """Known raw matrix elements test extraction, including the second replica.
+
+    For rho[0,1]=i*e, Im<x>/sqrt(hbar)=e/sqrt(2); rho[0,2]=i*e gives
+    Im<x^2>/hbar=e/sqrt(2). The two-mode element |00><11| gives e/2.
+    The 1e-15 allowance covers double arithmetic on these small three-level
+    tensors; it is not the finite-backend accuracy allowance.
+    """
+    density = np.zeros((3, 3, 3, 3), dtype=np.complex128)
+    # Exact density of (|00> + i|10>)/sqrt(2), including relative coherence.
+    density[0, 0, 0, 0] = density[1, 1, 0, 0] = 0.5
+    density[0, 1, 0, 0], density[1, 0, 0, 0] = -0.5j, 0.5j
+    if batch is not None:
+        density = np.stack([density, density])
+    member = density if batch is None else density[1]
+    epsilon = 1e-4
+    if corruption in ("first", "second", "cross"):
+        index = {"first": (0, 1, 0, 0), "second": (0, 2, 0, 0), "cross": (0, 1, 0, 1)}[corruption]
+        member[index] += 1j * epsilon
+    elif corruption == "trace":
+        member *= 0.99
+    elif corruption == "imaginary_trace":
+        member[0, 0, 0, 0] += 1j * epsilon
+    elif corruption == "negative":
+        member[...] = 0
+        member[0, 0, 0, 0], member[1, 1, 0, 0] = 1.01, -0.01
+    values = density_diagnostics(density, 3, 1.7, batch)
+    if corruption is None:
+        assert_density_diagnostics(values, True)
+        np.testing.assert_allclose(values["trace_real"], 1, atol=1e-15, rtol=0)
+        assert values["imaginary_mean"] <= 1e-15
+        assert values["imaginary_second"] <= 1e-15
+    else:
+        with pytest.raises(AssertionError):
+            assert_density_diagnostics(values, True)
+        if corruption in ("first", "second", "cross"):
+            field = "imaginary_mean" if corruption == "first" else "imaginary_second"
+            expected = epsilon / (2 if corruption == "cross" else np.sqrt(2))
+            np.testing.assert_allclose(values[field], expected, atol=1e-15, rtol=0)
+            np.testing.assert_allclose(values["hermiticity_error"], epsilon, atol=1e-15, rtol=0)
+        elif corruption == "trace":
+            np.testing.assert_allclose(values["trace_real"][-1], 0.99, atol=1e-15, rtol=0)
+        elif corruption == "imaginary_trace":
+            np.testing.assert_allclose(values["trace_imag"][-1], epsilon, atol=1e-15, rtol=0)
+        elif corruption == "negative":
+            np.testing.assert_allclose(values["minimum_eigenvalue"], -0.01, atol=1e-15, rtol=0)
