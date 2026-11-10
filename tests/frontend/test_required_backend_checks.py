@@ -203,6 +203,7 @@ pytestmark = pytest.mark.frontend
 @pytest.fixture(autouse=True)
 def isolate_unbatched_contracts(monkeypatch):
     """Each synthetic report declares the additional contracts it exercises."""
+    monkeypatch.setattr(module, "PHOTON_VARIANCE_REQUIRED", {})
     monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
     monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {})
     monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", set())
