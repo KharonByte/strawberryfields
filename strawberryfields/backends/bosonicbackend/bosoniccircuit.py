@@ -166,7 +166,7 @@ class BosonicModes:
         # Updated mode index permutation list
         self.to_xp = to_xp(self.nlen)
         self.from_xp = from_xp(self.nlen)
-        self.active.extend(range(self.nlen - num_modes, self.nlen))
+        self.active.append(self.nlen - 1)
 
         # Weights are set equal to each other and normalized
         vac_weights = np.array([1 / num_gauss for i in range(num_gauss)], dtype=complex)
@@ -191,6 +191,8 @@ class BosonicModes:
         self.weights = weights
         self.means = means
         self.covs = covs
+        # Complete registration only after expansion succeeds; keep failure behavior.
+        self.active[-1:] = range(self.nlen - num_modes, self.nlen)
 
     def del_mode(self, modes):
         r"""Delete modes from the circuit.
