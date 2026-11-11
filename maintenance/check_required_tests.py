@@ -20,6 +20,34 @@ MATRIX = {
     "non-tensorflow": BACKENDS - {"tf"},
     "local-without-cloud": BACKENDS - {"tf"},
 }
+# These direct bosonic contracts have no backend/pure fixture labels.
+BOSONIC_INSERTION_CASES = (
+    {
+        "test_vacuum_insertion[" + route + "-" + str(initial) + "-" + operation + "]"
+        for route in ("backend", "low")
+        for initial in (1, 2)
+        for operation in (
+            ("default", "implicit-zero", "zero", "one", "two")
+            if route == "backend"
+            else ("default", "zero", "one", "two")
+        )
+    }
+    | {
+        "test_correlated_insertion[" + route + "-" + fixture + "-" + operation + "]"
+        for route in ("backend", "low")
+        for fixture, operations in (
+            ("F1", ("zero", "default", "one", "split", "split-two")),
+            ("F2", ("zero", "two")),
+        )
+        for operation in operations
+    }
+    | {
+        function + "[" + route + "]"
+        for function in ("test_delete_then_insert", "test_consecutive_correlated_insertions")
+        for route in ("backend", "low")
+    }
+)
+
 REQUIRED = {
     (
         "backend.test_beamsplitter_operation.TestModeSubsets",
@@ -527,6 +555,20 @@ def verify(report, configuration):
             errors.append(f"Duplicate test case: {identity[0]}::{identity[1]}")
         seen.add(identity)
     checked = 0
+    if "bosonic" in selected:
+        insertion_cases = {
+            case.get("name"): case
+            for case in cases
+            if case.get("classname") == "bosonic_files.test_mode_insertion"
+        }
+        for name in sorted(BOSONIC_INSERTION_CASES):
+            case = insertion_cases.get(name)
+            if case is None:
+                errors.append(f"Missing bosonic insertion case: {name}")
+            elif any(case.find(tag) is not None for tag in ("skipped", "failure", "error")):
+                errors.append(f"Did not pass bosonic insertion case: {name}")
+            else:
+                checked += 1
     for (classname, function), supported in required.items():
         if batched and function in UNBATCHED_ONLY:
             continue

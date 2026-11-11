@@ -197,12 +197,15 @@ ADAPTER_CATALOG.update(
     }
 )
 
+INSERTION_CASES = frozenset(module.BOSONIC_INSERTION_CASES)
+
 pytestmark = pytest.mark.frontend
 
 
 @pytest.fixture(autouse=True)
 def isolate_unbatched_contracts(monkeypatch):
     """Each synthetic report declares the additional contracts it exercises."""
+    monkeypatch.setattr(module, "BOSONIC_INSERTION_CASES", set())
     monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
     monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {})
     monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", set())
@@ -1309,3 +1312,51 @@ def test_bounded_gate_coverage_guard(bounded_gate_report, corruption):
     else:
         with pytest.raises(ValueError):
             verify(path, "tensorflow-batched-pure")
+
+
+@pytest.mark.parametrize(
+    "profile", ["bosonic", "all-backends", "non-tensorflow", "local-without-cloud"]
+)
+@pytest.mark.parametrize(
+    "corruption", [None, "missing", "skipped", "failure", "error", "duplicate", "substitute"]
+)
+def test_bosonic_insertion_guard(tmp_path, monkeypatch, profile, corruption):
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "BOSONIC_INSERTION_CASES", INSERTION_CASES)
+    root = ET.Element("testsuite")
+    for name in sorted(INSERTION_CASES):
+        ET.SubElement(root, "testcase", classname="bosonic_files.test_mode_insertion", name=name)
+    assert len(root) == 36
+    if corruption == "missing":
+        root.remove(root[0])
+    elif corruption in ("skipped", "failure", "error"):
+        ET.SubElement(root[0], corruption)
+    elif corruption == "duplicate":
+        root.append(deepcopy(root[0]))
+    elif corruption == "substitute":
+        root[0].set("name", root[0].get("name").replace("backend", "low"))
+    path = tmp_path / "insertion.xml"
+    ET.ElementTree(root).write(path)
+    if corruption:
+        with pytest.raises(ValueError):
+            verify(path, profile)
+    else:
+        assert verify(path, profile) == 36
+
+
+@pytest.mark.parametrize(
+    "profile",
+    [
+        "tensorflow-batched-pure",
+        "tensorflow-batched-mixed",
+        "tensorflow",
+        "fock",
+        "frontend-apps-api-gaussian",
+    ],
+)
+def test_bosonic_insertion_guard_preserves_other_profiles(tmp_path, monkeypatch, profile):
+    monkeypatch.setattr(module, "REQUIRED", {})
+    monkeypatch.setattr(module, "BOSONIC_INSERTION_CASES", INSERTION_CASES)
+    path = tmp_path / "other.xml"
+    ET.ElementTree(ET.Element("testsuite")).write(path)
+    assert verify(path, profile) == 0

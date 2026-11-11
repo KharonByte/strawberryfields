@@ -157,6 +157,9 @@ class BosonicModes:
             peak_list = [1]
 
         num_modes = len(peak_list)
+        if num_modes == 0:
+            return
+
         num_gauss = np.prod(peak_list)
         self.nlen += num_modes
 
@@ -188,6 +191,8 @@ class BosonicModes:
         self.weights = weights
         self.means = means
         self.covs = covs
+        # Complete registration only after expansion succeeds; keep failure behavior.
+        self.active[-1:] = range(self.nlen - num_modes, self.nlen)
 
     def del_mode(self, modes):
         r"""Delete modes from the circuit.
