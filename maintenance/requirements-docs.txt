@@ -13,7 +13,7 @@ latexcodec==3.0.1
 m2r2==2.1.0
 markupsafe==3.0.4
 mistune==3.3.4
-pillow==12.3.0
+pillow==13.0.0
 plotly==5.24.1
 pybtex-docutils==1.0.3
 pybtex==0.26.1
