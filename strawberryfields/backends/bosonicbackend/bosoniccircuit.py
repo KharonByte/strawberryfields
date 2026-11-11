@@ -157,13 +157,16 @@ class BosonicModes:
             peak_list = [1]
 
         num_modes = len(peak_list)
+        if num_modes == 0:
+            return
+
         num_gauss = np.prod(peak_list)
         self.nlen += num_modes
 
         # Updated mode index permutation list
         self.to_xp = to_xp(self.nlen)
         self.from_xp = from_xp(self.nlen)
-        self.active.append(self.nlen - 1)
+        self.active.extend(range(self.nlen - num_modes, self.nlen))
 
         # Weights are set equal to each other and normalized
         vac_weights = np.array([1 / num_gauss for i in range(num_gauss)], dtype=complex)
