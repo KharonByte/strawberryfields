@@ -238,11 +238,11 @@ class GaussianBackend(BaseGaussian):
         return samples
 
     def measure_threshold(self, modes, shots=1, select=None, **kwargs):
+        if select is not None:
+            raise NotImplementedError(
+                "Gaussian backend currently does not support " "postselection"
+            )
         if shots != 1:
-            if select is not None:
-                raise NotImplementedError(
-                    "Gaussian backend currently does not support " "postselection"
-                )
             warnings.warn(
                 "Cannot simulate non-Gaussian states. "
                 "Conditional state after Threshold measurement has not been updated."
