@@ -504,6 +504,69 @@ STATE_FIRST_PARAMETERS = re.compile(
     r"(?:-|\]))"
 )
 
+# These tests set their own batch size, cutoff and units, independently of the
+# job's global fixtures. Keep every asymmetric input and actual storage form.
+NUMBER_STATE_REQUIRED = {"fock": ("A", "B"), "tf": ("A", "B", "distinct-batch")}
+
+
+def verify_number_state_cases(cases, selected, states, errors):
+    """Require the exact finite-support matrix and its effective configuration."""
+    classname = "integration.test_number_state_statistics"
+    function = "test_distinct_number_state_moments"
+    if not selected & NUMBER_STATE_REQUIRED.keys():
+        return 0
+    # Known unselected cases may appear in optional-dependency reports, but an
+    # unknown/renamed parameter must not hide behind a complete required matrix.
+    known = {
+        f"{function}[{pure}-{unit}-{cutoff}-{backend}-{inputs}]"
+        for backend, profiles in NUMBER_STATE_REQUIRED.items()
+        for inputs in profiles
+        for pure in ("True", "False")
+        for unit in ("1.0", "1.7")
+        for cutoff in ("3", "4")
+    }
+    found = {}
+    for case in cases:
+        name = case.get("name", "")
+        if case.get("classname") == classname and name.split("[")[0] == function:
+            if name not in known:
+                errors.append(f"Unknown number-state case: {name}")
+            found.setdefault(name, []).append(case)
+    checked = 0
+    for backend in sorted(selected & NUMBER_STATE_REQUIRED.keys()):
+        for pure in sorted(states):
+            for unit in ("1.0", "1.7"):
+                for cutoff in ("3", "4"):
+                    for inputs in NUMBER_STATE_REQUIRED[backend]:
+                        name = f"{function}[{pure}-{unit}-{cutoff}-{backend}-{inputs}]"
+                        matching = found.get(name, [])
+                        if len(matching) != 1:
+                            errors.append(
+                                f"Expected exactly one number-state case: {name}, found {len(matching)}"
+                            )
+                        for case in matching:
+                            if any(
+                                case.find(tag) is not None
+                                for tag in ("skipped", "failure", "error")
+                            ):
+                                errors.append(f"Did not pass: {classname}::{name}")
+                            expected = {
+                                "effective_storage": "ket" if pure == "True" else "density",
+                                "effective_hbar": unit,
+                                "effective_cutoff": cutoff,
+                                "effective_batch_size": (
+                                    "2" if inputs == "distinct-batch" else "None"
+                                ),
+                            }
+                            for key, value in expected.items():
+                                recorded = case.findall(f"./properties/property[@name='{key}']")
+                                if len(recorded) != 1 or recorded[0].get("value") != value:
+                                    errors.append(
+                                        f"Missing or incorrect number-state configuration: {name}: {key}"
+                                    )
+                        checked += len(matching)
+    return checked
+
 
 def verify(report, configuration):
     """Require every selected supported backend/state combination to execute."""
@@ -526,7 +589,7 @@ def verify(report, configuration):
         if identity in seen:
             errors.append(f"Duplicate test case: {identity[0]}::{identity[1]}")
         seen.add(identity)
-    checked = 0
+    checked = verify_number_state_cases(cases, selected, states, errors)
     for (classname, function), supported in required.items():
         if batched and function in UNBATCHED_ONLY:
             continue
