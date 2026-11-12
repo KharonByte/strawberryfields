@@ -26,6 +26,7 @@ def photon_variance_report(tmp_path, monkeypatch):
     monkeypatch.setattr(module, "REQUIRED", {})
     monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
     monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {})
+    monkeypatch.setattr(module, "NUMBER_STATE_REQUIRED", {})
 
     def make(profile):
         backends = {
