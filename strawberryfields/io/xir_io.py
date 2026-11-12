@@ -62,24 +62,30 @@ def get_expanded_statements(prog: xir.Program) -> Sequence[xir.Statement]:
             active.add(op.name)
             stack.append((op.name, iter(prog.gates[op.name])))
 
-    def expand_statements(statements: Sequence[xir.Statement]) -> Sequence[xir.Statement]:
-        flattened_statements = []
-        for op in statements:
-            sub_statements = expand_statements(prog.gates.get(op.name, []))
-            if sub_statements:
-                wire_mapping = dict(zip(prog.search("gate", "wires", op.name), op.wires))
-                param_mapping = dict(zip(prog.search("gate", "params", op.name), op.params))
-
-                # create a new statement object with substituted parameters and wires
-                for stmt in sub_statements:
+    # Finish each callee before applying its caller's mappings. Each frame keeps
+    # its own output so repeated definitions retain their source order and do
+    # not share reconstructed statements.
+    stack = [(None, iter(prog.statements), [])]
+    while stack:
+        caller, statements, expanded = stack[-1]
+        try:
+            op = next(statements)
+        except StopIteration:
+            stack.pop()
+            if not stack:
+                return expanded
+            parent_output = stack[-1][2]
+            if expanded:
+                wire_mapping = dict(zip(prog.search("gate", "wires", caller.name), caller.wires))
+                param_mapping = dict(zip(prog.search("gate", "params", caller.name), caller.params))
+                for stmt in expanded:
                     wires = tuple(wire_mapping[w] for w in stmt.wires)
                     params = [param_mapping[w] for w in stmt.params]
-                    flattened_statements.append(xir.Statement(stmt.name, params, wires))
+                    parent_output.append(xir.Statement(stmt.name, params, wires))
             else:
-                flattened_statements.append(op)
-        return flattened_statements
-
-    return expand_statements(prog.statements)
+                parent_output.append(caller)
+        else:
+            stack.append((op, iter(prog.gates.get(op.name, [])), []))
 
 
 # pylint: disable=too-many-branches
