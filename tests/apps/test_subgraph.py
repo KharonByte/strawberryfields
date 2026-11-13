@@ -24,7 +24,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from strawberryfields.apps import data, subgraph
+from strawberryfields.apps import data, sample, subgraph
 
 pytestmark = pytest.mark.apps
 
@@ -37,8 +37,29 @@ planted_weights = list(range(p_planted.modes))
 def process_planted(min_size, max_size, max_count, n_samples, node_select):
     """Fixture for loading samples from the Planted dataset"""
     samples = p_planted[:n_samples]
+    samples = sample.to_subgraphs(samples, g_planted)
     d = subgraph.search(samples, g_planted, min_size, max_size, max_count, node_select)
     return d
+
+
+def test_process_planted_support_boundary(monkeypatch):
+    """The actual fixture passes occupied positions, preserving empty/repeated rows."""
+    occupied = [0] * 30
+    occupied[2] = occupied[29] = 1
+    rows = [occupied, [0] * 30, occupied.copy()]
+    captured = []
+
+    def inspect_search(samples, graph, *args):
+        captured.extend(samples)
+        assert graph is g_planted
+        assert args == (2, 3, 1, "uniform")
+        return "search sentinel"
+
+    monkeypatch.setattr(__name__ + ".p_planted", rows)
+    monkeypatch.setattr(subgraph, "search", inspect_search)
+    result = process_planted.__wrapped__(2, 3, 1, 3, "uniform")
+    assert result == "search sentinel"
+    assert [set(row) for row in captured] == [{2, 29}, set(), {2, 29}]
 
 
 @pytest.mark.parametrize("min_size", [4, 5])

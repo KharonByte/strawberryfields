@@ -267,7 +267,8 @@ def to_subgraphs(samples: list, graph: nx.Graph) -> list:
     graph_nodes = list(graph.nodes)
     node_number = len(graph_nodes)
 
-    subgraph_samples = [list(set(modes_from_counts(s))) for s in samples]
+    # Select each occupied mode once without expanding the photon counts.
+    subgraph_samples = [list({i for i, c in enumerate(s) if int(c) > 0}) for s in samples]
 
     if graph_nodes != list(range(node_number)):
         return [sorted([graph_nodes[i] for i in s]) for s in subgraph_samples]
