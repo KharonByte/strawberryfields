@@ -3,11 +3,14 @@
 # See http://www.apache.org/licenses/LICENSE-2.0
 """Count-presence conversion must not materialize one entry per photon."""
 
+from collections import defaultdict
+from fractions import Fraction
+
 import networkx as nx
 import numpy as np
 import pytest
 
-from strawberryfields.apps import sample
+from strawberryfields.apps import sample, subgraph
 
 pytestmark = pytest.mark.apps
 
@@ -119,3 +122,110 @@ def test_incomparable_labels():
 
 def test_modes_from_counts_retains_multiplicity():
     assert sample.modes_from_counts([0, 1, 0, 1, 2, 0]) == [1, 3, 4, 4]
+
+
+LAW_ROWS = [(0, 0, 0), (2, 0, 0), (1, 0, 0), (0, 1, 0), (1, 2, 0), (0, 0, 3)]
+LAW_WEIGHTS = [Fraction(n, 8) for n in (1, 2, 1, 1, 2, 1)]
+LAW_SUPPORTS = [[], ["zeta"], ["zeta"], ["alpha"], ["alpha", "zeta"], ["mu"]]
+
+
+def law_graph():
+    graph = nx.Graph()
+    graph.add_nodes_from(["zeta", "alpha", "mu"])
+    graph.add_edges_from([("zeta", "alpha"), ("alpha", "mu")])
+    return graph
+
+
+def support_masses(outputs):
+    masses = defaultdict(Fraction)
+    for support, weight in zip(outputs, LAW_WEIGHTS):
+        masses[frozenset(support)] += weight
+    return dict(masses)
+
+
+def test_exact_terminal_support_law():
+    """Independent finite law: exact support masses, moments and selection order."""
+    graph = law_graph()
+    outputs = sample.to_subgraphs(LAW_ROWS, graph)
+    assert outputs == LAW_SUPPORTS
+    assert support_masses(outputs) == {
+        frozenset(): Fraction(1, 8),
+        frozenset(["zeta"]): Fraction(3, 8),
+        frozenset(["alpha"]): Fraction(1, 8),
+        frozenset(["alpha", "zeta"]): Fraction(1, 4),
+        frozenset(["mu"]): Fraction(1, 8),
+    }
+    assert sum(w * sum(row) for row, w in zip(LAW_ROWS, LAW_WEIGHTS)) == Fraction(15, 8)
+    assert sum(w * len(row) for row, w in zip(outputs, LAW_WEIGHTS)) == Fraction(9, 8)
+    assert [nx.density(graph.subgraph(row)) for row in outputs] == [0, 0, 0, 0, 1, 0]
+    photon_rows = sample.postselect(LAW_ROWS, 2, 2)
+    assert photon_rows == [(2, 0, 0)]
+    assert sample.to_subgraphs(photon_rows, graph) == [["zeta"]]
+    occupancy = [[int(n > 0) for n in row] for row in LAW_ROWS]
+    click_rows = sample.postselect(occupancy, 2, 2)
+    assert click_rows == [[1, 1, 0]]
+    assert sample.to_subgraphs(click_rows, graph) == [["alpha", "zeta"]]
+    assert sum(w for row, w in zip(LAW_ROWS, LAW_WEIGHTS) if sum(row) == 2) == Fraction(1, 4)
+    assert sum(w for row, w in zip(occupancy, LAW_WEIGHTS) if sum(row) == 2) == Fraction(1, 4)
+
+
+def test_terminal_row_order_and_multiplicity():
+    rows = [(0, 0, 3), (2, 0, 0), (0, 0, 0), (1, 2, 0), (0, 0, 3)]
+    assert sample.to_subgraphs(rows, law_graph()) == [
+        ["mu"],
+        ["zeta"],
+        [],
+        ["alpha", "zeta"],
+        ["mu"],
+    ]
+
+
+@pytest.mark.parametrize("row", [[0, 0, 1, 2], [0, 0, 1, 1]])
+def test_count_support_search_composition(row):
+    graph = nx.Graph()
+    graph.add_nodes_from(range(4))
+    graph.add_edges_from([(0, 2), (2, 3)])
+    supports = sample.to_subgraphs([row], graph)
+    assert subgraph.search(supports, graph, 2, 2, 1) == {2: [(1.0, [2, 3])]}
+
+
+@pytest.mark.parametrize("defect", ["equals_one", "values", "sorted_nodes", "reverse", "dedup"])
+def test_support_oracle_rejects_mutants(defect):
+    """Local defective doubles must fail the intended equality, not setup."""
+    nodes = ["zeta", "alpha", "mu"]
+    rows = [(0, 0, 3), (2, 0, 0), (0, 0, 0), (1, 2, 0), (0, 0, 3)]
+    expected = [["mu"], ["zeta"], [], ["alpha", "zeta"], ["mu"]]
+    if defect == "sorted_nodes":
+        nodes = sorted(nodes)
+    wrong = [
+        sorted(nodes[i] for i, c in enumerate(row) if (c == 1 if defect == "equals_one" else c > 0))
+        for row in rows
+    ]
+    if defect == "values":
+        wrong = [sorted(set(row)) for row in rows]
+    if defect == "reverse":
+        wrong.reverse()
+    if defect == "dedup":
+        wrong = [list(row) for row in dict.fromkeys(tuple(row) for row in wrong)]
+    with pytest.raises(AssertionError):
+        assert wrong == expected
+
+
+def test_selection_and_coercion_mutants():
+    wrong_selection = sample.to_subgraphs([[1, 1, 0]], law_graph())
+    with pytest.raises(AssertionError):
+        assert wrong_selection == [["zeta"]]
+    row = [0.7, 1.9, -0.7, -2]
+    assert sample.to_subgraphs([row], nx.empty_graph(4)) == [[1]]
+    wrong_coercion = [i for i, c in enumerate(row) if c > 0]
+    with pytest.raises(AssertionError):
+        assert wrong_coercion == [1]
+
+
+def test_helper_mutant_is_rejected(monkeypatch):
+    def reject_expansion(_row):
+        raise AssertionError("per-photon expansion")
+
+    monkeypatch.setattr(sample, "modes_from_counts", reject_expansion)
+    with pytest.raises(AssertionError, match="per-photon expansion"):
+        list(set(sample.modes_from_counts([1000, 0, 100])))
