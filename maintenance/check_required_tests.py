@@ -489,6 +489,70 @@ UNBATCHED_ONLY = {
     "test_vacuum_state_quad",
     "test_coherent_state_quad",
 }
+# These tests set their own batch size, cutoff and units, independently of the
+# job's global fixtures. Keep every asymmetric input and actual storage form.
+PHOTON_VARIANCE_REQUIRED = {"fock": ("A", "B"), "tf": ("A", "B", "distinct-batch")}
+
+
+def verify_photon_variance_cases(cases, selected, states, errors):
+    """Require the exact finite-support matrix and its effective configuration."""
+    classname = "integration.test_photon_variance"
+    function = "test_distinct_photon_variance"
+    if not selected & PHOTON_VARIANCE_REQUIRED.keys():
+        return 0
+    # Known unselected cases may appear in optional-dependency reports, but an
+    # unknown/renamed parameter must not hide behind a complete required matrix.
+    known = {
+        f"{function}[{pure}-{unit}-{cutoff}-{backend}-{inputs}]"
+        for backend, profiles in PHOTON_VARIANCE_REQUIRED.items()
+        for inputs in profiles
+        for pure in ("True", "False")
+        for unit in ("1.0", "1.7")
+        for cutoff in ("3", "4")
+    }
+    found = {}
+    for case in cases:
+        name = case.get("name", "")
+        if case.get("classname") == classname and name.split("[")[0] == function:
+            if name not in known:
+                errors.append(f"Unknown photon-variance case: {name}")
+            found.setdefault(name, []).append(case)
+    checked = 0
+    for backend in sorted(selected & PHOTON_VARIANCE_REQUIRED.keys()):
+        for pure in sorted(states):
+            for unit in ("1.0", "1.7"):
+                for cutoff in ("3", "4"):
+                    for inputs in PHOTON_VARIANCE_REQUIRED[backend]:
+                        name = f"{function}[{pure}-{unit}-{cutoff}-{backend}-{inputs}]"
+                        matching = found.get(name, [])
+                        if len(matching) != 1:
+                            errors.append(
+                                f"Expected exactly one photon-variance case: {name}, found {len(matching)}"
+                            )
+                        for case in matching:
+                            if any(
+                                case.find(tag) is not None
+                                for tag in ("skipped", "failure", "error")
+                            ):
+                                errors.append(f"Did not pass: {classname}::{name}")
+                            expected = {
+                                "effective_storage": "ket" if pure == "True" else "density",
+                                "effective_hbar": unit,
+                                "effective_cutoff": cutoff,
+                                "effective_batch_size": (
+                                    "2" if inputs == "distinct-batch" else "None"
+                                ),
+                            }
+                            for key, value in expected.items():
+                                recorded = case.findall(f"./properties/property[@name='{key}']")
+                                if len(recorded) != 1 or recorded[0].get("value") != value:
+                                    errors.append(
+                                        f"Missing or incorrect photon-variance configuration: {name}: {key}"
+                                    )
+                        checked += len(matching)
+    return checked
+
+
 LABELS = {
     "FockBackend": "fock",
     "GaussianBackend": "gaussian",
@@ -503,6 +567,133 @@ STATE_FIRST_PARAMETERS = re.compile(
     r"(?=(?:\[|-)(True|False)-(FockBackend|GaussianBackend|BosonicBackend|TFBackend|fock|gaussian|bosonic|tf)"
     r"(?:-|\]))"
 )
+
+# These tests set their own batch size, cutoff and units, independently of the
+# job's global fixtures. Keep every asymmetric input and actual storage form.
+NUMBER_STATE_REQUIRED = {"fock": ("A", "B"), "tf": ("A", "B", "distinct-batch")}
+
+
+def verify_number_state_cases(cases, selected, states, errors):
+    """Require the exact finite-support matrix and its effective configuration."""
+    classname = "integration.test_number_state_statistics"
+    function = "test_distinct_number_state_moments"
+    if not selected & NUMBER_STATE_REQUIRED.keys():
+        return 0
+    # Known unselected cases may appear in optional-dependency reports, but an
+    # unknown/renamed parameter must not hide behind a complete required matrix.
+    known = {
+        f"{function}[{pure}-{unit}-{cutoff}-{backend}-{inputs}]"
+        for backend, profiles in NUMBER_STATE_REQUIRED.items()
+        for inputs in profiles
+        for pure in ("True", "False")
+        for unit in ("1.0", "1.7")
+        for cutoff in ("3", "4")
+    }
+    found = {}
+    for case in cases:
+        name = case.get("name", "")
+        if case.get("classname") == classname and name.split("[")[0] == function:
+            if name not in known:
+                errors.append(f"Unknown number-state case: {name}")
+            found.setdefault(name, []).append(case)
+    checked = 0
+    for backend in sorted(selected & NUMBER_STATE_REQUIRED.keys()):
+        for pure in sorted(states):
+            for unit in ("1.0", "1.7"):
+                for cutoff in ("3", "4"):
+                    for inputs in NUMBER_STATE_REQUIRED[backend]:
+                        name = f"{function}[{pure}-{unit}-{cutoff}-{backend}-{inputs}]"
+                        matching = found.get(name, [])
+                        if len(matching) != 1:
+                            errors.append(
+                                f"Expected exactly one number-state case: {name}, found {len(matching)}"
+                            )
+                        for case in matching:
+                            if any(
+                                case.find(tag) is not None
+                                for tag in ("skipped", "failure", "error")
+                            ):
+                                errors.append(f"Did not pass: {classname}::{name}")
+                            expected = {
+                                "effective_storage": "ket" if pure == "True" else "density",
+                                "effective_hbar": unit,
+                                "effective_cutoff": cutoff,
+                                "effective_batch_size": (
+                                    "2" if inputs == "distinct-batch" else "None"
+                                ),
+                            }
+                            for key, value in expected.items():
+                                recorded = case.findall(f"./properties/property[@name='{key}']")
+                                if len(recorded) != 1 or recorded[0].get("value") != value:
+                                    errors.append(
+                                        f"Missing or incorrect number-state configuration: {name}: {key}"
+                                    )
+                        checked += len(matching)
+    return checked
+
+
+GAUSSIAN_PREPARATION_REQUIRED = {}
+for _backend in ("gaussian", "fock", "tf"):
+    for _target in ("pure", "mixed"):
+        for _initial in ("True", "False"):
+            for _units in ("1.0", "1.7"):
+                for _batch in (("None", "2") if _backend == "tf" else ("None",)):
+                    _profile = "ordinary" if _batch == "None" else "replicated2"
+                    _identity = f"{_backend}-{_target}-initial{_initial}-hbar{_units}-{_profile}"
+                    GAUSSIAN_PREPARATION_REQUIRED[_identity] = (
+                        _backend,
+                        _target,
+                        _initial,
+                        _units,
+                        _batch,
+                    )
+
+
+def verify_gaussian_preparation(cases, selected, states, batched, errors):
+    """Require the exact bounded targets and effective representation receipts."""
+    if not GAUSSIAN_PREPARATION_REQUIRED:
+        return 0
+    classname = "integration.test_gaussian_state_decomposition"
+    function = "test_correlated_gaussian_preparation"
+    expected = {}
+    for identity, values in GAUSSIAN_PREPARATION_REQUIRED.items():
+        backend, target, initial, units, batch = values
+        if backend not in selected or initial not in states or (batch != "None") != batched:
+            continue
+        expected[f"{function}[{identity}]"] = {
+            "setup_hbar": units,
+            "requested_hbar": units,
+            "cutoff": "20",
+            "batch_size": batch,
+            "physical_target": target,
+            "requested_initial_pure": initial,
+            "observed_representation": "gaussian" if backend == "gaussian" else "density",
+            "observed_state_pure": str(backend == "gaussian" and target == "pure"),
+            "observed_dtype": {"gaussian": "float64", "fock": "complex128", "tf": "complex64"}[
+                backend
+            ],
+            "observed_num_modes": "2",
+            "case_id": identity,
+        }
+    found = {}
+    for case in cases:
+        name = case.get("name", "")
+        if case.get("classname") == classname and name.split("[")[0] == function:
+            found.setdefault(name, []).append(case)
+    for name in sorted(found.keys() - expected.keys()):
+        errors.append(f"Unexpected Gaussian preparation case: {name}")
+    for name, properties in expected.items():
+        matching = found.get(name, [])
+        if len(matching) != 1:
+            errors.append(f"Expected one Gaussian preparation case: {name}, found {len(matching)}")
+        for case in matching:
+            if any(case.find(tag) is not None for tag in ("skipped", "failure", "error")):
+                errors.append(f"Gaussian preparation did not pass: {name}")
+            for field, value in properties.items():
+                recorded = case.findall(f"./properties/property[@name='{field}']")
+                if len(recorded) != 1 or recorded[0].get("value") != value:
+                    errors.append(f"Incorrect Gaussian preparation {field}: {name}")
+    return sum(len(found.get(name, [])) for name in expected)
 
 
 def verify(report, configuration):
@@ -526,7 +717,8 @@ def verify(report, configuration):
         if identity in seen:
             errors.append(f"Duplicate test case: {identity[0]}::{identity[1]}")
         seen.add(identity)
-    checked = 0
+    checked = verify_gaussian_preparation(cases, selected, states, batched, errors)
+    checked += verify_number_state_cases(cases, selected, states, errors)
     for (classname, function), supported in required.items():
         if batched and function in UNBATCHED_ONLY:
             continue
@@ -636,6 +828,7 @@ def verify(report, configuration):
                                 f"Incorrect setup units counts for {label}: {dict(units)}"
                             )
                 checked += len(matching)
+    checked += verify_photon_variance_cases(cases, selected, states, errors)
     if errors:
         raise ValueError(
             "Required backend checks were not executed successfully:\n" + "\n".join(errors)

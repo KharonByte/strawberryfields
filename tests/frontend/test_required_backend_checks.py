@@ -15,6 +15,7 @@ spec = importlib.util.spec_from_file_location("required_backend_checks", checker
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 verify = module.verify
+NUMBER_STATE_REQUIREMENT = deepcopy(module.NUMBER_STATE_REQUIRED)
 PARITY_REQUIREMENTS = {
     key: deepcopy(module.UNBATCHED_REQUIRED[key])
     for key in (
@@ -203,10 +204,13 @@ pytestmark = pytest.mark.frontend
 @pytest.fixture(autouse=True)
 def isolate_unbatched_contracts(monkeypatch):
     """Each synthetic report declares the additional contracts it exercises."""
+    monkeypatch.setattr(module, "PHOTON_VARIANCE_REQUIRED", {})
     monkeypatch.setattr(module, "UNBATCHED_REQUIRED", {})
     monkeypatch.setattr(module, "BATCH_CAPABLE_REQUIRED", {})
     monkeypatch.setattr(module, "CONFIGURATION_REQUIRED", set())
     monkeypatch.setattr(module, "REQUIRED_PARAMETERS", {})
+    monkeypatch.setattr(module, "GAUSSIAN_PREPARATION_REQUIRED", {})
+    monkeypatch.setattr(module, "NUMBER_STATE_REQUIRED", {})
 
 
 @pytest.fixture
@@ -1204,6 +1208,159 @@ def test_every_initial_moment_case_is_required(tmp_path, monkeypatch, function, 
                 verify(save(), profile)
             for prop, value in original:
                 prop.set("value", value)
+
+
+@pytest.fixture
+def number_state_report(tmp_path, monkeypatch):
+    """An independent explicit matrix, not generated from the guard's catalog."""
+    assert NUMBER_STATE_REQUIREMENT == {"fock": ("A", "B"), "tf": ("A", "B", "distinct-batch")}
+    monkeypatch.setattr(module, "NUMBER_STATE_REQUIRED", NUMBER_STATE_REQUIREMENT)
+    monkeypatch.setattr(module, "REQUIRED", {})
+
+    def make(profile):
+        backends = {
+            "all-backends": ("fock", "tf"),
+            "fock": ("fock",),
+            "tensorflow": ("tf",),
+            "non-tensorflow": ("fock",),
+            "local-without-cloud": ("fock",),
+            "tensorflow-batched-pure": ("tf",),
+            "tensorflow-batched-mixed": ("tf",),
+            "frontend-apps-api-gaussian": (),
+            "bosonic": (),
+        }[profile]
+        states = (True, False)
+        if profile.startswith("tensorflow-batched-"):
+            states = (profile.endswith("pure"),)
+        root = ET.Element("testsuite")
+        for backend in backends:
+            for pure in states:
+                for unit in (1.0, 1.7):
+                    for cutoff in (3, 4):
+                        inputs = ("A", "B") if backend == "fock" else ("A", "B", "distinct-batch")
+                        for label in inputs:
+                            case = ET.SubElement(
+                                root,
+                                "testcase",
+                                classname="integration.test_number_state_statistics",
+                                name=f"test_distinct_number_state_moments[{pure}-{unit}-{cutoff}-{backend}-{label}]",
+                            )
+                            props = ET.SubElement(case, "properties")
+                            for name, value in (
+                                ("effective_storage", "ket" if pure else "density"),
+                                ("effective_hbar", str(unit)),
+                                ("effective_cutoff", str(cutoff)),
+                                (
+                                    "effective_batch_size",
+                                    "2" if label == "distinct-batch" else "None",
+                                ),
+                            ):
+                                ET.SubElement(props, "property", name=name, value=value)
+        path = tmp_path / "number-states.xml"
+
+        def save():
+            ET.ElementTree(root).write(path)
+            return path
+
+        return root, save
+
+    return make
+
+
+NUMBER_STATE_PROFILES = (
+    ("all-backends", 40),
+    ("fock", 16),
+    ("tensorflow", 24),
+    ("non-tensorflow", 16),
+    ("local-without-cloud", 16),
+    ("tensorflow-batched-pure", 12),
+    ("tensorflow-batched-mixed", 12),
+    ("frontend-apps-api-gaussian", 0),
+    ("bosonic", 0),
+)
+
+
+@pytest.mark.parametrize("profile,count", NUMBER_STATE_PROFILES)
+def test_number_state_guard_requires_complete_matrix(number_state_report, profile, count):
+    _, save = number_state_report(profile)
+    assert verify(save(), profile) == count
+
+
+@pytest.mark.parametrize("profile,count", NUMBER_STATE_PROFILES[:7])
+@pytest.mark.parametrize(
+    "corruption", ["missing", "skipped", "failure", "error", "duplicate", "replacement"]
+)
+def test_number_state_guard_rejects_every_missing_or_nonpassing_case(
+    number_state_report, profile, count, corruption
+):
+    root, save = number_state_report(profile)
+    assert verify(save(), profile) == count
+    for index in range(len(root)):
+        original = deepcopy(root)
+        case = root[index]
+        if corruption == "missing":
+            root.remove(case)
+        elif corruption in ("skipped", "failure", "error"):
+            ET.SubElement(case, corruption)
+        elif corruption == "duplicate":
+            root.append(deepcopy(case))
+        else:
+            duplicate = deepcopy(root[(index + 1) % len(root)])
+            duplicate.set("name", duplicate.get("name")[:-1] + "-duplicate]")
+            root.remove(case)
+            root.append(duplicate)
+        with pytest.raises(
+            ValueError, match="Expected exactly one|Did not pass|Duplicate test case"
+        ):
+            verify(save(), profile)
+        root[:] = list(original)
+
+
+@pytest.mark.parametrize("profile,count", NUMBER_STATE_PROFILES[:7])
+@pytest.mark.parametrize("corruption", ["missing", "wrong", "duplicate"])
+def test_number_state_guard_requires_effective_configuration(
+    number_state_report, profile, count, corruption
+):
+    root, save = number_state_report(profile)
+    assert verify(save(), profile) == count
+    for case in root:
+        props = case.find("properties")
+        for index in range(len(props)):
+            original = deepcopy(props)
+            prop = props[index]
+            if corruption == "missing":
+                props.remove(prop)
+            elif corruption == "wrong":
+                prop.set("value", "incorrect")
+            else:
+                props.append(deepcopy(prop))
+            with pytest.raises(ValueError, match="Missing or incorrect number-state configuration"):
+                verify(save(), profile)
+            props[:] = list(original)
+
+
+@pytest.mark.parametrize("profile,count", NUMBER_STATE_PROFILES[:7])
+@pytest.mark.parametrize("outcome", [None, "skipped", "failure", "error"])
+def test_number_state_guard_rejects_unknown_extra_with_complete_matrix(
+    number_state_report, profile, count, outcome
+):
+    root, save = number_state_report(profile)
+    assert verify(save(), profile) == count
+    extra = deepcopy(root[0])
+    extra.set("name", extra.get("name")[:-1] + "-duplicate]")
+    if outcome is not None:
+        ET.SubElement(extra, outcome)
+    root.append(extra)
+    with pytest.raises(ValueError, match="Unknown number-state case"):
+        verify(save(), profile)
+
+
+def test_number_state_guard_allows_known_unselected_optional_cases(number_state_report):
+    root, save = number_state_report("all-backends")
+    for case in root:
+        if "-tf-" in case.get("name"):
+            ET.SubElement(case, "skipped")
+    assert verify(save(), "non-tensorflow") == 16
 
 
 @pytest.fixture
