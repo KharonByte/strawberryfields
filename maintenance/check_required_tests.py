@@ -632,6 +632,70 @@ def verify_number_state_cases(cases, selected, states, errors):
     return checked
 
 
+GAUSSIAN_PREPARATION_REQUIRED = {}
+for _backend in ("gaussian", "fock", "tf"):
+    for _target in ("pure", "mixed"):
+        for _initial in ("True", "False"):
+            for _units in ("1.0", "1.7"):
+                for _batch in (("None", "2") if _backend == "tf" else ("None",)):
+                    _profile = "ordinary" if _batch == "None" else "replicated2"
+                    _identity = f"{_backend}-{_target}-initial{_initial}-hbar{_units}-{_profile}"
+                    GAUSSIAN_PREPARATION_REQUIRED[_identity] = (
+                        _backend,
+                        _target,
+                        _initial,
+                        _units,
+                        _batch,
+                    )
+
+
+def verify_gaussian_preparation(cases, selected, states, batched, errors):
+    """Require the exact bounded targets and effective representation receipts."""
+    if not GAUSSIAN_PREPARATION_REQUIRED:
+        return 0
+    classname = "integration.test_gaussian_state_decomposition"
+    function = "test_correlated_gaussian_preparation"
+    expected = {}
+    for identity, values in GAUSSIAN_PREPARATION_REQUIRED.items():
+        backend, target, initial, units, batch = values
+        if backend not in selected or initial not in states or (batch != "None") != batched:
+            continue
+        expected[f"{function}[{identity}]"] = {
+            "setup_hbar": units,
+            "requested_hbar": units,
+            "cutoff": "20",
+            "batch_size": batch,
+            "physical_target": target,
+            "requested_initial_pure": initial,
+            "observed_representation": "gaussian" if backend == "gaussian" else "density",
+            "observed_state_pure": str(backend == "gaussian" and target == "pure"),
+            "observed_dtype": {"gaussian": "float64", "fock": "complex128", "tf": "complex64"}[
+                backend
+            ],
+            "observed_num_modes": "2",
+            "case_id": identity,
+        }
+    found = {}
+    for case in cases:
+        name = case.get("name", "")
+        if case.get("classname") == classname and name.split("[")[0] == function:
+            found.setdefault(name, []).append(case)
+    for name in sorted(found.keys() - expected.keys()):
+        errors.append(f"Unexpected Gaussian preparation case: {name}")
+    for name, properties in expected.items():
+        matching = found.get(name, [])
+        if len(matching) != 1:
+            errors.append(f"Expected one Gaussian preparation case: {name}, found {len(matching)}")
+        for case in matching:
+            if any(case.find(tag) is not None for tag in ("skipped", "failure", "error")):
+                errors.append(f"Gaussian preparation did not pass: {name}")
+            for field, value in properties.items():
+                recorded = case.findall(f"./properties/property[@name='{field}']")
+                if len(recorded) != 1 or recorded[0].get("value") != value:
+                    errors.append(f"Incorrect Gaussian preparation {field}: {name}")
+    return sum(len(found.get(name, [])) for name in expected)
+
+
 def verify(report, configuration):
     """Require every selected supported backend/state combination to execute."""
     selected = MATRIX[configuration]
@@ -653,7 +717,8 @@ def verify(report, configuration):
         if identity in seen:
             errors.append(f"Duplicate test case: {identity[0]}::{identity[1]}")
         seen.add(identity)
-    checked = verify_number_state_cases(cases, selected, states, errors)
+    checked = verify_gaussian_preparation(cases, selected, states, batched, errors)
+    checked += verify_number_state_cases(cases, selected, states, errors)
     for (classname, function), supported in required.items():
         if batched and function in UNBATCHED_ONLY:
             continue
