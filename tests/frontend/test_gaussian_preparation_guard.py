@@ -35,7 +35,13 @@ FUNCTION = "test_correlated_gaussian_preparation"
 
 @pytest.fixture(autouse=True)
 def isolate_old_contracts(monkeypatch):
-    for name in ("REQUIRED", "UNBATCHED_REQUIRED", "BATCH_CAPABLE_REQUIRED"):
+    for name in (
+        "REQUIRED",
+        "UNBATCHED_REQUIRED",
+        "BATCH_CAPABLE_REQUIRED",
+        "NUMBER_STATE_REQUIRED",
+        "PHOTON_VARIANCE_REQUIRED",
+    ):
         monkeypatch.setattr(checker, name, {})
 
 
