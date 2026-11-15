@@ -6,6 +6,10 @@ and the exact maintenance pins. Use `python -B` without `-O`; optimized Python i
 rejected because it disables integrity assertions. CPU-only numerical thread flags
 are fixed to one by the collector's sanitized worker environment.
 
+Repository CI and prospective fixed-shard full studies are documented in [CI.md](CI.md).
+Automatic PR checks use synthetic controls only; full collection requires a separately
+reviewed release and owner-merged policy.
+
 Three modes separate execution checks from scientific evidence:
 
 | Mode | Purpose | Candidate sampling |
