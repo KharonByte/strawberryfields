@@ -24,6 +24,7 @@ from strawberryfields.backends import BaseGaussian
 from strawberryfields.backends.states import BaseGaussianState
 
 from .gaussiancircuit import GaussianModes
+from .sampling import sample_single_mode
 
 
 class GaussianBackend(BaseGaussian):
@@ -229,6 +230,9 @@ class GaussianBackend(BaseGaussian):
         reduced_cov = cov[ix_(modes_idxs, modes_idxs)]
         reduced_mean = mean[modes_idxs]
 
+        if len(modes) == 1:
+            return sample_single_mode(reduced_mean, reduced_cov, shots)
+
         # check we are sampling from a gaussian state with zero mean
         if allclose(mu, zeros_like(mu)):
             samples = hafnian_sample_state(reduced_cov, shots)
@@ -258,6 +262,8 @@ class GaussianBackend(BaseGaussian):
         modes_idxs = concatenate([x_idxs, p_idxs])
         reduced_cov = cov[ix_(modes_idxs, modes_idxs)]
         reduced_mean = mean[modes_idxs]
+        if len(modes) == 1:
+            return sample_single_mode(reduced_mean, reduced_cov, shots, threshold=True)
         samples = torontonian_sample_state(mu=reduced_mean, cov=reduced_cov, samples=shots)
 
         return samples
