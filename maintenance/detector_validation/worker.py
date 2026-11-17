@@ -502,18 +502,20 @@ def capture(case, chunk, evidence, metadata):
             "strawberryfields/compilers/gaussian.py",
         )
     ]
+    from .provenance import SINGLE_MODE_SOURCE, sampler_configuration
+
+    single_mode_available = (ROOT / SINGLE_MODE_SOURCE).is_file()
+    if single_mode_available:
+        module = sys.modules.get("strawberryfields.backends.gaussianbackend.sampling")
+        if module is None or Path(module.__file__).resolve() != ROOT / SINGLE_MODE_SOURCE:
+            raise RuntimeError("single-mode sampler import identity missing")
+        imported_paths.append(str(ROOT / SINGLE_MODE_SOURCE))
     metadata["imports"] = [digest(path) for path in imported_paths]
     metadata["versions"] = {
         name: importlib.metadata.version(name)
         for name in ("numpy", "scipy", "thewalrus", "numba", "llvmlite")
     }
-    metadata["sampler_defaults"] = {
-        "pnr": {"cutoff": 5, "max_photons": 30},
-        "threshold": {"fanout": 10, "cutoff": 1, "max_photons": 30},
-        "hbar": 2,
-        "parallel": False,
-        "internal_attempts_observable": False,
-    }
+    metadata["sampler_defaults"] = sampler_configuration(case, single_mode_available)
     metadata["measurement_execution"] = {"layer": case["path"], "status": "planned"}
     old_hbar = sf.hbar
     sf.hbar = case["hbar_physical"]

@@ -628,7 +628,15 @@ def _analyse_run(
     if set(reviewers) != {"qa", "scientific", "security"}:
         raise ValueError("missing independent reviewer bindings")
     tasks = [r.get("task") for r in reviewers.values()]
-    if len(set(tasks)) != 3 or not all(tasks) or "/root/detector_validator" in tasks:
+    if (
+        len(set(tasks)) != 3
+        or not all(tasks)
+        or any(
+            hashlib.sha256(task.encode()).hexdigest()
+            == "0bd0823d01fceb1f6f9a7df3d8c6cafdce4d0b0f6d5327d1d09a7cd486ca1c99"
+            for task in tasks
+        )
+    ):
         raise ValueError("reviewers not independently identified")
     for record in reviewers.values():
         if synthetic:

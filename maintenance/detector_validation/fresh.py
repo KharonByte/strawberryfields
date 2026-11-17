@@ -498,6 +498,12 @@ def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_li
             "strawberryfields/compilers/gaussian.py",
         )
     ]
+    from .provenance import SINGLE_MODE_SOURCE, validate_sampler_configuration
+
+    single_mode_available = SINGLE_MODE_SOURCE in source["files"]
+    if single_mode_available:
+        expected_imports.append(str(allowed / SINGLE_MODE_SOURCE))
+    validate_sampler_configuration(meta, case, source)
     if [str(Path(r["path"]).resolve()) for r in meta["imports"]] != [
         str(Path(p).resolve()) for p in expected_imports
     ]:

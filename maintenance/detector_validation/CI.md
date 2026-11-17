@@ -154,7 +154,46 @@ that excludes raw parsing, installation, transfer and runtime hashing. Hashing t
 73 pinned installed distributions took 8.39 seconds locally. These are measured
 component costs, not extrapolated scientific success or hosted throughput claims.
 
-Security review also identified upstream action dependency advisories affecting
-the pinned action releases. Existing use elsewhere does not approve these new
-workflow operations. Retain the separate Security review and owner disposition;
-a green hosted check cannot waive that readiness blocker.
+The scoped Security review supports normal same-run artifact transfer and
+orchestration; the earlier blanket artifact-transfer blocker is superseded.
+Conditional checkout archive fallback and stale-merge telemetry paths through
+Octokit/Undici remain open findings: GHSA-xjj6-f33q-929c (decompression) and
+GHSA-qrxm-fqhp-jwvm (TLS 1.2 renegotiation). See the
+[scoped review on PR #54](https://github.com/KharonByte/strawberryfields/pull/54#issuecomment-6898698164).
+This is not owner risk acceptance, and a green hosted check does not waive the
+remaining finding. Any separately proposed full collection still requires its
+own reviewed release and resource-feasibility evidence.
+
+## Combined detector fix and validation suite
+
+`cases.json` remains the byte-identical historical specification, including its
+original candidate and PR-label fields. Those fields describe historical intent;
+they do not select a revision for a new fresh or CI experiment. Historical
+containers, manifests and verdicts must be analysed with their original releases.
+Do not rewrite historical records to describe a later checkout.
+
+For a new CI study, `ci draft --base FULL_BASE_COMMIT --candidate FULL_CANDIDATE_COMMIT`
+requires explicit immutable revisions and a new, separately reviewed release.
+Fresh experiments bind the actual checkout through `source.json`, not a historical
+candidate constant. The legacy full collector also requires a full candidate SHA
+in its reviewed manifest, matching the checkout and release source identity. To
+use that entry point prospectively, make a new manifest copy with the intended
+candidate while preserving the frozen cases and statistics, then obtain a new
+source/runtime/resource release; editing a historical manifest is not permitted.
+No entry point implicitly authorizes collection.
+
+Worker provenance includes the bounded single-mode sampler when that module is
+present and imported in the tested checkout. Sampler metadata then distinguishes
+single-selected-mode PNR/threshold behavior from inherited multimode behavior.
+Older base checkouts without that module retain their original import inventory
+and inherited sampler description. The analyser rejects missing or mismatched
+inventory, hashes or sampler configuration. This metadata describes the configured
+route; it is not an additional proof that a backend entry point executed.
+
+The previously reported fixed-code study at commit `0c4a33c` is a qualified,
+recovered accuracy-only pass, not validation of this combined revision. Its two
+operational failures and historical CPU/JIT equivalence assumption remain intact.
+Full hosted scientific collection and cross-shard runtime equivalence remain
+unverified. Automatic PR harness checks are synthetic; they do not launch the full
+study or establish detector accuracy. Combining the suite and correction does not
+change the frozen criteria, seeds, sample counts or prospective resource limits.

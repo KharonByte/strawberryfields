@@ -24,7 +24,7 @@ import ast
 from .provenance import (
     ROOT,
     THREADS,
-    CANDIDATE,
+    validate_candidate_binding,
     digest,
     read_json,
     parse_json,
@@ -246,7 +246,8 @@ def run_worker(store, command, case_bytes, env, prefix, cpu_limit=120, wall_limi
     except BaseException as exc:
         reason = "supervisor:" + type(exc).__name__ + ":" + str(exc)[:1024]
     finally:
-        kill_group(proc, signal.SIGKILL)
+        if proc is not None and proc.returncode is None:
+            kill_group(proc, signal.SIGKILL)
         if proc is not None:
             if proc.returncode is not None:
                 code = proc.returncode
@@ -391,11 +392,8 @@ def collect(args):
     if Path(args.out).absolute().parent != Path(release["output_parent"]).absolute():
         raise ValueError("unreviewed output parent")
     source, runtime = source_identity(), runtime_identity()
-    if (
-        source["simulator_commit"] != CANDIDATE
-        or source != release["source"]
-        or runtime != release["runtime"]
-    ):
+    validate_candidate_binding(source, manifest)
+    if source != release["source"] or runtime != release["runtime"]:
         raise ValueError("source/runtime release mismatch")
     store = StoreWriter(args.out, capacity=ATTEMPT_CAPACITY)
     controller_started_observation = snapshot()

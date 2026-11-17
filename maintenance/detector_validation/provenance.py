@@ -11,6 +11,7 @@ from pathlib import Path
 import platform
 import subprocess
 import resource
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,7 +26,52 @@ THREADS = {
         "VECLIB_MAXIMUM_THREADS",
     )
 }
-CANDIDATE = "0d586c80b9dbed9761f4f044e7b8c33856aec325"
+SINGLE_MODE_SOURCE = "strawberryfields/backends/gaussianbackend/sampling.py"
+
+
+def validate_candidate_binding(source, manifest):
+    """Bind new collection to its reviewed manifest, never to a historical default."""
+    candidate = manifest.get("candidate")
+    if not isinstance(candidate, str) or not re.fullmatch(r"[0-9a-f]{40}", candidate):
+        raise ValueError("manifest requires a full immutable candidate revision")
+    if source.get("simulator_commit") != candidate:
+        raise ValueError("manifest candidate differs from collected source")
+
+
+def sampler_configuration(case, single_mode_available):
+    """Describe the source-configured route; this is not a runtime entry trace."""
+    if single_mode_available and len(case["measured_modes"]) == 1:
+        return {
+            "implementation": "single_mode_Gaussian",
+            "pnr_tail_tolerance_exact_arithmetic": 1e-10,
+            "pnr_max_cutoff": 512,
+            "threshold": "analytic_vacuum_overlap",
+            "hbar": 2,
+            "rejection_loop": False,
+        }
+    return {
+        "pnr": {"cutoff": 5, "max_photons": 30},
+        "threshold": {"fanout": 10, "cutoff": 1, "max_photons": 30},
+        "hbar": 2,
+        "parallel": False,
+        "internal_attempts_observable": False,
+    }
+
+
+def validate_sampler_configuration(metadata, case, source):
+    """Require truthful configuration and exact new-helper identity when available."""
+    files = source["files"]
+    available = SINGLE_MODE_SOURCE in files
+    records = [
+        r for r in metadata.get("imports", []) if r["path"].endswith("/" + SINGLE_MODE_SOURCE)
+    ]
+    if metadata.get("sampler_defaults") != sampler_configuration(case, available):
+        raise ValueError("sampler configuration provenance mismatch")
+    if available:
+        if len(records) != 1 or records[0].get("sha256") != files[SINGLE_MODE_SOURCE]:
+            raise ValueError("single-mode sampler source identity mismatch")
+    elif records:
+        raise ValueError("unexpected single-mode sampler import")
 
 
 def sanitized_environment(executable=None, source_root=None):

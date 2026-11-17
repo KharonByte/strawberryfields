@@ -115,6 +115,9 @@ def arm_diagnostic_cpu_timer(total_cpu_ceiling, headroom):
 
 
 def terminate_group(proc, sig):
+    # A reaped leader no longer reserves the numeric process-group identifier.
+    if proc.returncode is not None:
+        return
     try:
         os.killpg(proc.pid, sig)
     except ProcessLookupError:
@@ -224,12 +227,18 @@ def supervise(
             terminate_group(proc, signal.SIGTERM)
             counters["term_sent"] += 1
             kill_at = min(hard_deadline - grace / 2, time.monotonic() + grace / 2)
-            for fd in list(remaining):
-                selector.unregister(fd)
-                del remaining[fd]
+            # Keep bounded read callbacks active to preserve already emitted output.
+            for fd, (mask, _) in list(remaining.items()):
+                if mask & selectors.EVENT_WRITE:
+                    selector.unregister(fd)
+                    del remaining[fd]
 
     def reap():
-        nonlocal child_usage
+        nonlocal child_usage, kill_at
+        if kill_at is not None:
+            terminate_group(proc, signal.SIGKILL)
+            counters["kill_sent"] += 1
+            kill_at = None
         own_stat = process_stat(proc.pid)
         # No poll()/wait() is permitted before this exclusive wait4.
         pid, status, usage = os.wait4(proc.pid, 0)
@@ -260,6 +269,8 @@ def supervise(
                 and time.process_time() - origin_cpu >= own_cpu_tripwire
             ):
                 stop(tripwire_reason)
+            if child_usage is not None and not remaining:
+                break
             if kill_at is not None and now >= kill_at:
                 terminate_group(proc, signal.SIGKILL)
                 counters["kill_sent"] += 1
