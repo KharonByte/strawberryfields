@@ -465,6 +465,15 @@ def capture(case, chunk, evidence, metadata):
     }
 
     def validate_runtime_policy(stage):
+        if "cpu_timer_before" in metadata:
+            from .supervision import worker_cpu_timer_state
+
+            name = (
+                "cpu_timer_before_measurement"
+                if stage == "before_capture"
+                else "cpu_timer_after_measurement"
+            )
+            metadata[name] = worker_cpu_timer_state()
         audit_status = validate_denied_operations()
         disabled = bool(numba.config.DISABLE_JIT)
         changed = any(
@@ -776,7 +785,12 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--case-sha256", required=True)
     parser.add_argument("--chunk", type=int, required=True)
+    parser.add_argument("--cpu-timer", action="store_true")
     args = parser.parse_args()
+    if args.cpu_timer:
+        from .supervision import start_worker_cpu_timer, worker_cpu_timer_state
+
+        start_worker_cpu_timer()
     evidence = EvidenceStream(int(os.environ["DETECTOR_EVIDENCE_FD"]))
     if not sys.dont_write_bytecode:
         raise RuntimeError("Worker requires Python -B before imports")
@@ -786,6 +800,10 @@ def main():
     evidence.emit(1, metadata_bytes(metadata))
     try:
         metadata["verified_resource_limits"] = preflight()
+        if args.cpu_timer:
+            from .supervision import worker_cpu_timer_state
+
+            metadata["cpu_timer_before"] = worker_cpu_timer_state()
         case_bytes = sys.stdin.buffer.read(32769)
         if len(case_bytes) > 32768:
             raise ValueError("Case document exceeds size limit")
@@ -831,6 +849,13 @@ def main():
             warnings.showwarning = record_warning
             try:
                 capture(case, args.chunk, evidence, metadata)
+                if args.cpu_timer:
+                    metadata["cpu_timer_after"] = worker_cpu_timer_state()
+                    if (
+                        metadata["cpu_timer_after"]["remaining_seconds"]
+                        > metadata["cpu_timer_before"]["remaining_seconds"]
+                    ):
+                        raise RuntimeError("Worker CPU timer increased during capture")
             finally:
                 metadata["warnings"] = warning_records
                 warnings.showwarning = previous_showwarning

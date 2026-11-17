@@ -387,6 +387,8 @@ def run(args):
                     "--chunk",
                     str(chunk),
                 ]
+                if "worker_cpu_timer_seconds" in limits:
+                    command.append("--cpu-timer")
                 store.put(f"commands/{prefix}/command.json", encoded(command))
                 result, metadata = run_worker(
                     store,
@@ -396,7 +398,8 @@ def run(args):
                     prefix,
                     cpu,
                     wall,
-                    monitored=manifest["profile"] == "scientific-v2",
+                    monitored=manifest["profile"] in ("scientific-v2", "scientific-v3"),
+                    cpu_timer="worker_cpu_timer_seconds" in limits,
                 )
                 row["chunks"].append({"index": chunk, **result})
                 store.checkpoint(
@@ -413,7 +416,7 @@ def run(args):
                     or metadata.get("status") != "captured_not_accepted"
                 ):
                     raise ValueError("worker failed; evidence retained; no retry")
-                if manifest["profile"] == "scientific-v2":
+                if manifest["profile"] in ("scientific-v2", "scientific-v3"):
                     validate_metadata(
                         metadata,
                         case,
@@ -490,7 +493,14 @@ def validate_monitored_record(exit_record, limits):
         or monitor.get("poll_seconds") != limits["child_poll_seconds"]
         or type(monitor.get("polls")) is not int
         or monitor["polls"] <= 0
-        or not bounded(monitor.get("max_poll_gap_seconds"), 1.0)
+        or not bounded(
+            monitor.get("max_poll_gap_seconds"),
+            float("inf") if "worker_cpu_timer_seconds" in limits else 1.0,
+        )
+        or (
+            "worker_cpu_timer_seconds" in limits
+            and monitor.get("gap_limit_seconds", "missing") is not None
+        )
         or type(monitor.get("affinity_count")) is not int
         or not 1 <= monitor["affinity_count"] <= 5
         or "unavailable" in last
@@ -510,6 +520,45 @@ def validate_monitored_record(exit_record, limits):
         raise ValueError("monitored worker policy evidence missing or mismatched")
 
 
+def validate_cpu_timer_records(meta, frozen_limits):
+    if not frozen_limits or "worker_cpu_timer_seconds" not in frozen_limits:
+        return
+    previous = None
+    for name in (
+        "cpu_timer_before",
+        "cpu_timer_before_measurement",
+        "cpu_timer_after_measurement",
+        "cpu_timer_after",
+    ):
+        timer = meta.get(name, {})
+        remaining = timer.get("remaining_seconds")
+        before, after = timer.get("cpu_before_seconds"), timer.get("cpu_after_seconds")
+        tolerance = frozen_limits["timer_observation_tolerance_seconds"]
+        budget = frozen_limits["worker_cpu_timer_seconds"]
+        if (
+            timer.get("timer") != "CLOCK_PROCESS_CPUTIME_ID"
+            or timer.get("signal") != "SIGALRM"
+            or timer.get("budget_seconds") != budget
+            or timer.get("native_default") is not True
+            or timer.get("native_unblocked") is not True
+            or timer.get("interval_seconds") != 0
+            or timer.get("observation_tolerance_seconds") != tolerance
+            or any(
+                type(x) not in (int, float) or not math.isfinite(x)
+                for x in (before, after, remaining)
+            )
+            or not 0 <= before <= after
+            or after - before > tolerance
+            or remaining <= 0
+            or before + remaining > budget + tolerance
+            or after + remaining < budget - tolerance
+        ):
+            raise ValueError("worker absolute CPU timer evidence missing or invalid")
+        if previous is not None and (before < previous[0] or remaining > previous[1]):
+            raise ValueError("worker CPU timer trajectory changed")
+        previous = (after, remaining)
+
+
 def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_limits=None):
     from .collect import check_metadata
 
@@ -521,6 +570,7 @@ def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_li
         raise ValueError("measurement return/row/mode binding")
     if frozen_limits and "child_cpu_tripwire_seconds" in frozen_limits:
         validate_monitored_record(exit_record, frozen_limits)
+    validate_cpu_timer_records(meta, frozen_limits)
     if frozen_limits and "worker_cpu_seconds" in frozen_limits:
         expected_cpu = frozen_limits["worker_cpu_seconds"]
         expected_wall = frozen_limits["worker_wall_seconds"]
@@ -631,7 +681,7 @@ def report(args):
                 raise ValueError("stored provenance mismatch")
         if source_identity() != load(root / "source.json"):
             raise ValueError("analyser source differs from freeze")
-        if manifest["profile"] == "scientific-v2" and runtime_identity() != load(
+        if manifest["profile"] in ("scientific-v2", "scientific-v3") and runtime_identity() != load(
             root / "runtime.json"
         ):
             raise ValueError("analyser runtime differs from freeze")
@@ -719,6 +769,8 @@ def report(args):
                     "--chunk",
                     str(chunk),
                 ]
+                if "worker_cpu_timer_seconds" in manifest["profile_definition"]["resources"]:
+                    expected_command.append("--cpu-timer")
                 if (
                     parse_json(reader.read_bytes(f"commands/{prefix}/command.json"))
                     != expected_command
@@ -831,7 +883,7 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument(
         "--profile",
-        choices=("operational", "scientific", "scientific-v2"),
+        choices=("operational", "scientific", "scientific-v2", "scientific-v3"),
         required=True,
     )
     p.add_argument("--accounting", required=True)

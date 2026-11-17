@@ -81,3 +81,50 @@ complete scientifically passing and operationally valid new attempt can establis
 this baseline. Fixed seeds provide reproducibility, not independence from historical
 runs; no historical rows count toward the new sample size. Synthetic CI and the
 previous recovered accuracy-only pass do not certify the new head.
+
+## Worker CPU timer profile (`scientific-v3`)
+
+The subsequent `scientific-v3` profile retains all v2 scientific and resource
+allowances. It adds a worker-owned CPU timer so delayed scheduling of the parent
+monitor is no longer itself a terminal failure. The failed v2 attempt remains
+incomplete: it stopped after 123 complete chunks when a 1.416-second parent polling
+gap exceeded its frozen one-second rule. The origin of that delay is unproved.
+This change does not reinterpret or resume that attempt.
+
+After exec and before native imports, arm one POSIX timer at the absolute
+`CLOCK_PROCESS_CPUTIME_ID` deadline of 170 CPU seconds, with default, unblocked
+`SIGALRM`. CPU already consumed during startup counts toward that deadline.
+The timer is not claimed to protect startup before it is armed; the existing
+RLIMIT and parent monitor cover that interval. POSIX timers do not survive exec.
+The implementation requires the reviewed Linux LP64 libc ABI and fails closed if
+its timer functions are unavailable.
+
+The initially considered `ITIMER_PROF` design was rejected before any scientific
+collection: a nominal five-second timer permitted 6.5–6.7 measured CPU seconds in
+this environment. In contrast, independent native controls for the POSIX process
+CPU clock terminated two-second single/four-thread workloads at approximately
+2.002/2.015 measured CPU seconds despite a delayed parent. These are empirical
+controls, not strict latency guarantees. See the Linux
+[POSIX timer manual](https://man7.org/linux/man-pages/man2/timer_create.2.html),
+[absolute timer semantics](https://man7.org/linux/man-pages/man2/timer_settime.2.html)
+and [signal semantics](https://man7.org/linux/man-pages/man7/signal.7.html).
+
+Native signal masks/dispositions and the timer are checked at worker entry,
+after imports/preparation immediately before measurement, after returned-output
+processing, and at capture completion. Each remaining-time query is bracketed by reads of the
+same process CPU clock. The fixed 170-second deadline must lie in the resulting
+interval within a 0.01-second observation allowance. The analyser requires all
+four records, monotone CPU observations and remaining timer, zero recurrence, and
+the exact policy binding. Arming twice is rejected. This does not prove continuous
+immunity to native timer changes or cover forked descendants.
+
+Parent CPU monitoring at 170 seconds, the 180-second RLIMIT and observed-usage
+rejection, the wall deadline and cleanup checks remain. Poll gaps remain measured
+telemetry in v3; v2 still rejects gaps over one second. No existing record can
+qualify for v3 merely by changing its profile label. All scientific criteria,
+cases, seeds and sample counts remain unchanged.
+
+A new exact-head, independently reviewed release is required for one full fresh
+study. Do not pool old rows or substitute results from the failed attempt. The
+native and delayed-parent controls support this mechanism; they do not guarantee
+future completion or scientific accuracy.

@@ -6,6 +6,7 @@ No scientific module is imported and no security setting is changed.
 """
 
 import os
+import sys
 import ctypes
 import math
 import select
@@ -114,6 +115,102 @@ def arm_diagnostic_cpu_timer(total_cpu_ceiling, headroom):
     }
 
 
+class _Timespec(ctypes.Structure):
+    _fields_ = [("seconds", ctypes.c_long), ("nanoseconds", ctypes.c_long)]
+
+
+class _Itimerspec(ctypes.Structure):
+    _fields_ = [("interval", _Timespec), ("value", _Timespec)]
+
+
+_WORKER_CPU_TIMER = None
+
+
+def start_worker_cpu_timer(budget=170):
+    """Arm once after exec and before native imports, at an absolute process CPU deadline.
+
+    Restricted to the reviewed Linux LP64 libc ABI. A NULL sigevent selects the
+    POSIX default SIGALRM notification. This timer is not inherited across exec.
+    """
+    global _WORKER_CPU_TIMER
+    if _WORKER_CPU_TIMER is not None:
+        raise RuntimeError("Worker CPU timer already armed")
+    if (
+        not sys.platform.startswith("linux")
+        or ctypes.sizeof(ctypes.c_void_p) != 8
+        or ctypes.sizeof(ctypes.c_long) != 8
+    ):
+        raise RuntimeError("Worker CPU timer requires reviewed Linux LP64 ABI")
+    if signal.getsignal(
+        signal.SIGALRM
+    ) != signal.SIG_DFL or signal.SIGALRM in signal.pthread_sigmask(signal.SIG_BLOCK, []):
+        raise RuntimeError("Worker SIGALRM unavailable")
+    if signal.getitimer(signal.ITIMER_REAL) != (0.0, 0.0) or time.process_time() >= budget:
+        raise RuntimeError("Existing wall timer or CPU allocation exhausted")
+    libc = ctypes.CDLL(None, use_errno=True)
+    create, arm, read = libc.timer_create, libc.timer_settime, libc.timer_gettime
+    create.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p)]
+    arm.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER(_Itimerspec), ctypes.c_void_p]
+    read.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Itimerspec)]
+    create.restype = arm.restype = read.restype = ctypes.c_int
+    identifier = ctypes.c_void_p()
+    if create(time.CLOCK_PROCESS_CPUTIME_ID, None, ctypes.byref(identifier)) != 0:
+        raise OSError(ctypes.get_errno(), "process CPU timer_create failed")
+    allocation = _Itimerspec(_Timespec(0, 0), _Timespec(int(budget), int((budget % 1) * 1e9)))
+    if arm(identifier, 1, ctypes.byref(allocation), None) != 0:  # TIMER_ABSTIME
+        raise OSError(ctypes.get_errno(), "absolute process CPU timer_settime failed")
+    _WORKER_CPU_TIMER = (libc, identifier, budget)
+    return worker_cpu_timer_state(budget)
+
+
+def worker_cpu_timer_state(budget=170):
+    """Bracket timer_gettime in its own process CPU clock and verify native signal state."""
+    if _WORKER_CPU_TIMER is None or _WORKER_CPU_TIMER[2] != budget:
+        raise RuntimeError("Worker CPU timer is not bound")
+    libc, identifier, _ = _WORKER_CPU_TIMER
+    fields = dict(
+        line.split(":", 1)
+        for line in Path("/proc/self/status").read_text().splitlines()
+        if ":" in line
+    )
+    bit = 1 << (signal.SIGALRM - 1)
+    default = not (int(fields["SigIgn"], 16) | int(fields["SigCgt"], 16)) & bit
+    unblocked = not int(fields["SigBlk"], 16) & bit
+    state = _Itimerspec()
+    before = time.clock_gettime(time.CLOCK_PROCESS_CPUTIME_ID)
+    if libc.timer_gettime(identifier, ctypes.byref(state)) != 0:
+        raise OSError(ctypes.get_errno(), "process CPU timer_gettime failed")
+    after = time.clock_gettime(time.CLOCK_PROCESS_CPUTIME_ID)
+    remaining = state.value.seconds + state.value.nanoseconds / 1e9
+    interval = state.interval.seconds + state.interval.nanoseconds / 1e9
+    if (
+        signal.getsignal(signal.SIGALRM) != signal.SIG_DFL
+        or not default
+        or not unblocked
+        or interval != 0
+        or not 0 < remaining
+        or not 0 <= before <= after
+        or after - before > 0.01
+        or before + remaining > budget + 0.01
+        or after + remaining < budget - 0.01
+    ):
+        raise RuntimeError("Worker absolute CPU timer absent, changed or blocked")
+    return {
+        "timer": "CLOCK_PROCESS_CPUTIME_ID",
+        "signal": "SIGALRM",
+        "budget_seconds": budget,
+        "remaining_seconds": remaining,
+        "interval_seconds": interval,
+        "observation_tolerance_seconds": 0.01,
+        "native_default": bool(default),
+        "native_unblocked": bool(unblocked),
+        "cpu_before_seconds": before,
+        "cpu_after_seconds": after,
+        "scope": "absolute process user plus system CPU across threads; not descendants",
+        "strict_lateness_bound_established": False,
+    }
+
+
 def terminate_group(proc, sig):
     # A reaped leader no longer reserves the numeric process-group identifier.
     if proc.returncode is not None:
@@ -194,6 +291,7 @@ def supervise(
     tripwire_reason="controller_chunk_cpu_reserve",
     child_cpu_tripwire=None,
     child_poll_seconds=0.02,
+    child_gap_limit=1.0,
 ):
     """Wait for pipe/exit events or deadlines, retaining counters and wait4 usage.
 
@@ -235,6 +333,7 @@ def supervise(
     child_monitor = {
         "tripwire_cpu_seconds": child_cpu_tripwire,
         "poll_seconds": child_poll_seconds,
+        "gap_limit_seconds": child_gap_limit,
         "polls": 0,
         "max_poll_gap_seconds": 0.0,
         "last": None,
@@ -294,7 +393,10 @@ def supervise(
                 last_poll = now
                 child_monitor["last"] = observed
                 child_monitor["affinity_count"] = len(os.sched_getaffinity(proc.pid))
-                if child_monitor["max_poll_gap_seconds"] > 1.0:
+                if (
+                    child_gap_limit is not None
+                    and child_monitor["max_poll_gap_seconds"] > child_gap_limit
+                ):
                     stop("child_cpu_monitor_gap", immediate=True)
                 elif child_monitor["affinity_count"] > 5:
                     stop("child_cpu_affinity_exceeds_model", immediate=True)

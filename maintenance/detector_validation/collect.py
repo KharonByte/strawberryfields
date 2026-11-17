@@ -66,7 +66,7 @@ FRAME_NAMES = {
 }
 
 
-def child_limits(cpu):
+def child_limits(cpu, cpu_timer=False):
     parent = os.getppid()
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
@@ -79,6 +79,10 @@ def child_limits(cpu):
     resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
     # Defense in depth only; no worker is given an evidence file descriptor.
     resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
+    if cpu_timer:
+        if cpu != 180:
+            raise ValueError("worker timer requires frozen 180 CPU ceiling")
+        # Post-exec worker entry arms the POSIX CPU timer before native imports.
 
 
 class FrameParser:
@@ -164,6 +168,7 @@ def run_worker(
     wall_limit=180,
     *,
     monitored=False,
+    cpu_timer=False,
 ):
     """All logs/partials go to store; no subprocess-owned evidence files."""
     if (
@@ -174,6 +179,10 @@ def run_worker(
         raise ValueError("invalid worker resource request")
     if monitored and (cpu_limit != 180 or wall_limit != 240):
         raise ValueError("monitored policy requires exact 180 CPU / 240 wall reservation")
+    if cpu_timer and not monitored:
+        raise ValueError("worker CPU timer requires monitored policy")
+    if command.count("--cpu-timer") != int(cpu_timer):
+        raise ValueError("worker CPU timer command/policy mismatch")
     controller_ceiling = 20 if monitored else 5
     start = time.monotonic()
     parent_cpu_start = time.process_time()
@@ -196,7 +205,7 @@ def run_worker(
             stderr=subprocess.PIPE,
             start_new_session=True,
             pass_fds=(write_fd,),
-            preexec_fn=functools.partial(child_limits, cpu_limit),
+            preexec_fn=functools.partial(child_limits, cpu_limit, cpu_timer),
         )
         os.close(write_fd)
         write_fd = None
@@ -262,6 +271,7 @@ def run_worker(
             own_cpu_start=parent_cpu_start,
             own_cpu_tripwire=18 if monitored else 5,
             child_cpu_tripwire=170 if monitored else None,
+            child_gap_limit=None if cpu_timer else 1.0,
         )
         supervision["io_bytes"] = io_counts
         reason, code = supervision["limit_failure"], supervision["exit_code"]
