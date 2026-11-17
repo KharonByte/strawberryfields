@@ -156,7 +156,11 @@ def cleanup_reap(proc, deadline):
             own_stat = process_stat(proc.pid)
             pid, status, usage = os.wait4(proc.pid, os.WNOHANG)
         except ChildProcessError:
-            return {"reaped": False, "reason": "already_reaped_usage_missing", "polls": polls}
+            return {
+                "reaped": False,
+                "reason": "already_reaped_usage_missing",
+                "polls": polls,
+            }
         if pid:
             proc.returncode = os.waitstatus_to_exitcode(status)
             return {
@@ -188,6 +192,8 @@ def supervise(
     own_cpu_start=None,
     own_cpu_tripwire=None,
     tripwire_reason="controller_chunk_cpu_reserve",
+    child_cpu_tripwire=None,
+    child_poll_seconds=0.02,
 ):
     """Wait for pipe/exit events or deadlines, retaining counters and wait4 usage.
 
@@ -198,6 +204,12 @@ def supervise(
     """
     if wall_ceiling <= 0 or cleanup_grace < 0:
         raise RuntimeError("Supported pidfd/deadline supervision required")
+    if child_cpu_tripwire is not None and (
+        not math.isfinite(child_cpu_tripwire)
+        or child_cpu_tripwire <= 0
+        or not 0 < child_poll_seconds <= 0.02
+    ):
+        raise ValueError("Invalid preventive child monitor")
     before = snapshot()
     origin_cpu = before["process_cpu_seconds"] if own_cpu_start is None else own_cpu_start
     hard_deadline = started + wall_ceiling
@@ -220,13 +232,25 @@ def supervise(
     }
     remaining = dict(callbacks)
 
-    def stop(why):
+    child_monitor = {
+        "tripwire_cpu_seconds": child_cpu_tripwire,
+        "poll_seconds": child_poll_seconds,
+        "polls": 0,
+        "max_poll_gap_seconds": 0.0,
+        "last": None,
+        "strict_lateness_bound_established": False,
+    }
+    last_poll = time.monotonic()
+
+    def stop(why, immediate=False):
         nonlocal reason, trigger, kill_at
         if reason is None:
             reason, trigger = why, snapshot()
-            terminate_group(proc, signal.SIGTERM)
-            counters["term_sent"] += 1
-            kill_at = min(hard_deadline - grace / 2, time.monotonic() + grace / 2)
+            terminate_group(proc, signal.SIGKILL if immediate else signal.SIGTERM)
+            counters["kill_sent" if immediate else "term_sent"] += 1
+            kill_at = (
+                None if immediate else min(hard_deadline - grace / 2, time.monotonic() + grace / 2)
+            )
             # Keep bounded read callbacks active to preserve already emitted output.
             for fd, (mask, _) in list(remaining.items()):
                 if mask & selectors.EVENT_WRITE:
@@ -261,6 +285,23 @@ def supervise(
             selector.register(fd, mask, "pipe")
         while child_usage is None or remaining or kill_at is not None:
             now = time.monotonic()
+            if reason is None and child_usage is None and child_cpu_tripwire is not None:
+                observed = process_stat(proc.pid)
+                child_monitor["polls"] += 1
+                child_monitor["max_poll_gap_seconds"] = max(
+                    child_monitor["max_poll_gap_seconds"], now - last_poll
+                )
+                last_poll = now
+                child_monitor["last"] = observed
+                child_monitor["affinity_count"] = len(os.sched_getaffinity(proc.pid))
+                if child_monitor["max_poll_gap_seconds"] > 1.0:
+                    stop("child_cpu_monitor_gap", immediate=True)
+                elif child_monitor["affinity_count"] > 5:
+                    stop("child_cpu_affinity_exceeds_model", immediate=True)
+                elif "unavailable" in observed:
+                    stop("child_cpu_monitor_unavailable", immediate=True)
+                elif observed["own_cpu_seconds_tick_resolution"] >= child_cpu_tripwire:
+                    stop("child_cpu_headroom_tripwire", immediate=True)
             if reason is None and now >= soft_deadline:
                 stop("wall_cleanup_reserve")
             if (
@@ -291,7 +332,10 @@ def supervise(
                     kill_at if kill_at is not None else hard_deadline,
                 )
                 counters["select_calls"] += 1
-                events = selector.select(max(0.0, deadline - now))
+                wait = max(0.0, deadline - now)
+                if child_cpu_tripwire is not None and child_usage is None:
+                    wait = min(wait, child_poll_seconds)
+                events = selector.select(wait)
                 if not events:
                     counters["empty_deadline_wakeups"] += 1
             for key, mask in events:
@@ -344,5 +388,6 @@ def supervise(
         "descendant_termination_verified": False,
         "pidfd_backend": pidfd_backend,
         "counters": counters,
+        "child_cpu_monitor": child_monitor,
         "strict_cpu_enforcement_verified": False,
     }

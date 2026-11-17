@@ -7,8 +7,9 @@ rejected because it disables integrity assertions. CPU-only numerical thread fla
 are fixed to one by the collector's sanitized worker environment.
 
 Repository CI and prospective fixed-shard full studies are documented in [CI.md](CI.md).
-Automatic PR checks use synthetic controls only; full collection requires a separately
-reviewed release and owner-merged policy.
+Automatic PR checks use synthetic controls only; hosted full collection requires a separately
+reviewed release and owner-merged policy. The separately reviewed local path and its
+prospective resource profile are documented in [LOCAL-STUDY.md](LOCAL-STUDY.md).
 
 Three modes separate execution checks from scientific evidence:
 

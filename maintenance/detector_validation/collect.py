@@ -86,7 +86,12 @@ class FrameParser:
 
     def __init__(self, store, prefix):
         self.store, self.prefix = store, prefix
-        self.buffer, self.pending, self.seen, self.final_metadata = bytearray(), None, set(), None
+        self.buffer, self.pending, self.seen, self.final_metadata = (
+            bytearray(),
+            None,
+            set(),
+            None,
+        )
         self.total = 0
 
     def feed(self, block):
@@ -149,10 +154,27 @@ def kill_group(proc, sig):
             pass
 
 
-def run_worker(store, command, case_bytes, env, prefix, cpu_limit=120, wall_limit=180):
+def run_worker(
+    store,
+    command,
+    case_bytes,
+    env,
+    prefix,
+    cpu_limit=120,
+    wall_limit=180,
+    *,
+    monitored=False,
+):
     """All logs/partials go to store; no subprocess-owned evidence files."""
-    if type(cpu_limit) is not int or not 1 <= cpu_limit <= 120 or not 0 < wall_limit <= 240:
+    if (
+        type(cpu_limit) is not int
+        or not 1 <= cpu_limit <= (180 if monitored else 120)
+        or not 0 < wall_limit <= 240
+    ):
         raise ValueError("invalid worker resource request")
+    if monitored and (cpu_limit != 180 or wall_limit != 240):
+        raise ValueError("monitored policy requires exact 180 CPU / 240 wall reservation")
+    controller_ceiling = 20 if monitored else 5
     start = time.monotonic()
     parent_cpu_start = time.process_time()
     before = resource.getrusage(resource.RUSAGE_CHILDREN)
@@ -183,7 +205,11 @@ def run_worker(store, command, case_bytes, env, prefix, cpu_limit=120, wall_limi
         input_remaining = memoryview(case_bytes)
         os.set_blocking(proc.stdin.fileno(), False)
         selector.register(proc.stdin, selectors.EVENT_WRITE, "stdin")
-        for fd, label in ((read_fd, "evidence"), (proc.stdout, "stdout"), (proc.stderr, "stderr")):
+        for fd, label in (
+            (read_fd, "evidence"),
+            (proc.stdout, "stdout"),
+            (proc.stderr, "stderr"),
+        ):
             selector.register(fd, selectors.EVENT_READ, label)
         # Move existing registrations to deadline-driven supervision with sole wait4 reaping.
         registrations = list(selector.get_map().values())
@@ -234,7 +260,8 @@ def run_worker(store, command, case_bytes, env, prefix, cpu_limit=120, wall_limi
             wall_ceiling=wall_limit,
             cleanup_grace=30,
             own_cpu_start=parent_cpu_start,
-            own_cpu_tripwire=5,
+            own_cpu_tripwire=18 if monitored else 5,
+            child_cpu_tripwire=170 if monitored else None,
         )
         supervision["io_bytes"] = io_counts
         reason, code = supervision["limit_failure"], supervision["exit_code"]
@@ -271,6 +298,7 @@ def run_worker(store, command, case_bytes, env, prefix, cpu_limit=120, wall_limi
     after = resource.getrusage(resource.RUSAGE_CHILDREN)
     result = {
         "requested_cpu_limit": cpu_limit,
+        "requested_controller_cpu_ceiling": controller_ceiling,
         "strict_cpu_enforcement_verified": False,
         "supervision": supervision,
         "controller_post_cleanup": snapshot(),
@@ -292,7 +320,7 @@ def run_worker(store, command, case_bytes, env, prefix, cpu_limit=120, wall_limi
         violations.append("observed_worker_waited_cpu_exceeds_requested_ceiling")
     if result["wall_seconds"] > wall_limit:
         violations.append("observed_chunk_wall_exceeds_requested_ceiling")
-    if result["controller_whole_chunk_delta"]["process_cpu_seconds"] > 5:
+    if result["controller_whole_chunk_delta"]["process_cpu_seconds"] > controller_ceiling:
         violations.append("observed_controller_chunk_cpu_exceeds_tripwire")
     result["postflight_resource_violations"] = violations
     if violations and result["limit_failure"] is None:
@@ -465,7 +493,10 @@ def collect(args):
                     str(index),
                 ]
                 put_bounded(
-                    store, f"commands/{prefix}/command.json", encoded(command), COMMAND_BYTES
+                    store,
+                    f"commands/{prefix}/command.json",
+                    encoded(command),
+                    COMMAND_BYTES,
                 )
                 result, metadata = run_worker(store, command, case_bytes, env, prefix, cpu, wall)
                 child_cpu += result["cpu_seconds"]
@@ -497,7 +528,10 @@ def collect(args):
                 if name != "collection.json"
             ]
             snapshots.put(encoded(receipt))
-        receipt["source_post"], receipt["runtime_post"] = source_identity(), runtime_identity()
+        receipt["source_post"], receipt["runtime_post"] = (
+            source_identity(),
+            runtime_identity(),
+        )
         if receipt["source_post"] != source or receipt["runtime_post"] != runtime:
             raise ValueError("source/runtime postflight drift")
         if all_child_cpu() > WORKERS_CPU:
@@ -548,7 +582,8 @@ def main():
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     # External workflow also hard-stops at16h; this earlier signal preserves failure receipts.
     signal.signal(
-        signal.SIGALRM, lambda *_: (_ for _ in ()).throw(TimeoutError("controller wall ceiling"))
+        signal.SIGALRM,
+        lambda *_: (_ for _ in ()).throw(TimeoutError("controller wall ceiling")),
     )
     signal.alarm(COLLECTION_WALL)
     collect(args)

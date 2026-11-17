@@ -9,6 +9,7 @@ from collections import Counter
 import hashlib
 import importlib.metadata
 import json
+import math
 import os
 from pathlib import Path
 import resource
@@ -19,7 +20,12 @@ import time
 import uuid
 
 from .fresh_profile import profile
-from .provenance import source_identity, runtime_identity, sanitized_environment, parse_json
+from .provenance import (
+    source_identity,
+    runtime_identity,
+    sanitized_environment,
+    parse_json,
+)
 from .run import bounded_json, exclusive_json, safe_path
 from .storage import StoreWriter, StoreReader, encoded
 
@@ -272,21 +278,26 @@ def check_release(root, manifest, expected):
     return release
 
 
-def job_limits(limits, cpu_used, wall_used):
-    """Never launch a cold operational job on a silently reduced reservation."""
+def job_limits(limits, cpu_used, wall_used, controller_cpu_used=0):
+    """Reserve a complete cold worker and finalization before starting a chunk."""
     if "worker_cpu_seconds" in limits:
         cpu = limits["worker_cpu_seconds"]
         wall = limits["worker_wall_seconds"]
         if (
             type(cpu) is not int
-            or not 1 <= cpu <= 120
+            or not 1 <= cpu <= 180
             or type(wall) is not int
             or not 0 < wall <= 240
         ):
             raise ValueError("invalid frozen worker reservation")
+        controller = limits.get("controller_chunk_cpu_seconds", 5)
+        final_cpu = limits.get("finalization_cpu_seconds", 0)
+        final_wall = limits.get("finalization_wall_seconds", 5)
         if (
-            limits["cpu_seconds"] - cpu_used < cpu + 5
-            or limits["wall_seconds"] - wall_used < wall + 5
+            limits["cpu_seconds"] - cpu_used < cpu + controller + final_cpu
+            or limits["wall_seconds"] - wall_used < wall + final_wall
+            or limits.get("controller_cpu_seconds", float("inf")) - controller_cpu_used
+            < controller + final_cpu
         ):
             raise ValueError(
                 "remaining budget cannot fit frozen cold worker plus finalization reserve"
@@ -361,7 +372,9 @@ def run(args):
             row = {"id": case["id"], "chunks": []}
             report["cases"].append(row)
             for chunk in range(case["chunk_count"]):
-                cpu, wall = job_limits(limits, used_cpu(), time.monotonic() - started)
+                cpu, wall = job_limits(
+                    limits, used_cpu(), time.monotonic() - started, time.process_time()
+                )
                 data = encoded(case)
                 prefix = f"{case['id']}/{chunk:02d}"
                 command = [
@@ -376,7 +389,14 @@ def run(args):
                 ]
                 store.put(f"commands/{prefix}/command.json", encoded(command))
                 result, metadata = run_worker(
-                    store, command, data, sanitized_environment(), prefix, cpu, wall
+                    store,
+                    command,
+                    data,
+                    sanitized_environment(),
+                    prefix,
+                    cpu,
+                    wall,
+                    monitored=manifest["profile"] == "scientific-v2",
                 )
                 row["chunks"].append({"index": chunk, **result})
                 store.checkpoint(
@@ -393,14 +413,29 @@ def run(args):
                     or metadata.get("status") != "captured_not_accepted"
                 ):
                     raise ValueError("worker failed; evidence retained; no retry")
-        report["source_post_matches"] = source_identity() == load(root / "source.json")
-        report["runtime_post_matches"] = runtime_identity() == load(root / "runtime.json")
-        if not report["source_post_matches"] or not report["runtime_post_matches"]:
-            raise ValueError("source changed during collection")
+                if manifest["profile"] == "scientific-v2":
+                    validate_metadata(
+                        metadata,
+                        case,
+                        chunk,
+                        result,
+                        load(root / "runtime.json"),
+                        load(root / "source.json"),
+                        limits,
+                    )
         report["status"] = "collected_not_accepted"
     except BaseException as error:
         report["failure"] = type(error).__name__ + ": " + str(error)[:2000]
     finally:
+        # Failed attempts need provenance postflight as well as successful ones.
+        try:
+            report["source_post_matches"] = source_identity() == load(root / "source.json")
+            report["runtime_post_matches"] = runtime_identity() == load(root / "runtime.json")
+        except Exception as error:
+            report["postflight_identity_failure"] = type(error).__name__ + ": " + str(error)[:512]
+            report["source_post_matches"] = report["runtime_post_matches"] = False
+        if not report["source_post_matches"] or not report["runtime_post_matches"]:
+            report["status"] = "incomplete"
         report["resources"] = {
             "observed_family_cpu_seconds": used_cpu(),
             "observed_wall_seconds": time.monotonic() - started,
@@ -426,12 +461,53 @@ def run(args):
             try:
                 store.put("collection.json", encoded(report))
                 store.checkpoint(
-                    {"status": report["status"], "experiment_id": manifest["experiment_id"]}
+                    {
+                        "status": report["status"],
+                        "experiment_id": manifest["experiment_id"],
+                    }
                 )
             finally:
                 store.close()
         exclusive_json(root / "collection-receipt.json", report, receipt_max)
     return report
+
+
+def validate_monitored_record(exit_record, limits):
+    """Recheck observed costs and monitor evidence, not just a producer verdict."""
+    supervision = exit_record.get("supervision") or {}
+    monitor = supervision.get("child_cpu_monitor") or {}
+    last = monitor.get("last") or {}
+
+    def bounded(value, maximum):
+        return type(value) in (int, float) and math.isfinite(value) and 0 <= value <= maximum
+
+    if (
+        exit_record.get("requested_controller_cpu_ceiling")
+        != limits["controller_chunk_cpu_seconds"]
+        or supervision.get("requested_own_cpu_tripwire_seconds")
+        != limits["controller_cpu_tripwire_seconds"]
+        or monitor.get("tripwire_cpu_seconds") != limits["child_cpu_tripwire_seconds"]
+        or monitor.get("poll_seconds") != limits["child_poll_seconds"]
+        or type(monitor.get("polls")) is not int
+        or monitor["polls"] <= 0
+        or not bounded(monitor.get("max_poll_gap_seconds"), 1.0)
+        or type(monitor.get("affinity_count")) is not int
+        or not 1 <= monitor["affinity_count"] <= 5
+        or "unavailable" in last
+        or not bounded(last.get("own_cpu_seconds_tick_resolution"), limits["worker_cpu_seconds"])
+        or not bounded(
+            (supervision.get("tracked_child_wait4") or {}).get("cpu_seconds"),
+            limits["worker_cpu_seconds"],
+        )
+        or not bounded(
+            (exit_record.get("controller_whole_chunk_delta") or {}).get("process_cpu_seconds"),
+            limits["controller_chunk_cpu_seconds"],
+        )
+        or not bounded(exit_record.get("wall_seconds"), limits["worker_wall_seconds"])
+        or supervision.get("cleanup_reaped") is not True
+        or exit_record.get("postflight_resource_violations") != []
+    ):
+        raise ValueError("monitored worker policy evidence missing or mismatched")
 
 
 def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_limits=None):
@@ -443,6 +519,8 @@ def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_li
         or meta.get("requested_mode_order") != case["measured_modes"]
     ):
         raise ValueError("measurement return/row/mode binding")
+    if frozen_limits and "child_cpu_tripwire_seconds" in frozen_limits:
+        validate_monitored_record(exit_record, frozen_limits)
     if frozen_limits and "worker_cpu_seconds" in frozen_limits:
         expected_cpu = frozen_limits["worker_cpu_seconds"]
         expected_wall = frozen_limits["worker_wall_seconds"]
@@ -459,7 +537,11 @@ def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_li
             raise ValueError("actual worker CPU limit differs from frozen reservation")
     policy_view = dict(meta, rows=10000)
     check_metadata(
-        policy_view, case, chunk, exit_record["frames"], exit_record["requested_cpu_limit"]
+        policy_view,
+        case,
+        chunk,
+        exit_record["frames"],
+        exit_record["requested_cpu_limit"],
     )
     if meta.get("imports") != meta.get("imports_after") or not meta.get("imports"):
         raise ValueError("import provenance missing or changed")
@@ -539,11 +621,20 @@ def report(args):
             root / "manifest.json"
         ) or reader.read_bytes("release.json") != raw_bytes(root / "release.json"):
             raise ValueError("container identity differs from frozen experiment")
-        for name in ("source.json", "runtime.json", "ledger.json", "attempt-start.json"):
+        for name in (
+            "source.json",
+            "runtime.json",
+            "ledger.json",
+            "attempt-start.json",
+        ):
             if reader.read_bytes(name) != raw_bytes(root / name):
                 raise ValueError("stored provenance mismatch")
         if source_identity() != load(root / "source.json"):
             raise ValueError("analyser source differs from freeze")
+        if manifest["profile"] == "scientific-v2" and runtime_identity() != load(
+            root / "runtime.json"
+        ):
+            raise ValueError("analyser runtime differs from freeze")
         collection = parse_json(reader.read_bytes("collection.json"))
         if collection != load(root / "collection-receipt.json"):
             raise ValueError("terminal collection receipt mismatch")
@@ -667,7 +758,7 @@ def report(args):
                 "rows": len(rows),
                 "missing_chunks": missing,
                 "phase_timings": phase_timings,
-                "scientific_status": "UNTESTED" if operational or not rows else "INCOMPLETE",
+                "scientific_status": ("UNTESTED" if operational or not rows else "INCOMPLETE"),
                 "operational_status": "complete" if not missing else "incomplete",
             }
             if not operational and not missing:
@@ -680,7 +771,10 @@ def report(args):
                 else:
                     counts = Counter(k for r in rows for k in raw_indicators(case, r))
                     scored = evaluate_counts(
-                        case, counts, len(rows), manifest["profile_definition"]["statistics"]
+                        case,
+                        counts,
+                        len(rows),
+                        manifest["profile_definition"]["statistics"],
                     )
                     item["evaluation"] = scored
                     item["scientific_status"] = {
@@ -735,7 +829,11 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     p = commands.add_parser("init")
     p.add_argument("--out", required=True)
-    p.add_argument("--profile", choices=("operational", "scientific"), required=True)
+    p.add_argument(
+        "--profile",
+        choices=("operational", "scientific", "scientific-v2"),
+        required=True,
+    )
     p.add_argument("--accounting", required=True)
     p.add_argument(
         "--diagnostic-reference",
@@ -758,17 +856,30 @@ def main():
     if args.command == "run":
         _, m = experiment(args.experiment)
         lim = m["profile_definition"]["resources"]
-        cpu, wall = min(890, lim["cpu_seconds"]), lim["wall_seconds"]
+        cpu, wall = (
+            min(lim.get("controller_cpu_seconds", 890), lim["cpu_seconds"]),
+            lim["wall_seconds"],
+        )
+    elif args.command == "report":
+        _, m = experiment(args.experiment)
+        lim = m["profile_definition"]["resources"]
+        cpu, wall = lim.get("report_cpu_seconds", 20), lim.get("report_wall_seconds", 30)
     else:
         cpu, wall = 20, 30
     resource.setrlimit(resource.RLIMIT_AS, (14 * 1024**3, 14 * 1024**3))
     resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
-    signal.signal(
-        signal.SIGALRM,
-        lambda *_: (_ for _ in ()).throw(TimeoutError("whole command wall deadline")),
-    )
-    signal.alarm(wall)
+    final_wall = lim.get("finalization_wall_seconds", 0) if args.command == "run" else 0
+
+    def deadline(*_):
+        if final_wall:
+            # A second, default-disposition alarm bounds exception-path finalization.
+            signal.signal(signal.SIGALRM, signal.SIG_DFL)
+            signal.alarm(final_wall)
+        raise TimeoutError("whole command wall deadline; finalization reserve")
+
+    signal.signal(signal.SIGALRM, deadline)
+    signal.alarm(wall - final_wall)
     command_started = time.monotonic()
     try:
         result = globals()[args.command](args)
@@ -791,7 +902,12 @@ def main():
         json.dumps(
             {
                 k: result[k]
-                for k in ("status", "release_sha256", "experiment_id", "scientific_verdict")
+                for k in (
+                    "status",
+                    "release_sha256",
+                    "experiment_id",
+                    "scientific_verdict",
+                )
                 if k in result
             }
         )

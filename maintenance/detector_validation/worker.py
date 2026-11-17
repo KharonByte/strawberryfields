@@ -50,7 +50,7 @@ def preflight():
     caps = {}
     for name, identifier, maximum in (
         ("address_space", resource.RLIMIT_AS, 14 * 1024**3),
-        ("cpu_seconds", resource.RLIMIT_CPU, 120),
+        ("cpu_seconds", resource.RLIMIT_CPU, 180),
     ):
         soft, hard = resource.getrlimit(identifier)
         if soft == resource.RLIM_INFINITY or not 0 < soft <= maximum:
@@ -236,7 +236,11 @@ def validate_denied_operations(records=None):
         )
         if not (numpy_probe or devnull_probe or recognized_keras_denial(record)):
             raise RuntimeError("Unreviewed denied operation invalidates capture")
-    return {"validated": True, "count": len(records), "write_or_spawn_access_granted": False}
+    return {
+        "validated": True,
+        "count": len(records),
+        "write_or_spawn_access_granted": False,
+    }
 
 
 def reject_python_writes(event, args):
