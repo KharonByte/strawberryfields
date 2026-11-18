@@ -66,12 +66,13 @@ FRAME_NAMES = {
 }
 
 
-def child_limits(cpu, cpu_timer=False):
-    parent = os.getppid()
+def child_limits(cpu, cpu_timer=False, *, expected_parent):
+    if os.getppid() != expected_parent:
+        os._exit(125)
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0:  # PR_SET_PDEATHSIG
         raise OSError(ctypes.get_errno(), "parent-death signal setup")
-    if os.getppid() != parent:
+    if os.getppid() != expected_parent:
         os._exit(125)
     resource.setrlimit(resource.RLIMIT_AS, (MEMORY, MEMORY))
     resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu))
@@ -205,7 +206,9 @@ def run_worker(
             stderr=subprocess.PIPE,
             start_new_session=True,
             pass_fds=(write_fd,),
-            preexec_fn=functools.partial(child_limits, cpu_limit, cpu_timer),
+            preexec_fn=functools.partial(
+                child_limits, cpu_limit, cpu_timer, expected_parent=os.getpid()
+            ),
         )
         os.close(write_fd)
         write_fd = None

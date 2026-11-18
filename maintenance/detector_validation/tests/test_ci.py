@@ -194,6 +194,17 @@ class ArtifactTests(unittest.TestCase):
         self.calls = []
 
     def artifact(self, name="shard0", mutation=None, defect=None):
+        def execution_bytes(record):
+            if defect == "worker_cpu":
+                record["supervision"]["tracked_child_wait4"]["cpu_seconds"] = 999
+            elif defect == "worker_wall":
+                record["wall_seconds"] = 999
+            elif defect == "worker_unreaped":
+                record["supervision"]["cleanup_reaped"] = False
+            elif defect == "worker_violation":
+                record["postflight_resource_violations"] = ["synthetic violation"]
+            return encoded(record)
+
         root = self.root / name
         root.mkdir()
         bound = ci_collect.binding(self.args.sha256, "base", 0, self.source, self.runtime)
@@ -203,8 +214,8 @@ class ArtifactTests(unittest.TestCase):
             "status": "collected_not_accepted",
             "failure": None,
             "completed_chunks": 40,
-            "cpu_seconds": 10,
-            "wall_seconds": 10,
+            "cpu_seconds": 10 if defect == "understated_cpu" else 44,
+            "wall_seconds": 10 if defect == "understated_wall" else 80,
         }
         save(root / "binding.json", bound)
         save(root / "collection.json", collection)
@@ -235,12 +246,26 @@ class ArtifactTests(unittest.TestCase):
                     store.put(f"commands/{prefix}/started.json", b"{}")
                     store.put(
                         f"commands/{prefix}/exit.json",
-                        encoded(
+                        execution_bytes(
                             {
                                 "exit_code": 0,
                                 "limit_failure": None,
                                 "requested_cpu_limit": 120,
-                                "supervision": {"requested_wall_ceiling_seconds": 180},
+                                "requested_controller_cpu_ceiling": 5,
+                                "cpu_seconds": 1,
+                                "wall_seconds": 2,
+                                "controller_whole_chunk_delta": {"process_cpu_seconds": 0.1},
+                                "postflight_resource_violations": [],
+                                "supervision": {
+                                    "requested_wall_ceiling_seconds": 180,
+                                    "requested_own_cpu_tripwire_seconds": 5,
+                                    "exit_code": 0,
+                                    "limit_failure": None,
+                                    "cleanup_reaped": True,
+                                    "tracked_child_wait4": {"cpu_seconds": 1},
+                                    "observed_since_launch_wall_seconds": 2,
+                                    "controller_delta": {"process_cpu_seconds": 0.1},
+                                },
                             }
                         ),
                     )
@@ -298,6 +323,18 @@ class ArtifactTests(unittest.TestCase):
         self.assertEqual(len(cases), 4)
         self.assertEqual(len(self.calls), 40)
         self.assertEqual(sum(c["rows"] for c in cases), 400000)
+
+    def test_collection_totals_cover_validated_chunk_costs(self):
+        for defect in ("understated_cpu", "understated_wall"):
+            with self.subTest(defect=defect), self.assertRaisesRegex(
+                ValueError, "understates credited worker costs"
+            ):
+                self.inspect(self.artifact(defect, defect=defect))
+
+    def test_observed_execution_rejected_despite_success_strings(self):
+        for defect in ("worker_cpu", "worker_wall", "worker_unreaped", "worker_violation"):
+            with self.subTest(defect=defect), self.assertRaises(ValueError):
+                self.inspect(self.artifact(defect, defect=defect))
 
     def test_wrong_run_revision_seed_family_and_runtime(self):
         for field, value in (

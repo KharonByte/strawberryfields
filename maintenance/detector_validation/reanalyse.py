@@ -324,43 +324,16 @@ def evaluate_joint_tail(case, counts, N, statistics, nominal, binary):
     return joint, tail
 
 
-def _pairs(pairs):
-    out = {}
-    for key, value in pairs:
-        if key in out:
-            raise ValueError("duplicate JSON key")
-        out[key] = value
-    return out
-
-
 def read_json(path):
     with secure_open(path) as stream:
         return parse_json(stream.read(MAX_JSON + 1))
 
 
 def parse_json(payload):
-    if len(payload) > MAX_JSON:
-        raise ValueError("JSON size limit")
-    value = json.loads(
-        payload,
-        object_pairs_hook=_pairs,
-        parse_constant=lambda _: (_ for _ in ()).throw(ValueError("nonfinite JSON")),
-    )
+    # Preserve this historical format's limits while sharing strict JSON mechanics.
+    from .provenance import parse_json as strict_json
 
-    def check(obj, depth=0):
-        if depth > 30:
-            raise ValueError("JSON depth limit")
-        if isinstance(obj, float) and not math.isfinite(obj):
-            raise ValueError("nonfinite JSON number")
-        if isinstance(obj, dict):
-            for item in obj.values():
-                check(item, depth + 1)
-        elif isinstance(obj, list):
-            for item in obj:
-                check(item, depth + 1)
-
-    check(value)
-    return value
+    return strict_json(payload, maximum_depth=30, maximum_items=None)
 
 
 def secure_open(path):

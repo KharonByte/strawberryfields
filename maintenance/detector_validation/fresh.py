@@ -570,6 +570,16 @@ def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_li
         raise ValueError("measurement return/row/mode binding")
     if frozen_limits and "child_cpu_tripwire_seconds" in frozen_limits:
         validate_monitored_record(exit_record, frozen_limits)
+    from .execution_validation import validate_execution_record
+
+    limits = frozen_limits or {}
+    validate_execution_record(
+        exit_record,
+        cpu_limit=limits.get("worker_cpu_seconds"),
+        wall_limit=limits.get("worker_wall_seconds"),
+        controller_ceiling=limits.get("controller_chunk_cpu_seconds", 5),
+        controller_tripwire=limits.get("controller_cpu_tripwire_seconds", 5),
+    )
     validate_cpu_timer_records(meta, frozen_limits)
     if frozen_limits and "worker_cpu_seconds" in frozen_limits:
         expected_cpu = frozen_limits["worker_cpu_seconds"]
@@ -710,6 +720,9 @@ def report(args):
             and observed["observed_family_cpu_seconds"] <= requested["cpu_seconds"]
             and observed["observed_wall_seconds"] <= requested["wall_seconds"]
         )
+        from .fresh_inventory import reconcile
+
+        accepted_coordinates = reconcile(reader, manifest, collection, release_sha)
         inventory = reader.inventory()
         for name in inventory:
             reader.read_bytes(name)
@@ -726,6 +739,7 @@ def report(args):
             "cases": [],
         }
         operational = manifest["profile"] == "operational"
+        credited_cpu = credited_wall = 0.0
         for case in manifest["profile_definition"]["cases"]:
             rows = []
             phase_timings = []
@@ -733,7 +747,7 @@ def report(args):
             for chunk in range(case["chunk_count"]):
                 prefix = f"{case['id']}/{chunk:02d}"
                 name = f"raw/{prefix}/samples.npy"
-                if name not in inventory:
+                if (case["id"], chunk) not in accepted_coordinates:
                     missing.append(chunk)
                     continue
                 raw = reader.read_bytes(name)
@@ -797,6 +811,11 @@ def report(args):
                     load(root / "source.json"),
                     manifest["profile_definition"]["resources"],
                 )
+                credited_cpu += (
+                    exit_record["supervision"]["tracked_child_wait4"]["cpu_seconds"]
+                    + exit_record["controller_whole_chunk_delta"]["process_cpu_seconds"]
+                )
+                credited_wall += exit_record["wall_seconds"]
                 phase_timings.append(
                     {
                         "chunk": chunk,
@@ -870,6 +889,13 @@ def report(args):
         result["accuracy_cases_tested"] = (
             0 if operational else sum(not c["missing_chunks"] for c in result["cases"])
         )
+        # Recorded successful chunks are a lower bound, not a replacement for final accounting.
+        if (
+            credited_cpu > observed["observed_family_cpu_seconds"] + 1e-6
+            or credited_wall > observed["observed_wall_seconds"] + 1e-6
+        ):
+            raise ValueError("collection resource ledger understates credited worker costs")
+        result["accuracy"] = result["scientific_verdict"]
         save(Path(args.out), result)
         return result
     finally:

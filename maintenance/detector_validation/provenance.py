@@ -104,7 +104,7 @@ def digest(path):
     return h.hexdigest()
 
 
-def parse_json(data):
+def parse_json(data, *, maximum_depth=32, maximum_items=10000):
     if len(data) > 4 * 1024**2:
         raise ValueError("JSON document exceeds bounded input size")
 
@@ -122,17 +122,17 @@ def parse_json(data):
     result = json.loads(data, object_pairs_hook=pairs, parse_constant=invalid)
 
     def finite(value, depth=0):
-        if depth > 32:
+        if depth > maximum_depth:
             raise ValueError("JSON nesting exceeds bound")
         if isinstance(value, float) and not math.isfinite(value):
             raise ValueError("nonfinite JSON number")
         if isinstance(value, dict):
-            if len(value) > 10000:
+            if maximum_items is not None and len(value) > maximum_items:
                 raise ValueError("JSON object exceeds bound")
             for child in value.values():
                 finite(child, depth + 1)
         if isinstance(value, list):
-            if len(value) > 10000:
+            if maximum_items is not None and len(value) > maximum_items:
                 raise ValueError("JSON array exceeds bound")
             for child in value:
                 finite(child, depth + 1)
@@ -148,19 +148,25 @@ def read_json(path):
     return parse_json(path.read_bytes())
 
 
-def _git_cpu_limit():
-    parent = os.getppid()
+def _git_cpu_limit(expected_parent):
+    if os.getppid() != expected_parent:
+        os._exit(125)
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0:
         raise OSError(ctypes.get_errno(), "Git helper parent-death signal")
-    if os.getppid() != parent:
+    if os.getppid() != expected_parent:
         os._exit(125)
     resource.setrlimit(resource.RLIMIT_CPU, (1, 1))
 
 
 def _git(args, text=False):
+    expected_parent = os.getpid()
     return subprocess.check_output(
-        ["git", *args], cwd=ROOT, text=text, timeout=5, preexec_fn=_git_cpu_limit
+        ["git", *args],
+        cwd=ROOT,
+        text=text,
+        timeout=5,
+        preexec_fn=lambda: _git_cpu_limit(expected_parent),
     )
 
 

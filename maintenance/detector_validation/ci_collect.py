@@ -12,6 +12,7 @@ import time
 
 from .ci import LIMITS, SHARDS, cases_for, context, git, require, validate_release
 from .collect import run_worker
+from .execution_validation import validate_execution_record
 from .fresh import load, save, validate_metadata
 from .fresh_profile import profile
 from .provenance import (
@@ -236,6 +237,7 @@ def inspect_shard(directory, args, source, runtime):
         for name in inventory:
             reader.read_bytes(name)
         reports = []
+        credited_cpu = credited_wall = 0.0
         for case in cases:
             rows = []
             for chunk in range(10):
@@ -267,6 +269,7 @@ def inspect_shard(directory, args, source, runtime):
                     == expected_command,
                     "worker command mismatch",
                 )
+                validate_execution_record(exit_record, cpu_limit=120, wall_limit=180)
                 validate_metadata(
                     portable_metadata(meta, bound, runtime),
                     case,
@@ -275,6 +278,11 @@ def inspect_shard(directory, args, source, runtime):
                     runtime,
                     source,
                 )
+                credited_cpu += (
+                    exit_record["supervision"]["tracked_child_wait4"]["cpu_seconds"]
+                    + exit_record["controller_whole_chunk_delta"]["process_cpu_seconds"]
+                )
+                credited_wall += exit_record["wall_seconds"]
                 block = parse_npy(
                     reader.read_bytes(f"raw/{prefix}/samples.npy"),
                     10000,
@@ -325,6 +333,12 @@ def inspect_shard(directory, args, source, runtime):
                     "evaluation": evaluation,
                 }
             )
+        # Sequential chunk costs are a lower bound on complete shard accounting.
+        require(
+            credited_cpu <= collection["cpu_seconds"] + 1e-6
+            and credited_wall <= collection["wall_seconds"] + 1e-6,
+            "collection resource ledger understates credited worker costs",
+        )
         return shard, reports, collection
     finally:
         reader.close()

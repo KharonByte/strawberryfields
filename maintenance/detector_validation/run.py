@@ -19,9 +19,9 @@ import subprocess
 import sys
 import time
 
-from .storage import StoreReader
+from .storage import StoreReader, encoded
 from .supervision import supervise, snapshot, delta, resource_violations, cleanup_reap
-from .provenance import sanitized_environment
+from .provenance import sanitized_environment, parse_json
 from .budget import (
     ATTEMPT_CAPACITY as CAPACITY,
     COLLECTION_CPU,
@@ -64,12 +64,6 @@ def safe_path(path):
     return result
 
 
-def encoded(value):
-    return (
-        json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
-    ).encode()
-
-
 def exclusive_json(path, value, maximum):
     payload = encoded(value)
     if len(payload) > maximum:
@@ -91,14 +85,21 @@ def bounded_json(path, maximum):
             data = stream.read(maximum + 1)
         if len(data) > maximum:
             raise ValueError("JSON byte bound")
-        return json.loads(data), hashlib.sha256(data).hexdigest()
+        return parse_json(data), hashlib.sha256(data).hexdigest()
     finally:
         os.close(fd)
 
 
-def parent_death(signum):
-    """Linux prctl only affects this process; does not change system security settings."""
+def parent_death(signum, *, expected_parent=None):
+    """Install a process-local Linux death signal and check the parent identity.
+
+    Spawned children receive the parent's pre-fork PID. At launcher entry no
+    pre-launch identity is available, so that caller can only detect PID 1 or
+    a parent change during setup, not earlier adoption by a non-PID-1 subreaper.
+    """
     before = os.getppid()
+    if before == 1 or (expected_parent is not None and before != expected_parent):
+        raise RuntimeError("parent vanished before death-signal setup")
     libc = ctypes.CDLL(None, use_errno=True)
     if libc.prctl(1, signum, 0, 0, 0) != 0:
         raise OSError(ctypes.get_errno(), "PR_SET_PDEATHSIG failed")
@@ -106,8 +107,8 @@ def parent_death(signum):
         raise RuntimeError("parent vanished before death-signal setup")
 
 
-def child_limits(cpu, file_size):
-    parent_death(signal.SIGKILL)
+def child_limits(cpu, file_size, *, expected_parent):
+    parent_death(signal.SIGKILL, expected_parent=expected_parent)
     resource.setrlimit(resource.RLIMIT_AS, (MEMORY, MEMORY))
     resource.setrlimit(resource.RLIMIT_CPU, (cpu, cpu))
     resource.setrlimit(resource.RLIMIT_FSIZE, (file_size, file_size))
@@ -116,6 +117,7 @@ def child_limits(cpu, file_size):
 
 
 def launcher_limits():
+    # Best effort at entry; unlike spawn(), no pre-fork parent identity is available.
     parent_death(signal.SIGTERM)
     resource.setrlimit(resource.RLIMIT_AS, (MEMORY, MEMORY))
     # Children cannot raise a hard limit inherited as10. During bootstrap only,
@@ -144,6 +146,7 @@ def spawn(command, env, cpu, file_size, gated=False):
         executed = [sys.executable, "-B", "-c", gate_code, *command[1:]]
     else:
         executed = command
+    expected_parent = os.getpid()
     return subprocess.Popen(
         executed,
         cwd=ROOT,
@@ -153,7 +156,7 @@ def spawn(command, env, cpu, file_size, gated=False):
         stderr=subprocess.STDOUT,
         close_fds=True,
         start_new_session=True,
-        preexec_fn=lambda: child_limits(cpu, file_size),
+        preexec_fn=lambda: child_limits(cpu, file_size, expected_parent=expected_parent),
     )
 
 
