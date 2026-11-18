@@ -22,6 +22,7 @@ jobs:
         with:
           python-version: '3.12.3'
       - name: Synthetic controls and adversarial CI tests (no detector sampling)
+        shell: bash
         run: |
           mkdir -p maintenance/artifacts/detector-harness
           python -B -m unittest discover -s maintenance/detector_validation/tests -v 2>&1 | tee maintenance/artifacts/detector-harness/tests.log
