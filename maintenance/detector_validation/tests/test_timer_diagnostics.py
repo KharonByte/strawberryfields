@@ -152,7 +152,7 @@ class TimerDiagnosticsTests(unittest.TestCase):
             store = MagicMock()
             parser = FrameParser(store, "synthetic/00")
             while True:
-                block = os.read(read_fd, 65536)
+                block = os.read(read_fd, 7)  # split both headers and payloads
                 if not block:
                     break
                 parser.feed(block)
