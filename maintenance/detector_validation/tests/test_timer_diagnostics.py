@@ -122,10 +122,52 @@ class TimerDiagnosticsTests(unittest.TestCase):
         self.assertEqual(final["cpu_timer_validation_failure"], observation)
         capture.assert_not_called()
         if initial:
-            self.assertEqual(evidence.emit.call_count, 1)
+            self.assertEqual(evidence.emit.call_count, 2)
             self.assertEqual(final["cpu_timer_observation_history"], failure.observation_history)
         else:
             self.assertEqual(final["cpu_timer_armed"], armed)
+
+    def test_initial_failure_round_trips_real_pipe_and_parser(self):
+        from maintenance.detector_validation.collect import FrameParser
+        import json
+
+        observation = {
+            "failed_checks": ["observation_width"],
+            "cpu_before_seconds": 1,
+            "cpu_after_seconds": 1.02,
+        }
+        error = s.WorkerTimerObservationError(observation)
+        error.observation_history = [observation] * 3
+        read_fd, write_fd = os.pipe()
+        try:
+            with patch.object(
+                sys, "argv", ["worker", "--case-sha256", "0" * 64, "--chunk", "0", "--cpu-timer"]
+            ), patch.dict(os.environ, {"DETECTOR_EVIDENCE_FD": str(write_fd)}), patch.object(
+                s, "start_worker_cpu_timer", side_effect=error
+            ):
+                with self.assertRaises(s.WorkerTimerObservationError):
+                    worker.main()
+            os.close(write_fd)
+            write_fd = None
+            store = MagicMock()
+            parser = FrameParser(store, "synthetic/00")
+            while True:
+                block = os.read(read_fd, 65536)
+                if not block:
+                    break
+                parser.feed(block)
+            parser.finish()
+            self.assertEqual(parser.seen, {1, 5})
+            self.assertEqual(
+                parser.final_metadata["cpu_timer_observation_history"], error.observation_history
+            )
+            self.assertEqual(parser.final_metadata["status"], "error")
+            startup = json.loads(store.put.call_args_list[0].args[1])
+            self.assertEqual(startup["status"], "startup_unqualified")
+        finally:
+            os.close(read_fd)
+            if write_fd is not None:
+                os.close(write_fd)
 
 
 class BoundedObservationTests(unittest.TestCase):

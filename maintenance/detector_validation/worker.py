@@ -794,6 +794,9 @@ def main():
     # A minimal failure envelope exists before arming; no scientific import or
     # case consumption occurs until all timer and resource checks succeed.
     metadata = {"schema": "terminal-detector-chunk-v1", "chunk_index": args.chunk}
+    evidence.emit(
+        1, metadata_bytes(dict(metadata, status="startup_unqualified", started_unix=started))
+    )
     try:
         if args.cpu_timer:
             from .supervision import start_worker_cpu_timer, worker_cpu_timer_state
@@ -801,7 +804,6 @@ def main():
             metadata["cpu_timer_armed"] = start_worker_cpu_timer()
         sys.addaudithook(reject_python_writes)
         metadata.update(started_metadata(args.chunk, started))
-        evidence.emit(1, metadata_bytes(metadata))
         metadata["verified_resource_limits"] = preflight()
         if args.cpu_timer:
             from .supervision import worker_cpu_timer_state
