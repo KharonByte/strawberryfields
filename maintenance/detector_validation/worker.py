@@ -861,6 +861,16 @@ def main():
                 warnings.showwarning = previous_showwarning
         metadata["status"] = "captured_not_accepted"
     except BaseException as error:
+        if args.cpu_timer:
+            from .supervision import WorkerTimerObservationError
+
+            if isinstance(error, WorkerTimerObservationError):
+                metadata["cpu_timer_validation_failure"] = error.observation
+                metadata["cpu_timer_observation_history"] = getattr(
+                    error, "observation_history", [error.observation]
+                )
+            elif hasattr(error, "cpu_timer_observation_history"):
+                metadata["cpu_timer_observation_history"] = error.cpu_timer_observation_history
         # Keep partial arrays and earlier receipts. No traceback or ambient local-variable dump.
         metadata.update(
             status="error",

@@ -163,7 +163,53 @@ def start_worker_cpu_timer(budget=170):
     return worker_cpu_timer_state(budget)
 
 
+class WorkerTimerObservationError(RuntimeError):
+    """A rejected single observation, with only explicitly selected timer facts."""
+
+    def __init__(self, observation):
+        self.observation = observation
+        super().__init__(
+            "Worker absolute CPU timer absent, changed or blocked: "
+            + ", ".join(observation["failed_checks"])
+        )
+
+
 def worker_cpu_timer_state(budget=170):
+    """Read the same timer at most three times; only a wide bracket may be re-read."""
+    rejected = []
+    for attempt in range(3):
+        try:
+            state = _worker_cpu_timer_observation(budget)
+        except WorkerTimerObservationError as error:
+            if rejected and (
+                error.observation["cpu_before_seconds"] < rejected[-1]["cpu_after_seconds"]
+                or error.observation["remaining_seconds"] > rejected[-1]["remaining_seconds"]
+            ):
+                error.observation["failed_checks"].append("observation_trajectory")
+            rejected.append(error.observation)
+            if error.observation["failed_checks"] != ["observation_width"] or attempt == 2:
+                error.observation_history = rejected
+                raise
+        except BaseException as error:
+            # Preserve earlier reads even if the next native read fails outright.
+            error.cpu_timer_observation_history = rejected
+            raise
+        else:
+            if rejected and (
+                state["cpu_before_seconds"] < rejected[-1]["cpu_after_seconds"]
+                or state["remaining_seconds"] > rejected[-1]["remaining_seconds"]
+            ):
+                failure = dict(state, failed_checks=["observation_trajectory"])
+                error = WorkerTimerObservationError(failure)
+                error.observation_history = rejected + [failure]
+                raise error
+            state["observation_count"] = len(rejected) + 1
+            state["observation_policy"] = "three-reads-width-only-v1"
+            state["rejected_observations"] = rejected
+            return state
+
+
+def _worker_cpu_timer_observation(budget=170):
     """Bracket timer_gettime in its own process CPU clock and verify native signal state."""
     if _WORKER_CPU_TIMER is None or _WORKER_CPU_TIMER[2] != budget:
         raise RuntimeError("Worker CPU timer is not bound")
@@ -183,18 +229,36 @@ def worker_cpu_timer_state(budget=170):
     after = time.clock_gettime(time.CLOCK_PROCESS_CPUTIME_ID)
     remaining = state.value.seconds + state.value.nanoseconds / 1e9
     interval = state.interval.seconds + state.interval.nanoseconds / 1e9
-    if (
-        signal.getsignal(signal.SIGALRM) != signal.SIG_DFL
-        or not default
-        or not unblocked
-        or interval != 0
-        or not 0 < remaining
-        or not 0 <= before <= after
-        or after - before > 0.01
-        or before + remaining > budget + 0.01
-        or after + remaining < budget - 0.01
-    ):
-        raise RuntimeError("Worker absolute CPU timer absent, changed or blocked")
+    python_default = signal.getsignal(signal.SIGALRM) == signal.SIG_DFL
+    checks = {
+        "python_signal_default": python_default,
+        "native_signal_default": default,
+        "native_signal_unblocked": unblocked,
+        "one_shot": interval == 0,
+        "remaining_positive": 0 < remaining,
+        "clock_order": 0 <= before <= after,
+        "observation_width": after - before <= 0.01,
+        "deadline_upper": before + remaining <= budget + 0.01,
+        "deadline_lower": after + remaining >= budget - 0.01,
+    }
+    failed = [name for name, valid in checks.items() if not valid]
+    if failed:
+        raise WorkerTimerObservationError(
+            {
+                "schema": "worker-cpu-timer-rejection-v1",
+                "failed_checks": failed,
+                "budget_seconds": budget,
+                "cpu_before_seconds": before,
+                "cpu_after_seconds": after,
+                "remaining_seconds": remaining,
+                "interval_seconds": interval,
+                "python_signal_default": python_default,
+                "native_sigign": int(fields["SigIgn"], 16),
+                "native_sigcgt": int(fields["SigCgt"], 16),
+                "native_sigblk": int(fields["SigBlk"], 16),
+                "observation_tolerance_seconds": 0.01,
+            }
+        )
     return {
         "timer": "CLOCK_PROCESS_CPUTIME_ID",
         "signal": "SIGALRM",

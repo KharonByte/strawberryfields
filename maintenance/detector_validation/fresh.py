@@ -487,6 +487,51 @@ def validate_monitored_record(exit_record, limits):
         raise ValueError("monitored worker policy evidence missing or mismatched")
 
 
+def validate_rejected_timer_observation(observation, limits):
+    """Independently verify that a retained rejection was exclusively a wide bracket."""
+    fields = {
+        "schema",
+        "failed_checks",
+        "budget_seconds",
+        "cpu_before_seconds",
+        "cpu_after_seconds",
+        "remaining_seconds",
+        "interval_seconds",
+        "python_signal_default",
+        "native_sigign",
+        "native_sigcgt",
+        "native_sigblk",
+        "observation_tolerance_seconds",
+    }
+    if not isinstance(observation, dict) or set(observation) != fields:
+        raise ValueError("invalid rejected timer observation fields")
+    before = observation["cpu_before_seconds"]
+    after = observation["cpu_after_seconds"]
+    remaining = observation["remaining_seconds"]
+    budget = limits["worker_cpu_timer_seconds"]
+    tolerance = limits["timer_observation_tolerance_seconds"]
+    masks = [observation[k] for k in ("native_sigign", "native_sigcgt", "native_sigblk")]
+    if (
+        observation["schema"] != "worker-cpu-timer-rejection-v1"
+        or observation["failed_checks"] != ["observation_width"]
+        or observation["budget_seconds"] != budget
+        or observation["observation_tolerance_seconds"] != tolerance
+        or observation["python_signal_default"] is not True
+        or any(type(x) is not int or x < 0 or x & (1 << (signal.SIGALRM - 1)) for x in masks)
+        or type(observation["interval_seconds"]) not in (int, float)
+        or observation["interval_seconds"] != 0
+        or any(
+            type(x) not in (int, float) or not math.isfinite(x) for x in (before, after, remaining)
+        )
+        or not 0 <= before <= after
+        or not after - before > tolerance
+        or remaining <= 0
+        or before + remaining > budget + tolerance
+        or after + remaining < budget - tolerance
+    ):
+        raise ValueError("rejected timer observation was not width-only")
+
+
 def validate_cpu_timer_records(meta, frozen_limits):
     if not frozen_limits or "worker_cpu_timer_seconds" not in frozen_limits:
         return
@@ -498,6 +543,25 @@ def validate_cpu_timer_records(meta, frozen_limits):
         "cpu_timer_after",
     ):
         timer = meta.get(name, {})
+        # Current-source workers always emit this contract, even with no re-read.
+        # Historical releases retain their original frozen analyser.
+        rejected = timer.get("rejected_observations")
+        if (
+            timer.get("observation_policy") != "three-reads-width-only-v1"
+            or not isinstance(rejected, list)
+            or len(rejected) > 2
+            or type(timer.get("observation_count")) is not int
+            or timer["observation_count"] != len(rejected) + 1
+        ):
+            raise ValueError("worker timer observation history missing or invalid")
+        for observation in rejected:
+            validate_rejected_timer_observation(observation, frozen_limits)
+            first = observation["cpu_before_seconds"]
+            last = observation["cpu_after_seconds"]
+            left = observation["remaining_seconds"]
+            if previous is not None and (first < previous[0] or left > previous[1]):
+                raise ValueError("worker CPU timer trajectory changed")
+            previous = (last, left)
         remaining = timer.get("remaining_seconds")
         before, after = timer.get("cpu_before_seconds"), timer.get("cpu_after_seconds")
         tolerance = frozen_limits["timer_observation_tolerance_seconds"]

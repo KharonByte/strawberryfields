@@ -32,6 +32,9 @@ class TimerEvidenceTests(unittest.TestCase):
         )
         meta = {
             name: dict(
+                observation_policy="three-reads-width-only-v1",
+                observation_count=1,
+                rejected_observations=[],
                 timer="CLOCK_PROCESS_CPUTIME_ID",
                 signal="SIGALRM",
                 budget_seconds=170,
