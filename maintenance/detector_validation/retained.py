@@ -12,21 +12,7 @@ from fractions import Fraction as F
 from pathlib import Path
 
 
-def bounded_bytes(path, maximum=4 * 1024**2):
-    path = Path(path).absolute()
-    if any(p.is_symlink() for p in (path, *path.parents)):
-        raise ValueError("symlink input")
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode) or info.st_size > maximum:
-            raise ValueError("nonregular or oversized input")
-        data = os.read(fd, maximum + 1)
-        if len(data) != info.st_size:
-            raise ValueError("input size changed")
-        return data
-    finally:
-        os.close(fd)
+from .storage import read_bounded as bounded_bytes
 
 
 def jload(data):

@@ -5,16 +5,13 @@ Public review JSON binds bytes; it is not cryptographic human authentication.
 """
 
 import argparse
-from collections import Counter
 import hashlib
 import importlib.metadata
 import json
 import math
-import os
 from pathlib import Path
 import resource
 import signal
-import stat
 import sys
 import time
 import uuid
@@ -27,7 +24,7 @@ from .provenance import (
     parse_json,
 )
 from .run import bounded_json, exclusive_json, safe_path
-from .storage import StoreWriter, StoreReader, encoded
+from .storage import StoreWriter, StoreReader, encoded, read_bounded as raw_bytes
 
 MAX_JSON = 4 * 1024**2
 ROLES = ("qa", "scientific", "security")
@@ -35,22 +32,6 @@ ROLES = ("qa", "scientific", "security")
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
-
-
-def raw_bytes(path, maximum=MAX_JSON):
-    path = safe_path(path)
-    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW)
-    try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode) or info.st_size > maximum:
-            raise ValueError("bounded regular input required")
-        with os.fdopen(fd, "rb", closefd=False) as stream:
-            data = stream.read(maximum + 1)
-        if len(data) != info.st_size:
-            raise ValueError("input changed during read")
-        return data
-    finally:
-        os.close(fd)
 
 
 def validate_accounting(value, resources):
@@ -313,6 +294,7 @@ def job_limits(limits, cpu_used, wall_used, controller_cpu_used=0):
 
 def run(args):
     from .collect import run_worker
+    from .case_evidence import worker_command
 
     started = time.monotonic()
     cpu_start = 0.0
@@ -377,18 +359,9 @@ def run(args):
                 )
                 data = encoded(case)
                 prefix = f"{case['id']}/{chunk:02d}"
-                command = [
-                    sys.executable,
-                    "-B",
-                    "-m",
-                    "maintenance.detector_validation.fresh_worker",
-                    "--case-sha256",
-                    sha(data),
-                    "--chunk",
-                    str(chunk),
-                ]
-                if "worker_cpu_timer_seconds" in limits:
-                    command.append("--cpu-timer")
+                command = worker_command(
+                    sys.executable, case, chunk, cpu_timer="worker_cpu_timer_seconds" in limits
+                )
                 store.put(f"commands/{prefix}/command.json", encoded(command))
                 result, metadata = run_worker(
                     store,
@@ -477,19 +450,24 @@ def run(args):
 
 def validate_monitored_record(exit_record, limits):
     """Recheck observed costs and monitor evidence, not just a producer verdict."""
+    from .execution_validation import validate_execution_record, bounded_number as bounded
+
+    try:
+        validate_execution_record(
+            exit_record,
+            cpu_limit=limits["worker_cpu_seconds"],
+            wall_limit=limits["worker_wall_seconds"],
+            controller_ceiling=limits["controller_chunk_cpu_seconds"],
+            controller_tripwire=limits["controller_cpu_tripwire_seconds"],
+        )
+    except ValueError as error:
+        raise ValueError("monitored worker policy evidence missing or mismatched") from error
     supervision = exit_record.get("supervision") or {}
     monitor = supervision.get("child_cpu_monitor") or {}
     last = monitor.get("last") or {}
 
-    def bounded(value, maximum):
-        return type(value) in (int, float) and math.isfinite(value) and 0 <= value <= maximum
-
     if (
-        exit_record.get("requested_controller_cpu_ceiling")
-        != limits["controller_chunk_cpu_seconds"]
-        or supervision.get("requested_own_cpu_tripwire_seconds")
-        != limits["controller_cpu_tripwire_seconds"]
-        or monitor.get("tripwire_cpu_seconds") != limits["child_cpu_tripwire_seconds"]
+        monitor.get("tripwire_cpu_seconds") != limits["child_cpu_tripwire_seconds"]
         or monitor.get("poll_seconds") != limits["child_poll_seconds"]
         or type(monitor.get("polls")) is not int
         or monitor["polls"] <= 0
@@ -505,17 +483,6 @@ def validate_monitored_record(exit_record, limits):
         or not 1 <= monitor["affinity_count"] <= 5
         or "unavailable" in last
         or not bounded(last.get("own_cpu_seconds_tick_resolution"), limits["worker_cpu_seconds"])
-        or not bounded(
-            (supervision.get("tracked_child_wait4") or {}).get("cpu_seconds"),
-            limits["worker_cpu_seconds"],
-        )
-        or not bounded(
-            (exit_record.get("controller_whole_chunk_delta") or {}).get("process_cpu_seconds"),
-            limits["controller_chunk_cpu_seconds"],
-        )
-        or not bounded(exit_record.get("wall_seconds"), limits["worker_wall_seconds"])
-        or supervision.get("cleanup_reaped") is not True
-        or exit_record.get("postflight_resource_violations") != []
     ):
         raise ValueError("monitored worker policy evidence missing or mismatched")
 
@@ -570,26 +537,20 @@ def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_li
         raise ValueError("measurement return/row/mode binding")
     if frozen_limits and "child_cpu_tripwire_seconds" in frozen_limits:
         validate_monitored_record(exit_record, frozen_limits)
-    from .execution_validation import validate_execution_record
+    else:
+        from .execution_validation import validate_execution_record
 
-    limits = frozen_limits or {}
-    validate_execution_record(
-        exit_record,
-        cpu_limit=limits.get("worker_cpu_seconds"),
-        wall_limit=limits.get("worker_wall_seconds"),
-        controller_ceiling=limits.get("controller_chunk_cpu_seconds", 5),
-        controller_tripwire=limits.get("controller_cpu_tripwire_seconds", 5),
-    )
+        limits = frozen_limits or {}
+        validate_execution_record(
+            exit_record,
+            cpu_limit=limits.get("worker_cpu_seconds"),
+            wall_limit=limits.get("worker_wall_seconds"),
+            controller_ceiling=limits.get("controller_chunk_cpu_seconds", 5),
+            controller_tripwire=limits.get("controller_cpu_tripwire_seconds", 5),
+        )
     validate_cpu_timer_records(meta, frozen_limits)
     if frozen_limits and "worker_cpu_seconds" in frozen_limits:
         expected_cpu = frozen_limits["worker_cpu_seconds"]
-        expected_wall = frozen_limits["worker_wall_seconds"]
-        if (
-            exit_record.get("requested_cpu_limit") != expected_cpu
-            or exit_record.get("supervision", {}).get("requested_wall_ceiling_seconds")
-            != expected_wall
-        ):
-            raise ValueError("worker reservation differs from frozen diagnostic profile")
         if meta.get("verified_resource_limits", {}).get("cpu_seconds") != {
             "soft": expected_cpu,
             "hard": expected_cpu,
@@ -665,12 +626,12 @@ def validate_metadata(meta, case, chunk, exit_record, runtime, source, frozen_li
 def report(args):
     from .reanalyse import (
         parse_npy,
-        raw_indicators,
         evaluate_counts,
         structurally_valid,
         replay_period,
     )
     from .retained import npy as tiny_npy
+    from .case_evidence import check_worker_command, read_chunk_samples, evaluate_rows
 
     root, manifest = experiment(args.experiment)
     release_sha = args.release_sha256
@@ -739,6 +700,11 @@ def report(args):
             "cases": [],
         }
         operational = manifest["profile"] == "operational"
+
+        def read_array(name, count, columns):
+            parser = tiny_npy if operational and name.endswith("/samples.npy") else parse_npy
+            return parser(reader.read_bytes(name), count, columns)
+
         credited_cpu = credited_wall = 0.0
         for case in manifest["profile_definition"]["cases"]:
             rows = []
@@ -746,16 +712,9 @@ def report(args):
             missing = []
             for chunk in range(case["chunk_count"]):
                 prefix = f"{case['id']}/{chunk:02d}"
-                name = f"raw/{prefix}/samples.npy"
                 if (case["id"], chunk) not in accepted_coordinates:
                     missing.append(chunk)
                     continue
-                raw = reader.read_bytes(name)
-                block = (
-                    tiny_npy(raw, case["chunk_rows"], len(case["output_mode_order"]))
-                    if operational
-                    else parse_npy(raw, case["chunk_rows"], len(case["output_mode_order"]))
-                )
                 meta = parse_json(reader.read_bytes(f"raw/{prefix}/metadata.json"))
                 exit_record = parse_json(reader.read_bytes(f"commands/{prefix}/exit.json"))
                 if (
@@ -768,40 +727,15 @@ def report(args):
                     or exit_record.get("limit_failure") is not None
                 ):
                     raise ValueError("chunk provenance or exit mismatch")
-                if any(
-                    any(v < 0 or (case["detector"] == "threshold" and v > 1) for v in r)
-                    for r in block
-                ):
-                    raise ValueError("raw detector domain mismatch")
-                expected_command = [
+                block = read_chunk_samples(read_array, f"raw/{prefix}/", case, check_domain=True)
+                check_worker_command(
+                    parse_json(reader.read_bytes(f"commands/{prefix}/command.json")),
                     load(root / "runtime.json")["invocation_executable"],
-                    "-B",
-                    "-m",
-                    "maintenance.detector_validation.fresh_worker",
-                    "--case-sha256",
-                    sha(encoded(case)),
-                    "--chunk",
-                    str(chunk),
-                ]
-                if "worker_cpu_timer_seconds" in manifest["profile_definition"]["resources"]:
-                    expected_command.append("--cpu-timer")
-                if (
-                    parse_json(reader.read_bytes(f"commands/{prefix}/command.json"))
-                    != expected_command
-                ):
-                    raise ValueError("worker command/case binding mismatch")
-                if case["path"] == "local_engine_gaussian":
-                    secondary = parse_npy(
-                        reader.read_bytes(f"raw/{prefix}/secondary.npy"),
-                        case["chunk_rows"],
-                        len(case["measured_modes"]),
-                    )
-                    mapping = [case["measured_modes"].index(m) for m in case["output_mode_order"]]
-                    if any(
-                        tuple(row[j] for j in mapping) != primary
-                        for row, primary in zip(secondary, block)
-                    ):
-                        raise ValueError("Engine samples_dict mapping mismatch")
+                    case,
+                    chunk,
+                    cpu_timer="worker_cpu_timer_seconds"
+                    in manifest["profile_definition"]["resources"],
+                )
                 validate_metadata(
                     meta,
                     case,
@@ -840,12 +774,8 @@ def report(args):
                     item["scientific_status"] = "FAIL"
                     item["failure_kind"] = "support_or_replay"
                 else:
-                    counts = Counter(k for r in rows for k in raw_indicators(case, r))
-                    scored = evaluate_counts(
-                        case,
-                        counts,
-                        len(rows),
-                        manifest["profile_definition"]["statistics"],
+                    scored = evaluate_rows(
+                        case, rows, manifest["profile_definition"]["statistics"], evaluate_counts
                     )
                     item["evaluation"] = scored
                     item["scientific_status"] = {

@@ -14,12 +14,11 @@ from pathlib import Path
 import resource
 import selectors
 import signal
-import stat
 import subprocess
 import sys
 import time
 
-from .storage import StoreReader, encoded
+from .storage import StoreReader, encoded, regular_path as safe_path, read_bounded
 from .supervision import supervise, snapshot, delta, resource_violations, cleanup_reap
 from .provenance import sanitized_environment, parse_json
 from .budget import (
@@ -56,14 +55,6 @@ class WorkflowInterrupted(BaseException):
     """Not InterruptedError: selectors may swallow that exception as an EINTR retry."""
 
 
-def safe_path(path):
-    result = Path(path).absolute()
-    for entry in [result, *result.parents]:
-        if entry.is_symlink():
-            raise ValueError("symlink path forbidden")
-    return result
-
-
 def exclusive_json(path, value, maximum):
     payload = encoded(value)
     if len(payload) > maximum:
@@ -76,18 +67,8 @@ def exclusive_json(path, value, maximum):
 
 
 def bounded_json(path, maximum):
-    fd = os.open(safe_path(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    try:
-        info = os.fstat(fd)
-        if not stat.S_ISREG(info.st_mode) or info.st_size > maximum:
-            raise ValueError("not a bounded regular JSON file")
-        with os.fdopen(fd, "rb", closefd=False) as stream:
-            data = stream.read(maximum + 1)
-        if len(data) > maximum:
-            raise ValueError("JSON byte bound")
-        return parse_json(data), hashlib.sha256(data).hexdigest()
-    finally:
-        os.close(fd)
+    data = read_bounded(path, maximum)
+    return parse_json(data, maximum_bytes=maximum), hashlib.sha256(data).hexdigest()
 
 
 def parent_death(signum, *, expected_parent=None):

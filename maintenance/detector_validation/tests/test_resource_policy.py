@@ -63,11 +63,20 @@ class ResourcePolicyTests(unittest.TestCase):
     def test_recorded_overruns_and_malformed_monitor_are_rejected(self):
         limits = profile("scientific-v2")["resources"]
         record = {
+            "requested_cpu_limit": 180,
+            "cpu_seconds": 149,
+            "exit_code": 0,
+            "limit_failure": None,
             "requested_controller_cpu_ceiling": 20,
             "controller_whole_chunk_delta": {"process_cpu_seconds": 7},
             "wall_seconds": 150,
             "postflight_resource_violations": [],
             "supervision": {
+                "requested_wall_ceiling_seconds": 240,
+                "exit_code": 0,
+                "limit_failure": None,
+                "observed_since_launch_wall_seconds": 150,
+                "controller_delta": {"process_cpu_seconds": 7},
                 "requested_own_cpu_tripwire_seconds": 18,
                 "cleanup_reaped": True,
                 "tracked_child_wait4": {"cpu_seconds": 149},

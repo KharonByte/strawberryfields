@@ -6,7 +6,6 @@ formulas or latent-sum helpers. Collection is never invoked by this module.
 
 import argparse
 import ast
-from collections import Counter
 from fractions import Fraction as F
 import hashlib
 import io
@@ -21,7 +20,9 @@ import signal
 import struct
 from decimal import Decimal, localcontext
 
+from .case_evidence import check_worker_command, read_chunk_samples, evaluate_rows
 from .binomial import clopper_pearson
+from .storage import open_regular as secure_open
 
 from .oracle import Interval, interval, parameter, probability, trig, confidence_radius
 
@@ -334,20 +335,6 @@ def parse_json(payload):
     from .provenance import parse_json as strict_json
 
     return strict_json(payload, maximum_depth=30, maximum_items=None)
-
-
-def secure_open(path):
-    path = Path(path)
-    for parent in [path, *path.parents]:
-        if parent.is_symlink():
-            raise ValueError("symlink path forbidden")
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    import stat
-
-    if not stat.S_ISREG(os.fstat(fd).st_mode):
-        os.close(fd)
-        raise ValueError("not a regular file")
-    return os.fdopen(fd, "rb")
 
 
 def digest(path):
@@ -748,7 +735,7 @@ def _analyse_run(
         chunks = {c["index"]: c for c in observed["chunks"]}
         if set(chunks) != set(range(10)):
             raise ValueError("missing/duplicate chunk")
-        rows, counts = [], Counter()
+        rows = []
         for index, seed in enumerate(case["chunk_seeds"]):
             chunk = chunks[index]
             if (
@@ -768,21 +755,13 @@ def _analyse_run(
             for key in ("requested_cpu_limit", "exit_code", "limit_failure"):
                 if execution.get(key) != chunk.get(key):
                     raise ValueError("chunk exit resource binding mismatch")
-            case_bytes = (
-                json.dumps(case, sort_keys=True, separators=(",", ":"), allow_nan=False) + "\n"
-            ).encode()
-            expected_command = [
+            check_worker_command(
+                evidence.json(command_prefix + "command.json"),
                 receipt["runtime_pre"].get("invocation_executable"),
-                "-B",
-                "-m",
-                "maintenance.detector_validation.worker",
-                "--case-sha256",
-                hashlib.sha256(case_bytes).hexdigest(),
-                "--chunk",
-                str(index),
-            ]
-            if evidence.json(command_prefix + "command.json") != expected_command:
-                raise ValueError("worker command/case binding mismatch")
+                case,
+                index,
+                module="worker",
+            )
             prefix = f"raw/{cid}/{index:02d}/"
             names = ["samples.npy", "metadata.json"]
             if case["path"] == "local_engine_gaussian":
@@ -829,21 +808,12 @@ def _analyse_run(
                     raise ValueError("direct detector execution provenance missing")
             elif not metadata.get("original_circuit") or not metadata.get("compiled_circuit"):
                 raise ValueError("actual circuit provenance missing")
-            block = evidence.npy(prefix + "samples.npy", 10000, len(case["output_mode_order"]))
-            if case["path"] == "local_engine_gaussian":
-                secondary = evidence.npy(
-                    prefix + "secondary.npy", 10000, len(case["measured_modes"])
-                )
-                mapping = [case["measured_modes"].index(m) for m in case["output_mode_order"]]
-                if any(tuple(s[j] for j in mapping) != r for s, r in zip(secondary, block)):
-                    raise ValueError("Engine samples_dict mapping mismatch")
-            for row in block:
-                counts.update(raw_indicators(case, row))
-                if not structurally_valid(case, row):
-                    raise ValueError("exact physical support violated")
+            block = read_chunk_samples(evidence.npy, prefix, case)
+            if any(not structurally_valid(case, row) for row in block):
+                raise ValueError("exact physical support violated")
             rows.extend(block)
         replay = replay_period(rows, case)
-        result = evaluate_counts(case, counts, len(rows), statistics)
+        result = evaluate_rows(case, rows, statistics, evaluate_counts)
         if replay is not None:
             result["status"] = "insufficient_independence"
             result["replay_period"] = replay

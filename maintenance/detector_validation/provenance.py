@@ -104,8 +104,8 @@ def digest(path):
     return h.hexdigest()
 
 
-def parse_json(data, *, maximum_depth=32, maximum_items=10000):
-    if len(data) > 4 * 1024**2:
+def parse_json(data, *, maximum_bytes=4 * 1024**2, maximum_depth=32, maximum_items=10000):
+    if len(data) > maximum_bytes:
         raise ValueError("JSON document exceeds bounded input size")
 
     def pairs(items):

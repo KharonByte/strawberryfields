@@ -1,7 +1,6 @@
 """Single-attempt CI collection and raw-data aggregation under a prospective release."""
 
 import argparse
-from collections import Counter
 import copy
 import os
 from pathlib import Path
@@ -11,6 +10,7 @@ import sys
 import time
 
 from .ci import LIMITS, SHARDS, cases_for, context, git, require, validate_release
+from .case_evidence import worker_command, check_worker_command, read_chunk_samples, evaluate_rows
 from .collect import run_worker
 from .execution_validation import validate_execution_record
 from .fresh import load, save, validate_metadata
@@ -23,8 +23,8 @@ from .provenance import (
     sanitized_environment,
     source_identity,
 )
-from .reanalyse import evaluate_counts, parse_npy, raw_indicators, replay_period, structurally_valid
-from .storage import StoreReader, StoreWriter, encoded, sha
+from .reanalyse import evaluate_counts, parse_npy, replay_period, structurally_valid
+from .storage import StoreReader, StoreWriter, encoded
 
 
 def runtime_content(runtime):
@@ -73,16 +73,7 @@ def collect(args, release):
                     "wall allocation exhausted",
                 )
                 prefix = f"{case['id']}/{chunk:02d}"
-                command = [
-                    sys.executable,
-                    "-B",
-                    "-m",
-                    "maintenance.detector_validation.fresh_worker",
-                    "--case-sha256",
-                    sha(encoded(case)),
-                    "--chunk",
-                    str(chunk),
-                ]
+                command = worker_command(sys.executable, case, chunk)
                 store.put(f"commands/{prefix}/command.json", encoded(command))
                 result, meta = run_worker(
                     store, command, encoded(case), sanitized_environment(), prefix, 120, 180
@@ -236,6 +227,10 @@ def inspect_shard(directory, args, source, runtime):
         require(set(inventory) == allowed, "missing, unexpected or duplicate chunk members")
         for name in inventory:
             reader.read_bytes(name)
+
+        def read_array(name, count, columns):
+            return parse_npy(reader.read_bytes(name), count, columns)
+
         reports = []
         credited_cpu = credited_wall = 0.0
         for case in cases:
@@ -254,20 +249,11 @@ def inspect_shard(directory, args, source, runtime):
                     == 180,
                     "worker limits differ",
                 )
-                expected_command = [
+                check_worker_command(
+                    parse_json(reader.read_bytes(f"commands/{prefix}/command.json")),
                     bound["runtime"]["invocation_executable"],
-                    "-B",
-                    "-m",
-                    "maintenance.detector_validation.fresh_worker",
-                    "--case-sha256",
-                    sha(encoded(case)),
-                    "--chunk",
-                    str(chunk),
-                ]
-                require(
-                    parse_json(reader.read_bytes(f"commands/{prefix}/command.json"))
-                    == expected_command,
-                    "worker command mismatch",
+                    case,
+                    chunk,
                 )
                 validate_execution_record(exit_record, cpu_limit=120, wall_limit=180)
                 validate_metadata(
@@ -283,39 +269,11 @@ def inspect_shard(directory, args, source, runtime):
                     + exit_record["controller_whole_chunk_delta"]["process_cpu_seconds"]
                 )
                 credited_wall += exit_record["wall_seconds"]
-                block = parse_npy(
-                    reader.read_bytes(f"raw/{prefix}/samples.npy"),
-                    10000,
-                    len(case["output_mode_order"]),
-                )
-                require(
-                    all(
-                        all(v >= 0 and (case["detector"] != "threshold" or v <= 1) for v in r)
-                        for r in block
-                    ),
-                    "invalid detector sample domain",
-                )
-                if case["path"] == "local_engine_gaussian":
-                    secondary = parse_npy(
-                        reader.read_bytes(f"raw/{prefix}/secondary.npy"),
-                        10000,
-                        len(case["measured_modes"]),
-                    )
-                    mapping = [case["measured_modes"].index(m) for m in case["output_mode_order"]]
-                    require(
-                        all(
-                            tuple(row[j] for j in mapping) == primary
-                            for row, primary in zip(secondary, block)
-                        ),
-                        "Engine samples mapping mismatch",
-                    )
+                block = read_chunk_samples(read_array, f"raw/{prefix}/", case, check_domain=True)
                 rows.extend(block)
             require(len(rows) == 100000, "full-N case required")
-            evaluation = evaluate_counts(
-                case,
-                Counter(k for row in rows for k in raw_indicators(case, row)),
-                len(rows),
-                profile("scientific")["statistics"],
+            evaluation = evaluate_rows(
+                case, rows, profile("scientific")["statistics"], evaluate_counts
             )
             state = {"accepted": "PASS", "defect": "FAIL", "inconclusive": "INCOMPLETE"}[
                 evaluation["status"]

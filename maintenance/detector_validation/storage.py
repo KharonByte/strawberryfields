@@ -79,6 +79,30 @@ def regular_path(path):
     return path
 
 
+def open_regular(path):
+    """Open a non-symlink regular input without blocking on special files."""
+    fd = os.open(regular_path(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ValueError("not a regular input file")
+        return os.fdopen(fd, "rb")
+    except BaseException:
+        os.close(fd)
+        raise
+
+
+def read_bounded(path, maximum=MAX_MEMBER):
+    """Read one bounded regular input and reject observable size changes."""
+    with open_regular(path) as stream:
+        size = os.fstat(stream.fileno()).st_size
+        if size > maximum:
+            raise ValueError("input exceeds byte bound")
+        data = stream.read(maximum + 1)
+        if len(data) != size:
+            raise ValueError("input size changed during read")
+        return data
+
+
 class StoreWriter:
     """One descriptor, fixed file size. Existing files are never reused."""
 

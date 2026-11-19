@@ -32,7 +32,7 @@ from .provenance import (
     runtime_identity,
     sanitized_environment,
 )
-from .storage import StoreWriter, CAPACITY, RESERVE, encoded, sha, valid_name
+from .storage import StoreWriter, CAPACITY, RESERVE, encoded, valid_name
 from .stream import CAPS, HEADER
 from .supervision import supervise, snapshot, delta, cleanup_reap
 from .output_bounds import (
@@ -429,6 +429,8 @@ def all_child_cpu():
 
 
 def collect(args):
+    from .case_evidence import worker_command
+
     release, manifest = validate_release(args.manifest, args.release, args.release_sha256)
     if Path(args.out).absolute().parent != Path(release["output_parent"]).absolute():
         raise ValueError("unreviewed output parent")
@@ -495,16 +497,7 @@ def collect(args):
                     time.monotonic() - started,
                 )
                 prefix = f"{case['id']}/{index:02d}"
-                command = [
-                    sys.executable,
-                    "-B",
-                    "-m",
-                    "maintenance.detector_validation.worker",
-                    "--case-sha256",
-                    sha(case_bytes),
-                    "--chunk",
-                    str(index),
-                ]
+                command = worker_command(sys.executable, case, index, module="worker")
                 put_bounded(
                     store,
                     f"commands/{prefix}/command.json",
