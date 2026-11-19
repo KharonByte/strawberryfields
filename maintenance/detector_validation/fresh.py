@@ -537,6 +537,7 @@ def validate_cpu_timer_records(meta, frozen_limits):
         return
     previous = None
     for name in (
+        "cpu_timer_armed",
         "cpu_timer_before",
         "cpu_timer_before_measurement",
         "cpu_timer_after_measurement",

@@ -25,6 +25,7 @@ class TimerEvidenceTests(unittest.TestCase):
     def test_absolute_timer_records_fail_closed(self):
         limits = profile("scientific-v3")["resources"]
         names = (
+            "cpu_timer_armed",
             "cpu_timer_before",
             "cpu_timer_before_measurement",
             "cpu_timer_after_measurement",

@@ -77,16 +77,28 @@ class TimerDiagnosticsTests(unittest.TestCase):
             self.assertEqual(obs["observation_tolerance_seconds"], 0.01)
 
     def test_worker_preserves_structured_failure_without_capture(self):
+        self.worker_failure(False)
+
+    def test_worker_preserves_initial_arm_failure_without_capture(self):
+        self.worker_failure(True)
+
+    def worker_failure(self, initial):
         observation = {
             "failed_checks": ["observation_width"],
             "cpu_before_seconds": 1,
             "cpu_after_seconds": 1.02,
         }
         evidence = MagicMock()
+        armed = {"rejected_observations": [observation]}
+        failure = s.WorkerTimerObservationError(observation)
+        failure.observation_history = [observation, observation, observation]
         with patch.object(
             sys, "argv", ["worker", "--case-sha256", "0" * 64, "--chunk", "0", "--cpu-timer"]
         ), patch.dict(os.environ, {"DETECTOR_EVIDENCE_FD": "3"}), patch.object(
-            s, "start_worker_cpu_timer"
+            s,
+            "start_worker_cpu_timer",
+            return_value=armed,
+            side_effect=failure if initial else None,
         ), patch.object(
             s, "worker_cpu_timer_state", side_effect=s.WorkerTimerObservationError(observation)
         ), patch.object(
@@ -109,6 +121,11 @@ class TimerDiagnosticsTests(unittest.TestCase):
         self.assertEqual(final["status"], "error")
         self.assertEqual(final["cpu_timer_validation_failure"], observation)
         capture.assert_not_called()
+        if initial:
+            self.assertEqual(evidence.emit.call_count, 1)
+            self.assertEqual(final["cpu_timer_observation_history"], failure.observation_history)
+        else:
+            self.assertEqual(final["cpu_timer_armed"], armed)
 
 
 class BoundedObservationTests(unittest.TestCase):
@@ -186,6 +203,7 @@ class BoundedObservationTests(unittest.TestCase):
         from maintenance.detector_validation.fresh_profile import profile
 
         names = (
+            "cpu_timer_armed",
             "cpu_timer_before",
             "cpu_timer_before_measurement",
             "cpu_timer_after_measurement",

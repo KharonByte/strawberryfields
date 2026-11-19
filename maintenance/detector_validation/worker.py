@@ -787,18 +787,21 @@ def main():
     parser.add_argument("--chunk", type=int, required=True)
     parser.add_argument("--cpu-timer", action="store_true")
     args = parser.parse_args()
-    if args.cpu_timer:
-        from .supervision import start_worker_cpu_timer, worker_cpu_timer_state
-
-        start_worker_cpu_timer()
     evidence = EvidenceStream(int(os.environ["DETECTOR_EVIDENCE_FD"]))
     if not sys.dont_write_bytecode:
         raise RuntimeError("Worker requires Python -B before imports")
-    sys.addaudithook(reject_python_writes)
     started = time.time()
-    metadata = started_metadata(args.chunk, started)
-    evidence.emit(1, metadata_bytes(metadata))
+    # A minimal failure envelope exists before arming; no scientific import or
+    # case consumption occurs until all timer and resource checks succeed.
+    metadata = {"schema": "terminal-detector-chunk-v1", "chunk_index": args.chunk}
     try:
+        if args.cpu_timer:
+            from .supervision import start_worker_cpu_timer, worker_cpu_timer_state
+
+            metadata["cpu_timer_armed"] = start_worker_cpu_timer()
+        sys.addaudithook(reject_python_writes)
+        metadata.update(started_metadata(args.chunk, started))
+        evidence.emit(1, metadata_bytes(metadata))
         metadata["verified_resource_limits"] = preflight()
         if args.cpu_timer:
             from .supervision import worker_cpu_timer_state
