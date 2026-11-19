@@ -5,7 +5,9 @@ from collections import Counter
 from .storage import encoded, sha
 
 
-def worker_command(executable, case, chunk, *, module="fresh_worker", cpu_timer=False):
+def worker_command(
+    executable, case, chunk, *, module="fresh_worker", cpu_timer=False, cpu_timer_budget=170
+):
     command = [
         executable,
         "-B",
@@ -16,8 +18,12 @@ def worker_command(executable, case, chunk, *, module="fresh_worker", cpu_timer=
         "--chunk",
         str(chunk),
     ]
+    if cpu_timer_budget not in (170, 290) or (not cpu_timer and cpu_timer_budget != 170):
+        raise ValueError("unsupported worker timer policy")
     if cpu_timer:
         command.append("--cpu-timer")
+        if cpu_timer_budget != 170:
+            command.extend(["--cpu-timer-budget", str(cpu_timer_budget)])
     return command
 
 

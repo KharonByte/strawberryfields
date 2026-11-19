@@ -66,7 +66,7 @@ FRAME_NAMES = {
 }
 
 
-def child_limits(cpu, cpu_timer=False, *, expected_parent):
+def child_limits(cpu, cpu_timer=False, *, expected_parent, cpu_timer_budget=170):
     if os.getppid() != expected_parent:
         os._exit(125)
     libc = ctypes.CDLL(None, use_errno=True)
@@ -81,8 +81,8 @@ def child_limits(cpu, cpu_timer=False, *, expected_parent):
     # Defense in depth only; no worker is given an evidence file descriptor.
     resource.setrlimit(resource.RLIMIT_FSIZE, (0, 0))
     if cpu_timer:
-        if cpu != 180:
-            raise ValueError("worker timer requires frozen 180 CPU ceiling")
+        if (cpu_timer_budget, cpu) not in ((170, 180), (290, 300)):
+            raise ValueError("worker timer requires approved CPU/timer pair")
         # Post-exec worker entry arms the POSIX CPU timer before native imports.
 
 
@@ -170,19 +170,33 @@ def run_worker(
     *,
     monitored=False,
     cpu_timer=False,
+    cpu_timer_budget=170,
 ):
     """All logs/partials go to store; no subprocess-owned evidence files."""
+    expected_cpu, expected_wall = (300, 360) if cpu_timer_budget == 290 else (180, 240)
     if (
-        type(cpu_limit) is not int
-        or not 1 <= cpu_limit <= (180 if monitored else 120)
-        or not 0 < wall_limit <= 240
+        type(cpu_timer_budget) is not int
+        or cpu_timer_budget not in (170, 290)
+        or (cpu_timer_budget == 290 and not cpu_timer)
+        or type(cpu_limit) is not int
+        or not 1 <= cpu_limit <= (expected_cpu if monitored else 120)
+        or not 0 < wall_limit <= expected_wall
     ):
         raise ValueError("invalid worker resource request")
-    if monitored and (cpu_limit != 180 or wall_limit != 240):
-        raise ValueError("monitored policy requires exact 180 CPU / 240 wall reservation")
+    if monitored and (cpu_limit != expected_cpu or wall_limit != expected_wall):
+        raise ValueError("monitored policy requires exact approved CPU / wall reservation")
     if cpu_timer and not monitored:
         raise ValueError("worker CPU timer requires monitored policy")
-    if command.count("--cpu-timer") != int(cpu_timer):
+    budget_flags = [i for i, token in enumerate(command) if token.startswith("--cpu-timer-budget")]
+    valid_budget_flag = (
+        not budget_flags
+        if cpu_timer_budget == 170
+        else len(budget_flags) == 1
+        and command[budget_flags[0]] == "--cpu-timer-budget"
+        and budget_flags[0] + 1 < len(command)
+        and command[budget_flags[0] + 1] == str(cpu_timer_budget)
+    )
+    if command.count("--cpu-timer") != int(cpu_timer) or not valid_budget_flag:
         raise ValueError("worker CPU timer command/policy mismatch")
     controller_ceiling = 20 if monitored else 5
     start = time.monotonic()
@@ -207,7 +221,11 @@ def run_worker(
             start_new_session=True,
             pass_fds=(write_fd,),
             preexec_fn=functools.partial(
-                child_limits, cpu_limit, cpu_timer, expected_parent=os.getpid()
+                child_limits,
+                cpu_limit,
+                cpu_timer,
+                expected_parent=os.getpid(),
+                cpu_timer_budget=cpu_timer_budget,
             ),
         )
         os.close(write_fd)
@@ -273,7 +291,7 @@ def run_worker(
             cleanup_grace=30,
             own_cpu_start=parent_cpu_start,
             own_cpu_tripwire=18 if monitored else 5,
-            child_cpu_tripwire=170 if monitored else None,
+            child_cpu_tripwire=cpu_timer_budget if monitored else None,
             child_gap_limit=None if cpu_timer else 1.0,
         )
         supervision["io_bytes"] = io_counts

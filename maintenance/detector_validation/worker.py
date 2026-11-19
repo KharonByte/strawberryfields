@@ -45,12 +45,15 @@ def digest(path):
     }
 
 
+WORKER_CPU_CEILING = 180
+
+
 def preflight():
     """Verify actual local caps; approval remains a supervisor/reviewer decision."""
     caps = {}
     for name, identifier, maximum in (
         ("address_space", resource.RLIMIT_AS, 14 * 1024**3),
-        ("cpu_seconds", resource.RLIMIT_CPU, 180),
+        ("cpu_seconds", resource.RLIMIT_CPU, WORKER_CPU_CEILING),
     ):
         soft, hard = resource.getrlimit(identifier)
         if soft == resource.RLIM_INFINITY or not 0 < soft <= maximum:
@@ -473,7 +476,7 @@ def capture(case, chunk, evidence, metadata):
                 if stage == "before_capture"
                 else "cpu_timer_after_measurement"
             )
-            metadata[name] = worker_cpu_timer_state()
+            metadata[name] = worker_cpu_timer_state(metadata["cpu_timer_armed"]["budget_seconds"])
         audit_status = validate_denied_operations()
         disabled = bool(numba.config.DISABLE_JIT)
         changed = any(
@@ -786,7 +789,12 @@ def main():
     parser.add_argument("--case-sha256", required=True)
     parser.add_argument("--chunk", type=int, required=True)
     parser.add_argument("--cpu-timer", action="store_true")
+    parser.add_argument("--cpu-timer-budget", type=int, choices=(170, 290), default=170)
     args = parser.parse_args()
+    if args.cpu_timer_budget != 170 and not args.cpu_timer:
+        raise ValueError("extended budget requires worker CPU timer")
+    global WORKER_CPU_CEILING
+    WORKER_CPU_CEILING = args.cpu_timer_budget + 10
     evidence = EvidenceStream(int(os.environ["DETECTOR_EVIDENCE_FD"]))
     if not sys.dont_write_bytecode:
         raise RuntimeError("Worker requires Python -B before imports")
@@ -801,14 +809,14 @@ def main():
         if args.cpu_timer:
             from .supervision import start_worker_cpu_timer, worker_cpu_timer_state
 
-            metadata["cpu_timer_armed"] = start_worker_cpu_timer()
+            metadata["cpu_timer_armed"] = start_worker_cpu_timer(args.cpu_timer_budget)
         sys.addaudithook(reject_python_writes)
         metadata.update(started_metadata(args.chunk, started))
         metadata["verified_resource_limits"] = preflight()
         if args.cpu_timer:
             from .supervision import worker_cpu_timer_state
 
-            metadata["cpu_timer_before"] = worker_cpu_timer_state()
+            metadata["cpu_timer_before"] = worker_cpu_timer_state(args.cpu_timer_budget)
         case_bytes = sys.stdin.buffer.read(32769)
         if len(case_bytes) > 32768:
             raise ValueError("Case document exceeds size limit")
@@ -855,7 +863,7 @@ def main():
             try:
                 capture(case, args.chunk, evidence, metadata)
                 if args.cpu_timer:
-                    metadata["cpu_timer_after"] = worker_cpu_timer_state()
+                    metadata["cpu_timer_after"] = worker_cpu_timer_state(args.cpu_timer_budget)
                     if (
                         metadata["cpu_timer_after"]["remaining_seconds"]
                         > metadata["cpu_timer_before"]["remaining_seconds"]

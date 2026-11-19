@@ -64,7 +64,8 @@ def validate_accounting(value, resources):
     if (
         type(retained) is not int
         or retained < 0
-        or retained + resources["capacity_bytes"] + 16 * 1024**2 > 4 * 1024**3
+        or retained + resources["capacity_bytes"] + 16 * 1024**2
+        > resources.get("preservation_ceiling_bytes", 4 * 1024**3)
     ):
         raise ValueError("declared cumulative workspace preservation cap")
     if value.get("activity_allowance") != resources:
@@ -264,11 +265,12 @@ def job_limits(limits, cpu_used, wall_used, controller_cpu_used=0):
     if "worker_cpu_seconds" in limits:
         cpu = limits["worker_cpu_seconds"]
         wall = limits["worker_wall_seconds"]
+        extended = limits.get("worker_cpu_timer_seconds") == 290
         if (
             type(cpu) is not int
-            or not 1 <= cpu <= 180
             or type(wall) is not int
-            or not 0 < wall <= 240
+            or (extended and (cpu, wall) != (300, 360))
+            or (not extended and not (1 <= cpu <= 180 and 0 < wall <= 240))
         ):
             raise ValueError("invalid frozen worker reservation")
         controller = limits.get("controller_chunk_cpu_seconds", 5)
@@ -360,7 +362,11 @@ def run(args):
                 data = encoded(case)
                 prefix = f"{case['id']}/{chunk:02d}"
                 command = worker_command(
-                    sys.executable, case, chunk, cpu_timer="worker_cpu_timer_seconds" in limits
+                    sys.executable,
+                    case,
+                    chunk,
+                    cpu_timer="worker_cpu_timer_seconds" in limits,
+                    cpu_timer_budget=limits.get("worker_cpu_timer_seconds", 170),
                 )
                 store.put(f"commands/{prefix}/command.json", encoded(command))
                 result, metadata = run_worker(
@@ -371,8 +377,10 @@ def run(args):
                     prefix,
                     cpu,
                     wall,
-                    monitored=manifest["profile"] in ("scientific-v2", "scientific-v3"),
+                    monitored=manifest["profile"]
+                    in ("scientific-v2", "scientific-v3", "scientific-v4"),
                     cpu_timer="worker_cpu_timer_seconds" in limits,
+                    cpu_timer_budget=limits.get("worker_cpu_timer_seconds", 170),
                 )
                 row["chunks"].append({"index": chunk, **result})
                 store.checkpoint(
@@ -389,7 +397,7 @@ def run(args):
                     or metadata.get("status") != "captured_not_accepted"
                 ):
                     raise ValueError("worker failed; evidence retained; no retry")
-                if manifest["profile"] in ("scientific-v2", "scientific-v3"):
+                if manifest["profile"] in ("scientific-v2", "scientific-v3", "scientific-v4"):
                     validate_metadata(
                         metadata,
                         case,
@@ -717,9 +725,11 @@ def report(args):
                 raise ValueError("stored provenance mismatch")
         if source_identity() != load(root / "source.json"):
             raise ValueError("analyser source differs from freeze")
-        if manifest["profile"] in ("scientific-v2", "scientific-v3") and runtime_identity() != load(
-            root / "runtime.json"
-        ):
+        if manifest["profile"] in (
+            "scientific-v2",
+            "scientific-v3",
+            "scientific-v4",
+        ) and runtime_identity() != load(root / "runtime.json"):
             raise ValueError("analyser runtime differs from freeze")
         collection = parse_json(reader.read_bytes("collection.json"))
         if collection != load(root / "collection-receipt.json"):
@@ -800,6 +810,9 @@ def report(args):
                     chunk,
                     cpu_timer="worker_cpu_timer_seconds"
                     in manifest["profile_definition"]["resources"],
+                    cpu_timer_budget=manifest["profile_definition"]["resources"].get(
+                        "worker_cpu_timer_seconds", 170
+                    ),
                 )
                 validate_metadata(
                     meta,
@@ -904,7 +917,7 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument(
         "--profile",
-        choices=("operational", "scientific", "scientific-v2", "scientific-v3"),
+        choices=("operational", "scientific", "scientific-v2", "scientific-v3", "scientific-v4"),
         required=True,
     )
     p.add_argument("--accounting", required=True)

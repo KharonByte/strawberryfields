@@ -7,6 +7,19 @@ from pathlib import Path
 
 def profile(name):
     original = json.loads((Path(__file__).parent / "cases.json").read_text())
+    if name == "scientific-v4":
+        result = profile("scientific-v3")
+        result["purpose"] = "full_frozen_scientific_matrix_resource_v4"
+        result["resources"].update(
+            worker_cpu_seconds=300,
+            worker_wall_seconds=360,
+            worker_cpu_timer_seconds=290,
+            child_cpu_tripwire_seconds=290,
+            cpu_seconds=72000,
+            wall_seconds=86400,
+            preservation_ceiling_bytes=5 * 1024**3,
+        )
+        return result
     if name == "scientific-v3":
         result = profile("scientific-v2")
         result["purpose"] = "full_frozen_scientific_matrix_resource_v3"
