@@ -1,0 +1,3938 @@
+{
+  "schema": "pr49-terminal-detectors-v3",
+  "status": "DETERMINISTIC_IMPLEMENTATION_PENDING_REVIEW_NO_COLLECTION_RELEASE",
+  "candidate": "0d586c80b9dbed9761f4f044e7b8c33856aec325",
+  "issue": 27,
+  "blocks_pr": 49,
+  "related_issue": 32,
+  "related_issue_dependency": 29,
+  "operational_acceptance_frozen": false,
+  "collector_implemented": true,
+  "case_count": 68,
+  "comparison_count": 920,
+  "statistics": {
+    "method": "two-sided Hoeffding plus union bound, equivalence upper bound",
+    "alpha_familywise": 0.01,
+    "delta_absolute_per_cell": 0.017,
+    "reference_abs_error_max": 1e-08,
+    "shots_per_case": 100000,
+    "acceptance": "all920 cell/event,68 jointTV,34 aggregate-tail rules AND separate integrity/operational gates",
+    "defect_flag": "any frozen cell/event lower discrepancy>delta_cell OR jointTV lower>delta_joint OR aggregate-tail CP interval separated from ideal by>delta_tail",
+    "other_outcome": "inconclusive; never pass",
+    "assumptions": [
+      "iid returned rows within each case under fresh PRNG innovations",
+      "fixed cases, seeds, budgets and rules before outcomes",
+      "reference error bounded independently",
+      "cross-comparison independence not required"
+    ],
+    "acceptance_version": 3,
+    "alpha_cell": 0.004,
+    "alpha_joint": 0.003,
+    "alpha_tail": 0.003,
+    "delta_joint_tv": 0.03,
+    "delta_tail_absolute": 0.003,
+    "joint_case_count": 68,
+    "tail_case_count": 34,
+    "ideal_tail_upper_max": 0.006,
+    "ideal_sampler_probability_rules_all_accept_lower_given_complete_valid_data": 0.9997785,
+    "scored_criteria_count": 1022,
+    "meaningful_alternatives": {
+      "cell_absolute_shift": 0.034,
+      "joint_tv_shift": 0.06,
+      "upward_tail_shift": 0.006
+    },
+    "acceptance_specification": "acceptance-v3; independent review still required"
+  },
+  "oracle": {
+    "no_sf_or_walrus_probability_helpers": true,
+    "latent_squeezed_k_max": 64,
+    "latent_tms_n_max": 64,
+    "reference_total_error_budget": 1e-08,
+    "numeric_interval_width_max": 1e-10,
+    "parameter_propagation_error_max": 1e-10,
+    "normalization_forbidden": true,
+    "probability_tail_categories_preserved": true
+  },
+  "cases": [
+    {
+      "family": "vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {},
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__vacuum",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000000,
+        1700000001,
+        1700000002,
+        1700000003,
+        1700000004,
+        1700000005,
+        1700000006,
+        1700000007,
+        1700000008,
+        1700000009
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0,
+        0,
+        0
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__coherent_eta0",
+      "output_mode_order": [
+        2,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000100,
+        1700000101,
+        1700000102,
+        1700000103,
+        1700000104,
+        1700000105,
+        1700000106,
+        1700000107,
+        1700000108,
+        1700000109
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__coherent_eta0.4",
+      "output_mode_order": [
+        2,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000200,
+        1700000201,
+        1700000202,
+        1700000203,
+        1700000204,
+        1700000205,
+        1700000206,
+        1700000207,
+        1700000208,
+        1700000209
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        1,
+        1,
+        1
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__coherent_eta1",
+      "output_mode_order": [
+        2,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000300,
+        1700000301,
+        1700000302,
+        1700000303,
+        1700000304,
+        1700000305,
+        1700000306,
+        1700000307,
+        1700000308,
+        1700000309
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__thermal_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000400,
+        1700000401,
+        1700000402,
+        1700000403,
+        1700000404,
+        1700000405,
+        1700000406,
+        1700000407,
+        1700000408,
+        1700000409
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__thermal_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000500,
+        1700000501,
+        1700000502,
+        1700000503,
+        1700000504,
+        1700000505,
+        1700000506,
+        1700000507,
+        1700000508,
+        1700000509
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__thermal_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000600,
+        1700000601,
+        1700000602,
+        1700000603,
+        1700000604,
+        1700000605,
+        1700000606,
+        1700000607,
+        1700000608,
+        1700000609
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__squeezed_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [
+        "odd_total_count"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000700,
+        1700000701,
+        1700000702,
+        1700000703,
+        1700000704,
+        1700000705,
+        1700000706,
+        1700000707,
+        1700000708,
+        1700000709
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 7
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__squeezed_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [
+        "odd_total_count"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000800,
+        1700000801,
+        1700000802,
+        1700000803,
+        1700000804,
+        1700000805,
+        1700000806,
+        1700000807,
+        1700000808,
+        1700000809
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 7
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__squeezed_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [
+        "odd_total_count"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700000900,
+        1700000901,
+        1700000902,
+        1700000903,
+        1700000904,
+        1700000905,
+        1700000906,
+        1700000907,
+        1700000908,
+        1700000909
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 7
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__tms_zero",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001000,
+        1700001001,
+        1700001002,
+        1700001003,
+        1700001004,
+        1700001005,
+        1700001006,
+        1700001007,
+        1700001008,
+        1700001009
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__tms_interior",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001100,
+        1700001101,
+        1700001102,
+        1700001103,
+        1700001104,
+        1700001105,
+        1700001106,
+        1700001107,
+        1700001108,
+        1700001109
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__tms_ideal",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [
+        "unequal_counts"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001200,
+        1700001201,
+        1700001202,
+        1700001203,
+        1700001204,
+        1700001205,
+        1700001206,
+        1700001207,
+        1700001208,
+        1700001209
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 37
+    },
+    {
+      "family": "coherent_interference",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.3,
+            0.2
+          ],
+          [
+            -0.1,
+            0.5
+          ]
+        ],
+        "beamsplitter_theta": 0.4,
+        "beamsplitter_phi": 0.6
+      },
+      "path": "gaussian_direct",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__pnr__complex_interference",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001300,
+        1700001301,
+        1700001302,
+        1700001303,
+        1700001304,
+        1700001305,
+        1700001306,
+        1700001307,
+        1700001308,
+        1700001309
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {},
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__vacuum",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001400,
+        1700001401,
+        1700001402,
+        1700001403,
+        1700001404,
+        1700001405,
+        1700001406,
+        1700001407,
+        1700001408,
+        1700001409
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0,
+        0,
+        0
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__coherent_eta0",
+      "output_mode_order": [
+        2,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001500,
+        1700001501,
+        1700001502,
+        1700001503,
+        1700001504,
+        1700001505,
+        1700001506,
+        1700001507,
+        1700001508,
+        1700001509
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__coherent_eta0.4",
+      "output_mode_order": [
+        2,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001600,
+        1700001601,
+        1700001602,
+        1700001603,
+        1700001604,
+        1700001605,
+        1700001606,
+        1700001607,
+        1700001608,
+        1700001609
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        1,
+        1,
+        1
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__coherent_eta1",
+      "output_mode_order": [
+        2,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001700,
+        1700001701,
+        1700001702,
+        1700001703,
+        1700001704,
+        1700001705,
+        1700001706,
+        1700001707,
+        1700001708,
+        1700001709
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__thermal_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001800,
+        1700001801,
+        1700001802,
+        1700001803,
+        1700001804,
+        1700001805,
+        1700001806,
+        1700001807,
+        1700001808,
+        1700001809
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__thermal_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700001900,
+        1700001901,
+        1700001902,
+        1700001903,
+        1700001904,
+        1700001905,
+        1700001906,
+        1700001907,
+        1700001908,
+        1700001909
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__thermal_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002000,
+        1700002001,
+        1700002002,
+        1700002003,
+        1700002004,
+        1700002005,
+        1700002006,
+        1700002007,
+        1700002008,
+        1700002009
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__squeezed_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002100,
+        1700002101,
+        1700002102,
+        1700002103,
+        1700002104,
+        1700002105,
+        1700002106,
+        1700002107,
+        1700002108,
+        1700002109
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__squeezed_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002200,
+        1700002201,
+        1700002202,
+        1700002203,
+        1700002204,
+        1700002205,
+        1700002206,
+        1700002207,
+        1700002208,
+        1700002209
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__squeezed_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002300,
+        1700002301,
+        1700002302,
+        1700002303,
+        1700002304,
+        1700002305,
+        1700002306,
+        1700002307,
+        1700002308,
+        1700002309
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__tms_zero",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002400,
+        1700002401,
+        1700002402,
+        1700002403,
+        1700002404,
+        1700002405,
+        1700002406,
+        1700002407,
+        1700002408,
+        1700002409
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__tms_interior",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002500,
+        1700002501,
+        1700002502,
+        1700002503,
+        1700002504,
+        1700002505,
+        1700002506,
+        1700002507,
+        1700002508,
+        1700002509
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__tms_ideal",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002600,
+        1700002601,
+        1700002602,
+        1700002603,
+        1700002604,
+        1700002605,
+        1700002606,
+        1700002607,
+        1700002608,
+        1700002609
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "coherent_interference",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.3,
+            0.2
+          ],
+          [
+            -0.1,
+            0.5
+          ]
+        ],
+        "beamsplitter_theta": 0.4,
+        "beamsplitter_phi": 0.6
+      },
+      "path": "gaussian_direct",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "gaussian_direct__threshold__complex_interference",
+      "output_mode_order": [
+        1,
+        0
+      ],
+      "preparation": "independent_gaussian_moments",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002700,
+        1700002701,
+        1700002702,
+        1700002703,
+        1700002704,
+        1700002705,
+        1700002706,
+        1700002707,
+        1700002708,
+        1700002709
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {},
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__vacuum",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002800,
+        1700002801,
+        1700002802,
+        1700002803,
+        1700002804,
+        1700002805,
+        1700002806,
+        1700002807,
+        1700002808,
+        1700002809
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0,
+        0,
+        0
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__coherent_eta0",
+      "output_mode_order": [
+        0,
+        2
+      ],
+      "preparation": "Gaussian(decomp=False)",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700002900,
+        1700002901,
+        1700002902,
+        1700002903,
+        1700002904,
+        1700002905,
+        1700002906,
+        1700002907,
+        1700002908,
+        1700002909
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__coherent_eta0.4",
+      "output_mode_order": [
+        0,
+        2
+      ],
+      "preparation": "Gaussian(decomp=False)",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003000,
+        1700003001,
+        1700003002,
+        1700003003,
+        1700003004,
+        1700003005,
+        1700003006,
+        1700003007,
+        1700003008,
+        1700003009
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        1,
+        1,
+        1
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__coherent_eta1",
+      "output_mode_order": [
+        0,
+        2
+      ],
+      "preparation": "Gaussian(decomp=False)",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003100,
+        1700003101,
+        1700003102,
+        1700003103,
+        1700003104,
+        1700003105,
+        1700003106,
+        1700003107,
+        1700003108,
+        1700003109
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__thermal_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003200,
+        1700003201,
+        1700003202,
+        1700003203,
+        1700003204,
+        1700003205,
+        1700003206,
+        1700003207,
+        1700003208,
+        1700003209
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__thermal_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003300,
+        1700003301,
+        1700003302,
+        1700003303,
+        1700003304,
+        1700003305,
+        1700003306,
+        1700003307,
+        1700003308,
+        1700003309
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__thermal_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003400,
+        1700003401,
+        1700003402,
+        1700003403,
+        1700003404,
+        1700003405,
+        1700003406,
+        1700003407,
+        1700003408,
+        1700003409
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 6
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__squeezed_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [
+        "odd_total_count"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003500,
+        1700003501,
+        1700003502,
+        1700003503,
+        1700003504,
+        1700003505,
+        1700003506,
+        1700003507,
+        1700003508,
+        1700003509
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 7
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__squeezed_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [
+        "odd_total_count"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003600,
+        1700003601,
+        1700003602,
+        1700003603,
+        1700003604,
+        1700003605,
+        1700003606,
+        1700003607,
+        1700003608,
+        1700003609
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 7
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__squeezed_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [
+        "odd_total_count"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003700,
+        1700003701,
+        1700003702,
+        1700003703,
+        1700003704,
+        1700003705,
+        1700003706,
+        1700003707,
+        1700003708,
+        1700003709
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 7
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__tms_zero",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003800,
+        1700003801,
+        1700003802,
+        1700003803,
+        1700003804,
+        1700003805,
+        1700003806,
+        1700003807,
+        1700003808,
+        1700003809
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__tms_interior",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700003900,
+        1700003901,
+        1700003902,
+        1700003903,
+        1700003904,
+        1700003905,
+        1700003906,
+        1700003907,
+        1700003908,
+        1700003909
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__tms_ideal",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [
+        "unequal_counts"
+      ],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004000,
+        1700004001,
+        1700004002,
+        1700004003,
+        1700004004,
+        1700004005,
+        1700004006,
+        1700004007,
+        1700004008,
+        1700004009
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 37
+    },
+    {
+      "family": "coherent_interference",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.3,
+            0.2
+          ],
+          [
+            -0.1,
+            0.5
+          ]
+        ],
+        "beamsplitter_theta": 0.4,
+        "beamsplitter_phi": 0.6
+      },
+      "path": "local_engine_gaussian",
+      "detector": "pnr",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__pnr__complex_interference",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004100,
+        1700004101,
+        1700004102,
+        1700004103,
+        1700004104,
+        1700004105,
+        1700004106,
+        1700004107,
+        1700004108,
+        1700004109
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "family": "vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {},
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__vacuum",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004200,
+        1700004201,
+        1700004202,
+        1700004203,
+        1700004204,
+        1700004205,
+        1700004206,
+        1700004207,
+        1700004208,
+        1700004209
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0,
+        0,
+        0
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__coherent_eta0",
+      "output_mode_order": [
+        0,
+        2
+      ],
+      "preparation": "Gaussian(decomp=False)",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004300,
+        1700004301,
+        1700004302,
+        1700004303,
+        1700004304,
+        1700004305,
+        1700004306,
+        1700004307,
+        1700004308,
+        1700004309
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__coherent_eta0.4",
+      "output_mode_order": [
+        0,
+        2
+      ],
+      "preparation": "Gaussian(decomp=False)",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004400,
+        1700004401,
+        1700004402,
+        1700004403,
+        1700004404,
+        1700004405,
+        1700004406,
+        1700004407,
+        1700004408,
+        1700004409
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "coherent_product",
+      "modes": 3,
+      "measured_modes": [
+        2,
+        0
+      ],
+      "eta": [
+        1,
+        1,
+        1
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.6,
+            0.2
+          ],
+          [
+            -0.3,
+            0.1
+          ],
+          [
+            0.15,
+            -0.25
+          ]
+        ]
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__coherent_eta1",
+      "output_mode_order": [
+        0,
+        2
+      ],
+      "preparation": "Gaussian(decomp=False)",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004500,
+        1700004501,
+        1700004502,
+        1700004503,
+        1700004504,
+        1700004505,
+        1700004506,
+        1700004507,
+        1700004508,
+        1700004509
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__thermal_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004600,
+        1700004601,
+        1700004602,
+        1700004603,
+        1700004604,
+        1700004605,
+        1700004606,
+        1700004607,
+        1700004608,
+        1700004609
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__thermal_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004700,
+        1700004701,
+        1700004702,
+        1700004703,
+        1700004704,
+        1700004705,
+        1700004706,
+        1700004707,
+        1700004708,
+        1700004709
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "thermal",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "mean_photons": 0.4
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__thermal_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004800,
+        1700004801,
+        1700004802,
+        1700004803,
+        1700004804,
+        1700004805,
+        1700004806,
+        1700004807,
+        1700004808,
+        1700004809
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__squeezed_eta0",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700004900,
+        1700004901,
+        1700004902,
+        1700004903,
+        1700004904,
+        1700004905,
+        1700004906,
+        1700004907,
+        1700004908,
+        1700004909
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        0.4
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__squeezed_eta0.4",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005000,
+        1700005001,
+        1700005002,
+        1700005003,
+        1700005004,
+        1700005005,
+        1700005006,
+        1700005007,
+        1700005008,
+        1700005009
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "squeezed_vacuum",
+      "modes": 1,
+      "measured_modes": [
+        0
+      ],
+      "eta": [
+        1
+      ],
+      "parameters": {
+        "tanh_r_squared": 0.25,
+        "r_expression": "atanh(1/2)",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__squeezed_eta1",
+      "output_mode_order": [
+        0
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005100,
+        1700005101,
+        1700005102,
+        1700005103,
+        1700005104,
+        1700005105,
+        1700005106,
+        1700005107,
+        1700005108,
+        1700005109
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 2
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__tms_zero",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005200,
+        1700005201,
+        1700005202,
+        1700005203,
+        1700005204,
+        1700005205,
+        1700005206,
+        1700005207,
+        1700005208,
+        1700005209
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__tms_interior",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005300,
+        1700005301,
+        1700005302,
+        1700005303,
+        1700005304,
+        1700005305,
+        1700005306,
+        1700005307,
+        1700005308,
+        1700005309
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "two_mode_squeezed",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "parameters": {
+        "q": 0.1,
+        "r_expression": "atanh(sqrt(1/10))",
+        "phi": 0.7
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__tms_ideal",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005400,
+        1700005401,
+        1700005402,
+        1700005403,
+        1700005404,
+        1700005405,
+        1700005406,
+        1700005407,
+        1700005408,
+        1700005409
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "family": "coherent_interference",
+      "modes": 2,
+      "measured_modes": [
+        1,
+        0
+      ],
+      "eta": [
+        0.4,
+        0.7
+      ],
+      "parameters": {
+        "alpha_re_im": [
+          [
+            0.3,
+            0.2
+          ],
+          [
+            -0.1,
+            0.5
+          ]
+        ],
+        "beamsplitter_theta": 0.4,
+        "beamsplitter_phi": 0.6
+      },
+      "path": "local_engine_gaussian",
+      "detector": "threshold",
+      "hbar_physical": 8,
+      "hbar_backend": 2,
+      "id": "local_engine_gaussian__threshold__complex_interference",
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "preparation": "native_ops",
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005500,
+        1700005501,
+        1700005502,
+        1700005503,
+        1700005504,
+        1700005505,
+        1700005506,
+        1700005507,
+        1700005508,
+        1700005509
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "id": "apps_sample__pnr__real_edge_eta0",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "pnr",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "app_loss": 1,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "1",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005600,
+        1700005601,
+        1700005602,
+        1700005603,
+        1700005604,
+        1700005605,
+        1700005606,
+        1700005607,
+        1700005608,
+        1700005609
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "id": "apps_sample__pnr__real_edge_eta0.4",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "pnr",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0.4,
+        0.4
+      ],
+      "app_loss": 0.6,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "1",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005700,
+        1700005701,
+        1700005702,
+        1700005703,
+        1700005704,
+        1700005705,
+        1700005706,
+        1700005707,
+        1700005708,
+        1700005709
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "id": "apps_sample__pnr__real_edge_eta1",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "pnr",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "app_loss": 0,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "1",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005800,
+        1700005801,
+        1700005802,
+        1700005803,
+        1700005804,
+        1700005805,
+        1700005806,
+        1700005807,
+        1700005808,
+        1700005809
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "id": "apps_sample__threshold__real_edge_eta0",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "threshold",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "app_loss": 1,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "1",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700005900,
+        1700005901,
+        1700005902,
+        1700005903,
+        1700005904,
+        1700005905,
+        1700005906,
+        1700005907,
+        1700005908,
+        1700005909
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "id": "apps_sample__threshold__real_edge_eta0.4",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "threshold",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0.4,
+        0.4
+      ],
+      "app_loss": 0.6,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "1",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006000,
+        1700006001,
+        1700006002,
+        1700006003,
+        1700006004,
+        1700006005,
+        1700006006,
+        1700006007,
+        1700006008,
+        1700006009
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "id": "apps_sample__threshold__real_edge_eta1",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "threshold",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "app_loss": 0,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "1",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006100,
+        1700006101,
+        1700006102,
+        1700006103,
+        1700006104,
+        1700006105,
+        1700006106,
+        1700006107,
+        1700006108,
+        1700006109
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "id": "apps_sample__pnr__complex_edge_eta0",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "pnr",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "app_loss": 1,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "exp(0.7i)",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0.7
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006200,
+        1700006201,
+        1700006202,
+        1700006203,
+        1700006204,
+        1700006205,
+        1700006206,
+        1700006207,
+        1700006208,
+        1700006209
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "id": "apps_sample__pnr__complex_edge_eta0.4",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "pnr",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0.4,
+        0.4
+      ],
+      "app_loss": 0.6,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "exp(0.7i)",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0.7
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006300,
+        1700006301,
+        1700006302,
+        1700006303,
+        1700006304,
+        1700006305,
+        1700006306,
+        1700006307,
+        1700006308,
+        1700006309
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "id": "apps_sample__pnr__complex_edge_eta1",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "pnr",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "app_loss": 0,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "exp(0.7i)",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0.7
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006400,
+        1700006401,
+        1700006402,
+        1700006403,
+        1700006404,
+        1700006405,
+        1700006406,
+        1700006407,
+        1700006408,
+        1700006409
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1",
+          "2",
+          "3",
+          "4",
+          ">=5"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 36
+    },
+    {
+      "id": "apps_sample__threshold__complex_edge_eta0",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "threshold",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0,
+        0
+      ],
+      "app_loss": 1,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "exp(0.7i)",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0.7
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006500,
+        1700006501,
+        1700006502,
+        1700006503,
+        1700006504,
+        1700006505,
+        1700006506,
+        1700006507,
+        1700006508,
+        1700006509
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "id": "apps_sample__threshold__complex_edge_eta0.4",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "threshold",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        0.4,
+        0.4
+      ],
+      "app_loss": 0.6,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "exp(0.7i)",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0.7
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006600,
+        1700006601,
+        1700006602,
+        1700006603,
+        1700006604,
+        1700006605,
+        1700006606,
+        1700006607,
+        1700006608,
+        1700006609
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    },
+    {
+      "id": "apps_sample__threshold__complex_edge_eta1",
+      "family": "two_mode_squeezed",
+      "path": "apps_sample",
+      "detector": "threshold",
+      "modes": 2,
+      "measured_modes": [
+        0,
+        1
+      ],
+      "output_mode_order": [
+        0,
+        1
+      ],
+      "eta": [
+        1,
+        1
+      ],
+      "app_loss": 0,
+      "hbar_physical": 2,
+      "hbar_backend": 2,
+      "preparation": "apps.sample.sample",
+      "parameters": {
+        "graph": "[[0,w],[w,0]]",
+        "w_expression": "exp(0.7i)",
+        "total_mean_photons": "2/9",
+        "q": 0.1,
+        "phi": 0.7
+      },
+      "additional_events": [],
+      "required": true,
+      "shots": 100000,
+      "chunk_rows": 10000,
+      "chunk_count": 10,
+      "chunk_seeds": [
+        1700006700,
+        1700006701,
+        1700006702,
+        1700006703,
+        1700006704,
+        1700006705,
+        1700006706,
+        1700006707,
+        1700006708,
+        1700006709
+      ],
+      "partition": {
+        "per_mode": [
+          "0",
+          "1"
+        ],
+        "cartesian_order": "lexicographic in output_mode_order",
+        "retain_all_cells": true
+      },
+      "comparison_count": 4
+    }
+  ],
+  "exclusions": [
+    "bosonic terminal/conditional threshold and unsupported bosonic PNR",
+    "Fock and TensorFlow backends",
+    "GPU, remote, hardware, TDM, gradients, non-Gaussian preparation",
+    "conditional states, midcircuit measurement, feed-forward, postselection, resets",
+    "dark counts, nonuniform apps loss, arbitrary/larger graph application coverage",
+    "other operating systems, dependency environments and PR revisions",
+    "general infinite-count-law accuracy beyond the named cases; within-tail shapes and unbounded moments"
+  ],
+  "gaps": [
+    "finite-conditional-normalization/cutoff5 and threshold fanout10 error bounds not proved",
+    "internal rejected draws/attempt counts unavailable in unchanged target",
+    "PRNG iid is an explicit statistical model assumption, not certified by finite diagnostics",
+    "apps internal compiled-circuit evidence needs approved read-only capture design",
+    "runtime feasibility under caps not measured",
+    "v3 full-law bounds remain conditional on complete reviewed independent evidence; no collection release"
+  ],
+  "implementation_status": "scaffold and deterministic checks present; collection disabled pending actual storage enforcement and independent operational release",
+  "renewed_resource_settings": {
+    "attempt_capacity": 1073741824,
+    "cumulative_limit": 4294967296,
+    "cpu_debit_seconds": 60,
+    "wall_debit_seconds": 60,
+    "collection_cpu_seconds": 43140,
+    "collection_wall_seconds": 57540,
+    "worker_cpu_seconds": 42240,
+    "first_case_cpu_seconds": 840,
+    "first_case_wall_seconds": 1140,
+    "reanalysis_cpu_seconds": 600,
+    "reanalysis_wall_seconds": 900,
+    "next_output_max_bytes": 1091568640
+  }
+}
