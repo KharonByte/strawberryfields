@@ -108,6 +108,8 @@ class ResourceV5Tests(unittest.TestCase):
         ), patch.object(
             fresh, "save"
         ), patch.object(
+            fresh, "exclusive_json"
+        ), patch.object(
             collect, "run_worker", return_value=(worker_result, {"status": "captured_not_accepted"})
         ) as worker, patch.object(
             fresh, "validate_metadata", side_effect=ValueError("synthetic metadata rejection")
