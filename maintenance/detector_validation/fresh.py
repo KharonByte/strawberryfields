@@ -378,7 +378,7 @@ def run(args):
                     cpu,
                     wall,
                     monitored=manifest["profile"]
-                    in ("scientific-v2", "scientific-v3", "scientific-v4"),
+                    in ("scientific-v2", "scientific-v3", "scientific-v4", "scientific-v5"),
                     cpu_timer="worker_cpu_timer_seconds" in limits,
                     cpu_timer_budget=limits.get("worker_cpu_timer_seconds", 170),
                 )
@@ -397,7 +397,12 @@ def run(args):
                     or metadata.get("status") != "captured_not_accepted"
                 ):
                     raise ValueError("worker failed; evidence retained; no retry")
-                if manifest["profile"] in ("scientific-v2", "scientific-v3", "scientific-v4"):
+                if manifest["profile"] in (
+                    "scientific-v2",
+                    "scientific-v3",
+                    "scientific-v4",
+                    "scientific-v5",
+                ):
                     validate_metadata(
                         metadata,
                         case,
@@ -729,6 +734,7 @@ def report(args):
             "scientific-v2",
             "scientific-v3",
             "scientific-v4",
+            "scientific-v5",
         ) and runtime_identity() != load(root / "runtime.json"):
             raise ValueError("analyser runtime differs from freeze")
         collection = parse_json(reader.read_bytes("collection.json"))
@@ -917,7 +923,14 @@ def main():
     p.add_argument("--out", required=True)
     p.add_argument(
         "--profile",
-        choices=("operational", "scientific", "scientific-v2", "scientific-v3", "scientific-v4"),
+        choices=(
+            "operational",
+            "scientific",
+            "scientific-v2",
+            "scientific-v3",
+            "scientific-v4",
+            "scientific-v5",
+        ),
         required=True,
     )
     p.add_argument("--accounting", required=True)
