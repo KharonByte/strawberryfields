@@ -86,3 +86,37 @@ class ResourceV5Tests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "analyser runtime differs"):
                 fresh.report(SimpleNamespace(experiment="/synthetic", release_sha256="synthetic"))
         reader.close.assert_called_once()
+
+    def test_v5_collection_keeps_monitor_and_metadata_admission(self):
+        from maintenance.detector_validation import collect
+
+        spec = profile("scientific-v5")
+        # Synthetic bookkeeping fixture, not an altered released scientific profile.
+        spec["cases"] = [dict(spec["cases"][0], chunk_count=1)]
+        manifest = dict(profile="scientific-v5", profile_definition=spec, experiment_id="synthetic")
+        worker_result = {"exit_code": 0, "limit_failure": None}
+        with patch.object(
+            fresh, "experiment", return_value=(Path("/synthetic"), manifest)
+        ), patch.object(fresh, "check_release"), patch.object(fresh, "StoreWriter"), patch.object(
+            fresh, "raw_bytes", return_value=b"{}"
+        ), patch.object(
+            fresh, "load", return_value={}
+        ), patch.object(
+            fresh, "source_identity", return_value={}
+        ), patch.object(
+            fresh, "runtime_identity", return_value={}
+        ), patch.object(
+            fresh, "save"
+        ), patch.object(
+            collect, "run_worker", return_value=(worker_result, {"status": "captured_not_accepted"})
+        ) as worker, patch.object(
+            fresh, "validate_metadata", side_effect=ValueError("synthetic metadata rejection")
+        ) as validate:
+            result = fresh.run(SimpleNamespace(experiment="/synthetic", release_sha256="synthetic"))
+        self.assertTrue(worker.call_args.kwargs["monitored"])
+        self.assertTrue(worker.call_args.kwargs["cpu_timer"])
+        self.assertEqual(worker.call_args.kwargs["cpu_timer_budget"], 290)
+        self.assertEqual(worker.call_args.args[5:7], (300, 360))
+        validate.assert_called_once()
+        self.assertEqual(result["status"], "incomplete")
+        self.assertIn("synthetic metadata rejection", result["failure"])
