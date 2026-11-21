@@ -1,0 +1,87 @@
+name: Reviewed detector accuracy study
+run-name: detector-${{ inputs.release_sha256 }}
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Committed independently reviewed release JSON path
+        required: true
+        type: string
+      release_sha256:
+        description: Independently verified SHA256 of the complete approved release
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: detector-study-${{ inputs.release_sha256 }}
+  cancel-in-progress: false
+jobs:
+  admit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      RELEASE: ${{ inputs.release }}
+      RELEASE_SHA: ${{ inputs.release_sha256 }}
+      DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require reviewed release and first dispatch on owner-merged default branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python -B -m maintenance.detector_validation.ci_gate admit --release "$RELEASE" --sha256 "$RELEASE_SHA" --out "$RUNNER_TEMP/admission.json"
+      - name: Preserve admission or rejection receipt
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: detector-admission-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/admission.json
+          retention-days: 30
+          if-no-files-found: error
+  base:
+    needs: admit
+    uses: ./.github/workflows/detector-revision.yml
+    with:
+      release: ${{ inputs.release }}
+      release_sha256: ${{ inputs.release_sha256 }}
+      role: base
+  candidate:
+    needs: base
+    uses: ./.github/workflows/detector-revision.yml
+    with:
+      release: ${{ inputs.release }}
+      release_sha256: ${{ inputs.release_sha256 }}
+      role: candidate
+  detector-accuracy:
+    needs: [base, candidate]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      RELEASE_SHA: ${{ inputs.release_sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: detector-report-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: reports
+          merge-multiple: false
+      - name: Require both complete revisions and report actual scientific verdict
+        if: always()
+        run: >-
+          python -B -m maintenance.detector_validation.ci_gate compare --sha256 "$RELEASE_SHA"
+          --base "reports/detector-report-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-base/detector-report.json"
+          --candidate "reports/detector-report-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-candidate/detector-report.json"
+          --out comparison.json
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: detector-comparison-${{ github.run_id }}-${{ github.run_attempt }}
+          path: comparison.json
+          retention-days: 30
+          if-no-files-found: error
