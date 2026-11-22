@@ -1,0 +1,303 @@
+{
+  "schema": 1,
+  "revision": "d2e18ea769fa47bc4f438e8cab138f16208c578f",
+  "run_url": "https://github.com/KharonByte/strawberryfields/actions/runs/44964564817",
+  "evidence_kind": "retained hosted execution, downloaded and reconciled 2026-11-22; not new local execution",
+  "identity_encoding": "sha256 of compact JSON sorted [classname,name,outcome] rows, ensure_ascii=True",
+  "artifacts": [
+    {
+      "id": 14731192964,
+      "name": "upstream-macos-15-all-backends",
+      "archive_digest": "sha256:c18224e6bf7cee3e897227ff9824cca2a8157cbbfac17d8fb697e2c548698390",
+      "expires_at": "2026-12-06T00:23:42Z",
+      "junit_sha256": "341c907d653c22c61728e3dfb0a63219631e78d0b9934faba9f17081db15db13",
+      "identity_outcome_sha256": "10697966f5661f5ccc831f8e69ca39a7be58b812c54cf7ed3d9cf2fc9e498f23",
+      "outcomes": {
+        "passed": 13269,
+        "skipped": 2990,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.9779",
+        "branch-rate": "0.9167"
+      }
+    },
+    {
+      "id": 14731846644,
+      "name": "upstream-macos-15-local-without-cloud",
+      "archive_digest": "sha256:9adc7db9e0a4984dcfc5a97dffe22e09cff6c5aa9f3f8485f0bf95c3315f530c",
+      "expires_at": "2026-12-06T00:18:36Z",
+      "junit_sha256": "5f7bbc2896e93aafbe06f048ff232ef7cf18cbd95b45e8077fcfe1ceb318d19b",
+      "identity_outcome_sha256": "375aa35cfbb849b4fca655d93c7aa937689f0a8c0c731677e7a17f1dc0bda804",
+      "outcomes": {
+        "skipped": 2276,
+        "passed": 10804,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.8098",
+        "branch-rate": "0.7626"
+      }
+    },
+    {
+      "id": 14730869620,
+      "name": "upstream-macos-15-non-tensorflow",
+      "archive_digest": "sha256:d99722cb3b369cafe9178bab7f8fa7f46d9fe9b0e93a9a27af5a365ad2fea6b3",
+      "expires_at": "2026-12-06T00:15:29Z",
+      "junit_sha256": "abdcd3b6f655f947cd43f58d6718a1b832bd338ab4295f62d392f7bf5c85eaa8",
+      "identity_outcome_sha256": "f0b9458c4199a8e590e4e4ee06800a23590c82ed6fd6a980335bcf1b59b1d2ad",
+      "outcomes": {
+        "skipped": 2275,
+        "passed": 10819,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.8167",
+        "branch-rate": "0.7704"
+      }
+    },
+    {
+      "id": 14731361882,
+      "name": "upstream-macos-15-tensorflow-batched-mixed",
+      "archive_digest": "sha256:a30b2cad53371d32e409a9bf967fdace7bb3a7951028815d86fdc8a821b21054",
+      "expires_at": "2026-12-06T00:08:31Z",
+      "junit_sha256": "e077f3d8f5ceb7cc1d43348530b2a2ea42377983f574606381bb340cc12fbad0",
+      "identity_outcome_sha256": "03b57e8917440229cabb06bf7d593cad79d4b31b0ec9c1c4f76862b9ee205216",
+      "outcomes": {
+        "passed": 1106,
+        "skipped": 279
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.5003",
+        "branch-rate": "0.2921"
+      }
+    },
+    {
+      "id": 14731660671,
+      "name": "upstream-macos-15-tensorflow-batched-pure",
+      "archive_digest": "sha256:92b091ac3bd31ca9dc6549c075f2ae42132cbf6d861a48fbd1a934804827f3dd",
+      "expires_at": "2026-12-06T00:07:04Z",
+      "junit_sha256": "c33ee1b03afe7a56e4b353bb643a9ebd975cfbc79fbe84cc6b44c5ee06c5c69a",
+      "identity_outcome_sha256": "4328e07589f6a6e2183b5c401e989e90004e5135083d3bef575fcc296c824b99",
+      "outcomes": {
+        "passed": 1111,
+        "skipped": 274
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.5044",
+        "branch-rate": "0.3019"
+      }
+    },
+    {
+      "id": 14730983958,
+      "name": "upstream-ubuntu-24.04-all-backends",
+      "archive_digest": "sha256:4fed0a2c5696564aa6c7bad5996cbee213cc1770917d427ac85d73d9eb29ce4b",
+      "expires_at": "2026-12-06T00:25:33Z",
+      "junit_sha256": "4c3d8669f555a48e1421ad81a2a5621cb906d5f732672f49ba361015143a6202",
+      "identity_outcome_sha256": "10697966f5661f5ccc831f8e69ca39a7be58b812c54cf7ed3d9cf2fc9e498f23",
+      "outcomes": {
+        "passed": 13269,
+        "skipped": 2990,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.9779",
+        "branch-rate": "0.9167"
+      }
+    },
+    {
+      "id": 14731423859,
+      "name": "upstream-ubuntu-24.04-local-without-cloud",
+      "archive_digest": "sha256:77c89fac85a4131792311b53a0712496db8c30e4007d46001d19e54f4ec8ad02",
+      "expires_at": "2026-12-06T00:23:42Z",
+      "junit_sha256": "9d5f6738849ddebd94a6a86d5fb753423dbec91897d998dab442a6cf729e821f",
+      "identity_outcome_sha256": "375aa35cfbb849b4fca655d93c7aa937689f0a8c0c731677e7a17f1dc0bda804",
+      "outcomes": {
+        "skipped": 2276,
+        "passed": 10804,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.8098",
+        "branch-rate": "0.7626"
+      }
+    },
+    {
+      "id": 14731388279,
+      "name": "upstream-ubuntu-24.04-non-tensorflow",
+      "archive_digest": "sha256:445a093216b0181d1165f96af036762de5f236b9fe01fc6e6dafca26b670ba6f",
+      "expires_at": "2026-12-06T00:18:52Z",
+      "junit_sha256": "a49e97739e30f05546fa872d475d4176627561efd4a76d610fbf7225b41bfbfc",
+      "identity_outcome_sha256": "f0b9458c4199a8e590e4e4ee06800a23590c82ed6fd6a980335bcf1b59b1d2ad",
+      "outcomes": {
+        "skipped": 2275,
+        "passed": 10819,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.8167",
+        "branch-rate": "0.7704"
+      }
+    },
+    {
+      "id": 14731481680,
+      "name": "upstream-ubuntu-24.04-tensorflow-batched-mixed",
+      "archive_digest": "sha256:1d95af114a1a626f4c6ba091333e76f6a670cc98c7466913af40d303cec967ce",
+      "expires_at": "2026-12-06T00:10:03Z",
+      "junit_sha256": "85c978c3d519eb1db7bccc107a1f3076ae284f8b2a406ba868a8f40bb5888f2f",
+      "identity_outcome_sha256": "03b57e8917440229cabb06bf7d593cad79d4b31b0ec9c1c4f76862b9ee205216",
+      "outcomes": {
+        "passed": 1106,
+        "skipped": 279
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.5003",
+        "branch-rate": "0.2925"
+      }
+    },
+    {
+      "id": 14731620577,
+      "name": "upstream-ubuntu-24.04-tensorflow-batched-pure",
+      "archive_digest": "sha256:e6194f562260399c7e0a286a971716a5f2f3affc3d2178d9f7b14a5d2c489fd1",
+      "expires_at": "2026-12-06T00:06:07Z",
+      "junit_sha256": "5e2bd587fb10cd7365b5490c0ca1fa7a601f6ceee5bb80b08c6d9da9ecb1531b",
+      "identity_outcome_sha256": "4328e07589f6a6e2183b5c401e989e90004e5135083d3bef575fcc296c824b99",
+      "outcomes": {
+        "passed": 1111,
+        "skipped": 274
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.5044",
+        "branch-rate": "0.3019"
+      }
+    },
+    {
+      "id": 14732385313,
+      "name": "upstream-windows-2025-all-backends",
+      "archive_digest": "sha256:3a1d1804e9b9d983699a96944d37cbc20596954b1039b82d43cc8d94e8e442b6",
+      "expires_at": "2026-12-06T00:32:47Z",
+      "junit_sha256": "0738f8b5541c19ce2f7dd044f59917b1992a3400eb659a5c3e3bf32b6e079f0d",
+      "identity_outcome_sha256": "10697966f5661f5ccc831f8e69ca39a7be58b812c54cf7ed3d9cf2fc9e498f23",
+      "outcomes": {
+        "passed": 13269,
+        "skipped": 2990,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.9779",
+        "branch-rate": "0.9167"
+      }
+    },
+    {
+      "id": 14731369521,
+      "name": "upstream-windows-2025-local-without-cloud",
+      "archive_digest": "sha256:9ff950ce78bb26bd0f77568c979c5e73ee98cb8ec84ebf51a96249a024ddeca7",
+      "expires_at": "2026-12-06T00:26:48Z",
+      "junit_sha256": "e7e097d5b1e206251751894357e07729357470ad76d775905451506732c5374e",
+      "identity_outcome_sha256": "375aa35cfbb849b4fca655d93c7aa937689f0a8c0c731677e7a17f1dc0bda804",
+      "outcomes": {
+        "skipped": 2276,
+        "passed": 10804,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.8098",
+        "branch-rate": "0.7626"
+      }
+    },
+    {
+      "id": 14730844851,
+      "name": "upstream-windows-2025-non-tensorflow",
+      "archive_digest": "sha256:27f6555d576a26262f6701968089d17d731a495e22e454b8359c1ea829430eb1",
+      "expires_at": "2026-12-06T00:16:33Z",
+      "junit_sha256": "d78227a343c422586c41f5188bcbee222068a82d49526c3777f9f9e7db68269f",
+      "identity_outcome_sha256": "f0b9458c4199a8e590e4e4ee06800a23590c82ed6fd6a980335bcf1b59b1d2ad",
+      "outcomes": {
+        "skipped": 2275,
+        "passed": 10819,
+        "xfail": 8
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.8167",
+        "branch-rate": "0.7704"
+      }
+    },
+    {
+      "id": 14730708219,
+      "name": "upstream-windows-2025-tensorflow-batched-mixed",
+      "archive_digest": "sha256:7c6b56aa57c101ed37f4eb348e47b041916f7adc4e4e29426476094aad57ee12",
+      "expires_at": "2026-12-06T00:11:43Z",
+      "junit_sha256": "b4bb39b3a359c722fef65b9e70d773937fe3a387c7263920174938b171f21837",
+      "identity_outcome_sha256": "03b57e8917440229cabb06bf7d593cad79d4b31b0ec9c1c4f76862b9ee205216",
+      "outcomes": {
+        "passed": 1106,
+        "skipped": 279
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.5003",
+        "branch-rate": "0.2921"
+      }
+    },
+    {
+      "id": 14730993041,
+      "name": "upstream-windows-2025-tensorflow-batched-pure",
+      "archive_digest": "sha256:56d8a0a16bb38a3d8e3aa3d5585b32a8560d50bcf63779e890b4cafe4772ddca",
+      "expires_at": "2026-12-06T00:08:11Z",
+      "junit_sha256": "7e4e78da3c2bfb944e13e6fc6b0e71790f2cb5afcef91ca8679dd8e3c667515d",
+      "identity_outcome_sha256": "4328e07589f6a6e2183b5c401e989e90004e5135083d3bef575fcc296c824b99",
+      "outcomes": {
+        "passed": 1111,
+        "skipped": 274
+      },
+      "duplicate_identities": 0,
+      "coverage": {
+        "lines-valid": "9638",
+        "branches-valid": "2544",
+        "line-rate": "0.5044",
+        "branch-rate": "0.3019"
+      }
+    }
+  ]
+}
