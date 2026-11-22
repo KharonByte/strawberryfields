@@ -107,6 +107,37 @@ as the recorded runtime rows, semantic duplicate parameter tuples, batch-member
 assertions and the eight existing expected failures. The named family ledger
 does not close any of those obligations.
 
+### Local TDM contract diagnosis
+
+At `26f674a183eeee8f01d6267648d72b16a1361a41`, the single skipped Borealis
+`test_compile_with_create_program` row is a local contract investigation, not
+evidence of a hardware requirement. A bounded execution of its original body
+with NumPy seed 42 first fails range validation for `r0`; the separately checked
+`loop0_phase=4` also exceeds its allowed range. The fixture additionally mixes
+loop-array names 1–3 with scalar/range names 0–2, rank-one inputs and scalar
+placeholders for array values. These are distinct from the public API failure.
+
+With Blackbird 0.5.0, a two-bin control using distinct rank-two array bindings
+and a separately named scalar preserves every expected value and position.
+Rank-one input is rejected; using the same keyword as an array and a bare scalar
+is also rejected. A corrected 259-bin local fixture binds successfully and its
+explicit `compile(device=...)` control returns the expected distinct compiled
+program. The public `create_program` path on that same fixture fails from fresh
+compiler state because it supplies no device layout. An explicitly warmed
+diagnostic instead reaches a missing-device-certificate error. Neither is a
+successful public compilation. A separate supported Xcov control confirms that
+`create_program` returns the original program rather than the linked compiled
+copy. The skipped row remains excluded; production API changes, phase-compensation
+accuracy and remote hardware execution are outside this audit tranche.
+
+The required-case guard also rejects missing or duplicate consumed setup fields,
+including identical duplicates. A conflicting value must not become acceptable
+merely because the correct value appears last in JUnit properties. Regression
+controls cover both duplicate orders in the unbatched and both TF batch profiles;
+unrelated repeated note properties remain allowed. The retained passing reports
+contained no duplicates in these configuration fields, so this guard repair
+does not revise their numerical outcomes or relax any test criterion.
+
 ### Reproducible observation ledger
 
 The CI test command now loads `maintenance.skip_audit`. Its JSONL artifact records
