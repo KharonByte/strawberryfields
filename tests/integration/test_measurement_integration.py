@@ -178,9 +178,64 @@ class TestPostselection:
             ops.Coherent(alpha) | q[0]
             ops.MeasureFock() | q[0]
         state = eng.run(prog).state
-        samples = np.array(eng.run(prog, shots=shots)).flatten()
+        samples = np.asarray(eng.run(prog, shots=shots).samples)
 
-        assert not np.all(samples == np.zeros_like(samples, dtype=int))
+        assert samples.shape == (shots, 1)
+        assert samples.dtype.kind in "iuf"
+        assert np.all(np.isfinite(samples))
+        assert np.all(samples >= 0)
+        assert np.all(samples == np.floor(samples))
+        assert np.any(samples > 0)
+
+
+@pytest.mark.parametrize(
+    "samples, valid",
+    [
+        pytest.param(np.arange(100).reshape(100, 1) % 5, True, id="integer-counts"),
+        pytest.param((np.arange(100).reshape(100, 1) % 5).astype(float), True, id="float-counts"),
+        pytest.param(np.zeros((100, 1), dtype=int), False, id="all-zero"),
+        pytest.param(np.empty((0, 1), dtype=int), False, id="empty"),
+        pytest.param(np.ones((99, 1), dtype=int), False, id="missing-shot"),
+        pytest.param(np.ones((1, 100), dtype=int), False, id="transposed"),
+        pytest.param(np.ones(100, dtype=int), False, id="flat"),
+        pytest.param(np.ones((100, 1, 1), dtype=int), False, id="extra-axis"),
+        pytest.param(np.full((100, 1), -1), False, id="negative"),
+        pytest.param(np.full((100, 1), 0.5), False, id="fractional"),
+        pytest.param(np.full((100, 1), np.nan), False, id="nan"),
+        pytest.param(np.full((100, 1), np.inf), False, id="infinite"),
+        pytest.param(np.ones((100, 1), dtype=complex), False, id="complex"),
+        pytest.param(np.ones((100, 1), dtype=object), False, id="object"),
+        pytest.param(np.ones((100, 1), dtype=bool), False, id="boolean"),
+        pytest.param(None, False, id="missing-samples"),
+    ],
+)
+def test_coherent_photon_sample_assertion(samples, valid):
+    """The caller must check the second Result's sample axes and photon counts."""
+    from strawberryfields.result import Result
+
+    calls = []
+
+    class SampleEngine:
+        def run(self, program, **kwargs):
+            calls.append((program, kwargs))
+            # A valid preliminary result cannot hide invalid 100-shot samples.
+            output = np.ones((1, 1), dtype=int) if len(calls) == 1 else samples
+            return Result({"output": [output]})
+
+    eng = SampleEngine()
+    prog = sf.Program(1)
+
+    def setup_eng(modes):
+        assert modes == 1
+        return eng, prog
+
+    check = TestPostselection().test_coherent_state_has_photons
+    if valid:
+        check(setup_eng, sf.hbar)
+    else:
+        with pytest.raises(AssertionError):
+            check(setup_eng, sf.hbar)
+    assert calls == [(prog, {}), (prog, {"shots": 100})]
 
 
 class TestDarkCounts:
