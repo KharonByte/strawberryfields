@@ -52,8 +52,78 @@ def test_teleportation_fidelity(setup_eng, pure):
     assert np.allclose(fidelity, 1, atol=0.02, rtol=0)
 
 
+def _single_mode_covariance(state, mode):
+    """Recover signed covariance from full quadrature variances, including mixtures."""
+    vx = state.quad_expectation(mode, 0)[1]
+    vp = state.quad_expectation(mode, np.pi / 2)[1]
+    vplus = state.quad_expectation(mode, np.pi / 4)[1]
+    vxp = vplus - (vx + vp) / 2
+    covariance = np.array([[vx, vxp], [vxp, vp]])
+    assert covariance.shape == (2, 2)
+    assert np.isrealobj(covariance)
+    assert np.all(np.isfinite(covariance))
+    return covariance
+
+
+def _assert_gate_teleportation_covariance(state, hbar):
+    """Check the original comparator and independent ideal-homodyne references."""
+    cov1 = _single_mode_covariance(state, 2)
+    cov2 = _single_mode_covariance(state, 3)
+    assert np.allclose(cov1, cov2, atol=0.05, rtol=0)
+
+    # For this fixture, the measured commuting quadratures before Fourier.H are
+    # p0+x1 and p1+x0+x1/2+x2; the retained pair is x2, p2+x1.
+    # Their independent Gaussian conditional covariance is A-C M^-1 C.T.
+    u, v = np.exp(-0.2), np.exp(0.2)
+    large, small = np.exp(4), np.exp(-4)
+    measured = np.array([[v + large, large / 2], [large / 2, u + small + 5 * large / 4]])
+    cross = np.array([[0, large], [large, large / 2]])
+    retained = np.diag([large, large + small])
+    conditional = (hbar / 2) * (retained - cross @ np.linalg.solve(measured, cross.T))
+    direct = (hbar / 2) * np.array([[u + v / 4, -v / 2], [-v / 2, v]])
+    # Finite squeezing makes these two references different. Retain the original
+    # tolerance; this does not establish finite-cutoff conditional accuracy.
+    assert np.allclose(cov1, conditional, atol=0.05, rtol=0)
+    assert np.allclose(cov2, direct, atol=0.05, rtol=0)
+
+
+@pytest.mark.frontend
+@pytest.mark.parametrize("flip_cross_covariance", [False, True])
+def test_gate_teleportation_covariance_assertion(flip_cross_covariance):
+    """A cross-covariance sign error must not hide behind matching scalar invariants."""
+    # Independently evaluated finite-resource and direct covariances at hbar=1.7.
+    conditional = np.array(
+        [[0.9456867102451681, -0.4973912746680741], [-0.4973912746680741, 1.0256018928980049]]
+    )
+    direct = np.array(
+        [[0.9554692262253207, -0.5190961722180722], [-0.5190961722180722, 1.0381923444361444]]
+    )
+    actual = conditional.copy()
+    if flip_cross_covariance:
+        actual[0, 1] *= -1
+        actual[1, 0] *= -1
+    assert np.array_equal(np.diag(actual), np.diag(conditional))
+    assert np.trace(actual) == np.trace(conditional)
+    assert np.linalg.det(actual) == np.linalg.det(conditional)
+
+    class QuadratureState:
+        def quad_expectation(self, mode, phi):
+            direction = np.array([np.cos(phi), np.sin(phi)])
+            covariance = {2: actual, 3: direct}[mode]
+            return 0.0, direction @ covariance @ direction
+
+    state = QuadratureState()
+    reconstructed = _single_mode_covariance(state, 2)
+    assert np.allclose(reconstructed, actual, atol=0.05, rtol=0)
+    if flip_cross_covariance:
+        with pytest.raises(AssertionError):
+            _assert_gate_teleportation_covariance(state, 1.7)
+    else:
+        _assert_gate_teleportation_covariance(state, 1.7)
+
+
 @pytest.mark.backends("gaussian", "bosonic")
-def test_gaussian_gate_teleportation(setup_eng, pure):
+def test_gaussian_gate_teleportation(setup_eng, pure, hbar):
     """Test that gaussian states match after gate teleportation"""
     eng, prog = setup_eng(4)
     with prog.context as q:
@@ -80,15 +150,7 @@ def test_gaussian_gate_teleportation(setup_eng, pure):
 
     state = eng.run(prog).state
 
-    if eng.backend_name == "gaussian":
-        cov1 = state.reduced_gaussian(2)[1]
-        cov2 = state.reduced_gaussian(3)[1]
-
-    elif eng.backend_name == "bosonic":
-        cov1 = state.reduced_bosonic(2)[1]
-        cov2 = state.reduced_bosonic(3)[1]
-
-    assert np.allclose(cov1, cov2, atol=0.05, rtol=0)
+    _assert_gate_teleportation_covariance(state, hbar)
 
 
 @pytest.mark.backends("fock", "tf", "gaussian", "bosonic")

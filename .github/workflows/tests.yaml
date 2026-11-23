@@ -95,12 +95,19 @@ jobs:
           mkdir -p "$RESULTS"
           python -m pytest tests -q --tb=short -p no:warnings \
             --randomly-seed=42 -m "$OPTIONS" \
+            -p maintenance.skip_audit --skip-audit="$RESULTS/exclusion-ledger.jsonl" \
+            --audit-profile="${{ matrix.profile.id }}" \
             --cov=strawberryfields --cov-branch --cov-report=term \
             --cov-report="xml:$RESULTS/coverage.xml" \
             --junitxml="$RESULTS/tests.xml" 2>&1 | tee "$RESULTS/pytest.log"
 
       - name: Require the maintained backend checks to execute
-        run: python maintenance/check_required_tests.py "$RESULTS/tests.xml" "${{ matrix.profile.id }}"
+        run: |
+          python maintenance/check_required_tests.py "$RESULTS/tests.xml" "${{ matrix.profile.id }}"
+          python -m pytest maintenance/test_skip_audit.py -q
+          python maintenance/summarize_skip_audit.py "$RESULTS/exclusion-ledger.jsonl" \
+            "$RESULTS/tests.xml" --report-revision="$GITHUB_SHA" \
+            --output="$RESULTS/exclusion-summary.json"
 
       - name: Save test results, coverage and failure details
         if: always()

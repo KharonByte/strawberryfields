@@ -1,0 +1,1566 @@
+{
+  "source_revision": "d2e18ea769fa47bc4f438e8cab138f16208c578f",
+  "evidence": "Retained exact-revision CI run 44964564817, not newly executed tests.",
+  "limits": "Named-family mapping only. Historical 184 category-to-row membership was not retained; these groups are not claimed to partition or sum to 184. Parameter backend labels are parsed, not actual runtime backend observations.",
+  "families": {
+    "six_mode_bipartite_resource": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed_edgeset[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed_edgeset[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed_edgeset[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed_edgeset[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed_edgeset[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed_edgeset[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_bipartite_graph_embed[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "original_high_squeezing_gates": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CZgate[True-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CZgate[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CXgate[False-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_Pgate[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CXgate[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CXgate[True-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_Pgate[False-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_Pgate[True-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CXgate[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_Pgate[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CZgate[False-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CZgate[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CZgate[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CXgate[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_Pgate[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_Pgate[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CXgate[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestDecompositionsGaussianGates",
+        "name": "test_CZgate[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "random_three_mode_state_decomposition": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_mixed[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_pure[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_mixed[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_pure[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_mixed[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_pure[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_pure[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_mixed[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_pure[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_mixed[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_pure[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecomposeState",
+        "name": "test_random_state_mixed[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "random_active_three_mode_transforms": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_gaussian_transform[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_gaussian_transform[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_active_gaussian_transform_on_vacuum[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_active_gaussian_transform_on_vacuum[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_gaussian_transform[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_active_gaussian_transform_on_vacuum[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_active_gaussian_transform_on_vacuum[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_gaussian_transform[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_active_gaussian_transform_on_vacuum[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_gaussian_transform[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_active_gaussian_transform_on_vacuum[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_gaussian_transform[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "tf_graphs": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed[False-tf-72]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed[True-tf-72]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed[True-tf-72]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed[False-tf-72]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_measurement_integration.TestPostselection",
+        "name": "test_embed_graph[tf-True-48]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_measurement_integration.TestPostselection",
+        "name": "test_embed_graph[tf-False-48]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_measurement_integration.TestPostselection",
+        "name": "test_embed_graph[tf-True-48]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_measurement_integration.TestPostselection",
+        "name": "test_embed_graph[tf-False-48]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "mode_boundaries": [
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_modes.TestFockRepresentation",
+        "name": "test_normalized_add_mode[BosonicBackend-False]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_modes.TestFockRepresentation",
+        "name": "test_normalized_add_mode[BosonicBackend-True]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_modes.TestFockRepresentation",
+        "name": "test_normalized_del_mode[BosonicBackend-True]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_modes.TestFockRepresentation",
+        "name": "test_normalized_del_mode[GaussianBackend-False]",
+        "backend_label": "gaussian",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_modes.TestFockRepresentation",
+        "name": "test_normalized_del_mode[GaussianBackend-True]",
+        "backend_label": "gaussian",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_modes.TestFockRepresentation",
+        "name": "test_normalized_del_mode[BosonicBackend-False]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      }
+    ],
+    "bosonic_continuation_thermal": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.2-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.2-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.0-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.0-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-1.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-0.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-0.5-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-0.5-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-0.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-2.0-0.0-1.0-2]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-1.0-0.0-0.0-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-True-1.0-0.2-1.0-0]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_ops_integration.TestChannelApplication",
+        "name": "test_thermal_loss_multimode_moments[bosonic-False-2.0-0.2-0.5-1]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      }
+    ],
+    "bosonic_utility_and_sampling": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_utils_integration.TestInitialStatesAgreeFock",
+        "name": "test_cat_state[True-bosonic]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_utils_integration.TestInitialStatesAgreeFock",
+        "name": "test_fock_state[False-bosonic]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_utils_integration.TestInitialStatesAgreeFock",
+        "name": "test_fock_state[True-bosonic]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_utils_integration.TestInitialStatesAgreeFock",
+        "name": "test_cat_state[False-bosonic]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms",
+        "name": "test_boson_sampling_fock_probs[bosonic-True]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms",
+        "name": "test_boson_sampling_fock_probs[bosonic-False]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      }
+    ],
+    "tdm_template": [
+      {
+        "profile": "all-backends",
+        "classname": "frontend.compilers.test_tdm.TestBorealisCompiler",
+        "name": "test_compile_with_create_program",
+        "backend_label": null,
+        "status": "skip"
+      }
+    ],
+    "cloning": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_average_fidelity[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_average_fidelity[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_identical_output[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_identical_output[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_average_fidelity[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_identical_output[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_identical_output[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_average_fidelity[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_identical_output[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_average_fidelity[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_average_fidelity[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_algorithms.TestGaussianCloning",
+        "name": "test_identical_output[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "teleportation": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms",
+        "name": "test_gaussian_gate_teleportation[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms",
+        "name": "test_gaussian_gate_teleportation[False-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms",
+        "name": "test_gaussian_gate_teleportation[True-fock]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_algorithms",
+        "name": "test_gaussian_gate_teleportation[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_algorithms",
+        "name": "test_gaussian_gate_teleportation[True-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_algorithms",
+        "name": "test_gaussian_gate_teleportation[False-tf]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "state_accessors": [
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[BosonicBackend-True]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[BosonicBackend-False]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[FockBackend-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[FockBackend-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[BosonicBackend-False]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[BosonicBackend-True]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[FockBackend-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[FockBackend-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_coherent_methods[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "backend.test_states.TestBaseGaussianMethods",
+        "name": "test_squeezing_methods[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_displacement[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_displacement[FockBackend-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[FockBackend-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[FockBackend-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[FockBackend-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[GaussianBackend-True]",
+        "backend_label": "gaussian",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_displacement[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[FockBackend-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[GaussianBackend-False]",
+        "backend_label": "gaussian",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[GaussianBackend-True]",
+        "backend_label": "gaussian",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_displacement[FockBackend-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[GaussianBackend-False]",
+        "backend_label": "gaussian",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_displacement[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[TFBackend-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_displacement[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_weights[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "backend.test_states.TestBosonicState",
+        "name": "test_bosonic_purity[TFBackend-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ],
+    "compiler_identity": [
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[bosonic-True]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[bosonic-False]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[bosonic-False]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[bosonic-True]",
+        "backend_label": "bosonic",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[fock-True]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[fock-False]",
+        "backend_label": "fock",
+        "status": "skip"
+      },
+      {
+        "profile": "all-backends",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-pure",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[tf-True]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_identity_interferometer[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      },
+      {
+        "profile": "tensorflow-batched-mixed",
+        "classname": "integration.test_decompositions_integration.TestGaussianBackendDecompositions",
+        "name": "test_graph_embed_identity[tf-False]",
+        "backend_label": "tf",
+        "status": "skip"
+      }
+    ]
+  }
+}

@@ -1,5 +1,186 @@
 # Software-only coverage audit
 
+## Issue #26 reconciliation, 22 November 2026
+
+This is an inventory tranche, not completion of [#26](https://github.com/KharonByte/strawberryfields/issues/26)
+or numerical acceptance. No exclusion, simulator implementation, resource setting
+or numerical tolerance changes. The sections below this checkpoint retain the
+historical #25 audit and its evidence limits.
+
+Baseline: `d2e18ea769fa47bc4f438e8cab138f16208c578f`, after #49. The exact
+[push run 44964564817](https://github.com/KharonByte/strawberryfields/actions/runs/44964564817)
+passed all 15 configurations and `core-tests`. All 15 retained archives were
+downloaded, checked against GitHub's SHA-256 digests, and their JUnit reports
+rechecked with the unchanged coverage guard. These are retained hosted results,
+not newly executed local numerical tests. [The receipt](skip-audit-baseline.json)
+records archive/report hashes, outcome-identity hashes and coverage totals.
+
+| Profile, on each of Linux, Windows and macOS | Passed | Skipped | Xfail | Required checks |
+| --- | ---: | ---: | ---: | ---: |
+| All backends | 13,269 | 2,990 | 8 | 3,532 |
+| TF batch pure | 1,111 | 274 | 0 | 418 |
+| TF batch mixed | 1,106 | 279 | 0 | 417 |
+| Without TensorFlow | 10,819 | 2,275 | 8 | 2,657 |
+| Without TensorFlow/cloud | 10,804 | 2,276 | 8 | 2,657 |
+
+The sorted `(classname, name, outcome)` sets agree across the three operating
+systems for each profile, with no duplicate identities. Branch coverage differs
+by one covered branch in Linux TF mixed (0.2925 versus 0.2921); identity equality
+does not imply identical executed branches. These reports cover Python 3.12.3,
+the published pinned CPU environments and seed 42. They do not establish
+assertion quality or independent correctness merely by passing.
+
+### Historical 184 and the 72-row delta
+
+The historical follow-up categories sum to **184 = 81 + 91 + 12**. Their original
+row-to-category mapping was not retained. [The named-family ledger](skip-audit-families.json)
+records current identities for the described families, but is deliberately **not
+claimed to partition those 184 rows**. Reconstructing or replacing that missing
+mapping with individually reviewed classifications remains unfinished.
+
+The added 72 unbatched exclusions are the exact Cartesian set introduced by
+[#44](https://github.com/KharonByte/strawberryfields/pull/44):
+`TestBoundedGaussianGates.test_{Pgate,CXgate,CZgate}` × strengths
+`{-0.25,0.0,0.25}` × hbar `{1.0,2.0}` × storage starts `{True,False}` ×
+`{gaussian,bosonic}`, at cutoff 20. Their Fock/TF backend marker excludes these
+Gaussian/Bosonic combinations. Every expected identity is present and skipped.
+They are unrelated to the historical 72 Bosonic thermal-continuation rows.
+[#47](https://github.com/KharonByte/strawberryfields/pull/47) already reported
+2,990 unbatched skips; this increase was not introduced by #49.
+
+Across added test modules since #25 these are the only new skipped/xfail rows in
+the three named profiles. Source comparison found no change to the original
+exclusion-bearing modules, shared fixtures or selection/dependency configuration;
+changes to pre-existing subgraph/guard tests remove no exclusion path. This
+supports the added-source explanation. Without the old raw JUnit, exact historical
+outcome-set equality and all possible runtime offsets remain unverified.
+
+Added bounded P/CX/CZ, distinct number-state moments, nonzero photon variance,
+and correlated Gaussian preparation tests provide additional guarded coverage.
+They do not remove the original high-squeezing/random-input exclusions or repair
+every legacy assertion. In particular, the legacy photon-statistics comparisons
+still permit scalar broadcasting; separate shape/distinct-member checks must
+not be described as a rewrite of those assertions.
+
+The original #24 head `3c32e19fd7f7db735bc1db6a88ac6cd3075b2331` is tree-identical
+to merge `1155e8c078e4b41e123f84c015dd72d29e89a3a0`. #25 was based on that merge;
+head `4b116dc4b6a167591e7b4911fb85e1de91621c71` is tree-identical to merge
+`3695e539121be0bc708f6a883905ceb1c356affc`. Their fixtures, tests and guards are
+reused. Historical body-reported test refs are not substituted for these merged
+contents or for the exact baseline run above.
+
+### Classification criteria and remaining work
+
+Classify each identity only after inspecting the applicable API/compiler contract:
+
+- **Unsupported contract:** cite the unavailable operation or representation;
+  a reason string or inherited marker is insufficient.
+- **Precondition/dependency:** name the input or installed-dependency condition,
+  with its corresponding supported profile/control.
+- **Resource-sensitive:** calculate or measure the allocation, retain per-test
+  limits, and investigate a bounded independent oracle before enabling it.
+- **Supported defect:** retain an actual reproducer and exact environment,
+  distinct from an unsupported feature. Historical observations stay historical.
+- **Assertion/coverage gap:** the path may execute, but independent expectations,
+  full shapes or every batch member are not established.
+- **Unresolved:** missing contracts, identity mapping, qualification or evidence
+  cannot be converted into support merely to reduce skip counts.
+
+No new numerical decision is made here. Enabling numerical cases still requires
+qualified independent assessment and expectations fixed before execution, with
+every original tolerance and both TF batch/resource constraints preserved.
+The old resource estimate for a six-mode dense state remains a lower-bound
+allocation calculation, not a measured execution budget.
+
+Bosonic zero-mode insertion and registration of multiple inserted modes relate
+to existing [draft #50](https://github.com/KharonByte/strawberryfields/pull/50),
+inspected at `1e38992363aef22c1e030edecb80e84e61deb8c1`. It is unmerged and is
+not treated as a baseline fix. Empty-system density conversion and final-mode
+deletion/fidelity are separate questions outside that draft.
+
+Source inventory also found `BackendOnly.test_squeeze_variance` in
+`tests/integration/test_hbar_integration.py`: its class name prevents collection.
+It is neither a runtime skip nor a deselected test. Missing TensorFlow removes
+fixture parametrizations and skips whole modules; missing cloud skips the remote
+API module. A complete audit must include these collection omissions as well
+as the recorded runtime rows, semantic duplicate parameter tuples, batch-member
+assertions and the eight existing expected failures. The named family ledger
+does not close any of those obligations.
+
+### Local TDM contract diagnosis
+
+At `26f674a183eeee8f01d6267648d72b16a1361a41`, the single skipped Borealis
+`test_compile_with_create_program` row is a local contract investigation, not
+evidence of a hardware requirement. A bounded execution of its original body
+with NumPy seed 42 first fails range validation for `r0`; the separately checked
+`loop0_phase=4` also exceeds its allowed range. The fixture additionally mixes
+loop-array names 1–3 with scalar/range names 0–2, rank-one inputs and scalar
+placeholders for array values. These are distinct from the public API failure.
+
+With Blackbird 0.5.0, a two-bin control using distinct rank-two array bindings
+and a separately named scalar preserves every expected value and position.
+Rank-one input is rejected; using the same keyword as an array and a bare scalar
+is also rejected. A corrected 259-bin local fixture binds successfully and its
+explicit `compile(device=...)` control returns the expected distinct compiled
+program. The public `create_program` path on that same fixture fails from fresh
+compiler state because it supplies no device layout. An explicitly warmed
+diagnostic instead reaches a missing-device-certificate error. Neither is a
+successful public compilation. A separate supported Xcov control confirms that
+`create_program` returns the original program rather than the linked compiled
+copy. The skipped row remains excluded; production API changes, phase-compensation
+accuracy and remote hardware execution are outside this audit tranche.
+
+The required-case guard also rejects missing or duplicate consumed setup fields,
+including identical duplicates. A conflicting value must not become acceptable
+merely because the correct value appears last in JUnit properties. Regression
+controls cover both duplicate orders in the unbatched and both TF batch profiles;
+unrelated repeated note properties remain allowed. The retained passing reports
+contained no duplicates in these configuration fields, so this guard repair
+does not revise their numerical outcomes or relax any test criterion.
+
+### Reproducible observation ledger
+
+The CI test command now loads `maintenance.skip_audit`. Its JSONL artifact records
+pre-selection identities/parameters/markers, deselection, collection skips,
+setup/call/teardown reports and unmodified user properties. It records only an
+allowlist of environment settings. A missing final event or unsuccessful exit
+is incomplete evidence. Requested profile/environment settings are distinct from
+reported setup/state settings; absent settings remain unknown. Objects whose
+parameters cannot be serialized are explicitly labelled, not silently treated
+as semantic duplicates.
+
+`maintenance/summarize_skip_audit.py` reconciles the ledger with JUnit, rejecting
+missing/duplicate identities, inconsistent selection, failed execution and
+contradictory runtime outcomes. It leaves support classification **unreviewed**.
+Collection-only ledgers can be joined to externally verified exact-revision
+JUnit; this is labelled retained runtime evidence rather than a new local run.
+An externally supplied revision label is not cryptographic provenance.
+
+Example for the published TF pure profile, from the repository root:
+
+```bash
+env -u BATCHSIZE BATCHED=1 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+  MKL_NUM_THREADS=1 NUMBA_NUM_THREADS=1 TF_NUM_INTRAOP_THREADS=1 \
+  TF_NUM_INTEROP_THREADS=1 PYTHONNOUSERSITE=1 CUDA_VISIBLE_DEVICES=-1 \
+  SYMPY_USE_CACHE=no timeout --signal=TERM --kill-after=10s 900s \
+  .venv/bin/python -m pytest tests -q --tb=short -p no:warnings \
+  --randomly-seed=42 -m 'tf and pure' -p maintenance.skip_audit \
+  --skip-audit=maintenance/artifacts/pure-ledger.jsonl \
+  --audit-profile=tensorflow-batched-pure \
+  --junitxml=maintenance/artifacts/pure.xml
+.venv/bin/python maintenance/summarize_skip_audit.py \
+  maintenance/artifacts/pure-ledger.jsonl maintenance/artifacts/pure.xml \
+  --report-revision="$(git rev-parse HEAD)" \
+  --output=maintenance/artifacts/pure-summary.json
+```
+
+Use `BATCHED=0` and `-m ''` for all backends, or `BATCHED=1` and `-m 'tf and mixed'`
+for mixed batching. Explicitly clear `BATCHSIZE`, which overrides `BATCHED=0`.
+For collection-only reconciliation add `--collect-only` and use a retained,
+verified JUnit report; collection alone is not a passing numerical baseline.
+The 900-second local checkpoint is operational, not a new support limit; an
+interrupted run remains incomplete. CI retains its existing 120-minute job limit.
+
 ## Evidence scope
 
 The numerical error values and diagnostic outcomes below are historical audit
@@ -83,7 +264,7 @@ requires pure Fock and both Gaussian controls, with no new TF requirements.
 Mixed Fock remains excluded before execution: its density matrix at cutoff 72
 alone would require about 2,076 GiB. No simulator code or default cutoff changes.
 
-The remaining inventory contains **2,918 unbatched skips, 274 TensorFlow pure
+The historical #25 inventory contained **2,918 unbatched skips, 274 TensorFlow pure
 batch skips and 279 mixed batch skips**. These are configuration rows,
 not distinct unsupported features. Eight existing expected
 failures are separate from these totals.

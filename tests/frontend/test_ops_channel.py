@@ -53,17 +53,17 @@ class TestChannelBasics:
         merged = G.merge(ops.ThermalLossChannel(b, c))
         assert np.allclose(merged.p[0], a * b, atol=tol, rtol=0)
 
-    def test_thermalloss_merging_different_nbar(self, tol):
-        """test the merging of two Loss channels with same nbar raises exception"""
-        G = ops.ThermalLossChannel(a, 2 * c)
+    def test_thermalloss_merging_unequal_nbar(self):
+        """Thermal-loss channels with unequal occupations cannot be merged."""
+        G = ops.ThermalLossChannel(0.4, 0.4)
         with pytest.raises(MergeFailure):
-            merged = G.merge(ops.ThermalLossChannel(b, c))
+            G.merge(ops.ThermalLossChannel(0.6, 0.2))
 
-    def test_thermalloss_merging_different_nbar(self, tol):
-        """test the merging of Loss and ThermalLoss raises exception"""
-        G = ops.ThermalLossChannel(a, 2 * c)
+    def test_thermalloss_merging_different_channel_family(self):
+        """Loss and thermal-loss channels cannot be merged together."""
+        G = ops.ThermalLossChannel(0.4, 0.4)
         with pytest.raises(MergeFailure):
-            merged = G.merge(ops.LossChannel(b))
+            G.merge(ops.LossChannel(0.6))
 
     @pytest.mark.parametrize("M", range(1, 5))
     def test_passive_merging(self, M, tol):

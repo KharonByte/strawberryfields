@@ -607,6 +607,52 @@ def test_state_reduction_requires_requested_unit_evidence(reduction_report):
 @pytest.mark.parametrize(
     "configuration", ["all-backends", "tensorflow-batched-pure", "tensorflow-batched-mixed"]
 )
+@pytest.mark.parametrize("field", ["setup_hbar", "requested_hbar", "cutoff", "batch_size"])
+@pytest.mark.parametrize("corruption", ["missing", "wrong_first", "wrong_last", "identical"])
+def test_generic_configuration_requires_single_values(
+    reduction_report, configuration, field, corruption
+):
+    """Conflicting evidence cannot become valid merely by reordering properties."""
+    _, save = reduction_report
+    path = save(configuration)
+    tree = ET.parse(path)
+    state = "False" if configuration.endswith("mixed") else "True"
+    case = next(item for item in tree.getroot() if f"tf-{state}-" in item.get("name"))
+    properties = case.find("properties")
+    original = properties.find(f"property[@name='{field}']")
+    if corruption == "missing":
+        properties.remove(original)
+    else:
+        duplicate = deepcopy(original)
+        if corruption != "identical":
+            duplicate.set("value", "999")
+        if corruption == "wrong_first":
+            properties.insert(0, duplicate)
+        else:
+            properties.append(duplicate)
+    tree.write(path)
+    with pytest.raises(ValueError, match="setup configuration"):
+        verify(path, configuration)
+
+
+@pytest.mark.parametrize(
+    "configuration,expected",
+    [("all-backends", 36), ("tensorflow-batched-pure", 18), ("tensorflow-batched-mixed", 18)],
+)
+def test_generic_configuration_preserves_unrelated_properties(
+    reduction_report, configuration, expected
+):
+    """Only consumed configuration fields must be unique, not arbitrary test notes."""
+    root, save = reduction_report
+    for case in root:
+        for value in ("before", "after"):
+            ET.SubElement(case.find("properties"), "property", name="note", value=value)
+    assert verify(save(configuration), configuration) == expected
+
+
+@pytest.mark.parametrize(
+    "configuration", ["all-backends", "tensorflow-batched-pure", "tensorflow-batched-mixed"]
+)
 @pytest.mark.parametrize("corruption", [None, "skipped", "missing_state", "ambiguous_state"])
 def test_storage_first_labels(tmp_path, monkeypatch, configuration, corruption):
     """Legacy storage-first IDs must be counted without accepting conflicting labels."""

@@ -765,21 +765,20 @@ def verify(report, configuration):
                             for prop in case.findall("./properties/property")
                         }
                         try:
+                            fields = {"setup_hbar", "cutoff", "batch_size"}
+                            if classname in PARAMETRIZED_UNITS:
+                                fields.add("requested_hbar")
+                            # A last-value-wins dict must not conceal conflicting evidence.
+                            for field in fields:
+                                assert (
+                                    len(case.findall(f"./properties/property[@name='{field}']"))
+                                    == 1
+                                )
                             setup_hbar = float(properties["setup_hbar"])
                             units[setup_hbar] += 1
                             if classname in PARAMETRIZED_UNITS:
                                 assert setup_hbar == float(properties["requested_hbar"])
                             if (classname, function) in BOUNDED_GATE_CONTRACTS:
-                                for field in (
-                                    "setup_hbar",
-                                    "requested_hbar",
-                                    "cutoff",
-                                    "batch_size",
-                                ):
-                                    assert (
-                                        len(case.findall(f"./properties/property[@name='{field}']"))
-                                        == 1
-                                    )
                                 assert setup_hbar == float(properties["parameter_hbar"])
                             assert int(properties["cutoff"]) == REQUIRED_CUTOFFS.get(
                                 (classname, function), 6
