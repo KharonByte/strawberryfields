@@ -81,6 +81,11 @@ jobs:
           python -m pytest -q --tb=short --disable-warnings
           -m "not tf" tests/backend/test_state_reduction.py
           --junitxml=maintenance/artifacts/state-reduction.xml
+      - name: Run the bosonic Fock-conversion regression tests
+        run: >-
+          python -m pytest -q --tb=short --disable-warnings
+          tests/backend/test_bosonic_fock_conversion.py
+          --junitxml=maintenance/artifacts/bosonic-fock-conversion.xml
       - name: Save the test report
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
